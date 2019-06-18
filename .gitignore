@@ -1,0 +1,42 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+#
+core-backend
+core-database
+touchbistro-ordering-service
+legacy-bridge-manage
+touchbistro-manage-database
+provisioning-service
+health-clinic
+cloud-server
+cloud-server-frontend
+touchbistro-ordering-service
+touchbistro-ordering-gateway-sample
+touchbistro-ordering-frontend
+ordering-deliveroo
+touchbistro-partner-config
+touchbistro-etl
+touchbistro-node-legacy-cloud
+touchbistro-orchestration-partner
+
+# vim
+*.swp
+*.swo
+*.swn
+.DS_Store
+dotnet-depot/.DS_Store
+services.txt
+tb
