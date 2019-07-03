@@ -3,18 +3,14 @@ package cmd
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra"
 )
 
-// wack but I'm just copying core-devtools for now
-// should probably rename this to something less wack later
-var cmdCmd = &cobra.Command{
-	Use:   "cmd <service-name> <command> [additional-commands...]",
+var execCmd = &cobra.Command{
+	Use:   "exec <service-name> <command> [additional-commands...]",
 	Short: "executes a command in a service container",
 	Args:  cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -28,12 +24,7 @@ var cmdCmd = &cobra.Command{
 		cmds := strings.Join(args[1:], " ")
 		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
 
-		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		execCmd.Stdin = os.Stdin
-
-		err = execCmd.Run()
+		err = util.ExecStdoutStderr("docker-compose", strings.Fields(cmdStr)...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -41,5 +32,5 @@ var cmdCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(cmdCmd)
+	RootCmd.AddCommand(execCmd)
 }
