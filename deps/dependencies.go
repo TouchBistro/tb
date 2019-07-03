@@ -1,13 +1,11 @@
-package cmd
+package deps
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"runtime"
 
 	"github.com/TouchBistro/tb/util"
-	"github.com/spf13/cobra"
 )
 
 // Dependency is an os dependency needed to run core-devtools
@@ -73,64 +71,55 @@ var deps = []Dependency{
 	Dependency{
 		Name: "docker",
 		BeforeInstall: func() error {
-			err := util.ExecStdoutStderr("brew", "tap", "caskroom/versions")
+			err := util.Exec("brew", "tap", "caskroom/versions")
 			return err
 		},
 		InstallCmd: []string{"brew", "cask", "install", "docker"},
 	},
 }
 
-var depsCmd = &cobra.Command{
-	Use:   "deps",
-	Short: "Installs deps needed to run all core-devtools commands",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("checking dependencies...")
+func Resolve() error {
+	fmt.Println("checking dependencies...")
 
-		if runtime.GOOS != "darwin" {
-			fmt.Println("tb currently supports Darwin (MacOS) only for installing dependencies.")
-			fmt.Println("if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
-			os.Exit(1)
+	if runtime.GOOS != "darwin" {
+		fmt.Println("tb currently supports Darwin (MacOS) only for installing dependencies.")
+		fmt.Println("if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
+		os.Exit(1)
+	}
+
+	for _, dep := range deps {
+		if util.IsCommandAvailable(dep.Name) {
+			fmt.Printf("%s was found.\n", dep.Name)
+			continue
+		} else {
+			fmt.Printf("%s was NOT found.\n", dep.Name)
 		}
 
-		for _, dep := range deps {
-			if util.IsCommandAvailable(dep.Name) {
-				fmt.Printf("%s was found.\n", dep.Name)
-				continue
-			} else {
-				fmt.Printf("%s was NOT found.\n", dep.Name)
-			}
+		fmt.Printf("installing %s.\n", dep.Name)
 
-			fmt.Printf("installing %s.\n", dep.Name)
-
-			if dep.BeforeInstall != nil {
-				err := dep.BeforeInstall()
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-
-			installCmd := dep.InstallCmd[0]
-			installArgs := dep.InstallCmd[1:]
-
-			err := util.ExecStdoutStderr(installCmd, installArgs...)
+		if dep.BeforeInstall != nil {
+			err := dep.BeforeInstall()
 			if err != nil {
-				log.Fatal(err)
+				return err
 			}
-
-			if dep.AfterInstall != nil {
-				err := dep.AfterInstall()
-				if err != nil {
-					log.Fatal(err)
-				}
-			}
-
-			fmt.Printf("finished installing %s.\n", dep.Name)
 		}
 
-		log.Println("...done")
-	},
-}
+		installCmd := dep.InstallCmd[0]
+		installArgs := dep.InstallCmd[1:]
 
-func init() {
-	RootCmd.AddCommand(depsCmd)
+		err := util.Exec(installCmd, installArgs...)
+		if err != nil {
+			return err
+		}
+
+		if dep.AfterInstall != nil {
+			err := dep.AfterInstall()
+			if err != nil {
+				return err
+			}
+		}
+
+		fmt.Printf("finished installing %s.\n", dep.Name)
+	}
+	return nil
 }

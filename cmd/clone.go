@@ -25,7 +25,7 @@ var cloneCmd = &cobra.Command{
 			fmt.Printf("%s is missing. cloning...\n", s.Name)
 
 			repoURL := fmt.Sprintf("git@github.com:TouchBistro/%s.git", s.Name)
-			err := util.ExecStdoutStderr("git", "clone", repoURL)
+			err := util.Exec("git", "clone", repoURL)
 			if err != nil {
 				log.Fatal(err)
 			}

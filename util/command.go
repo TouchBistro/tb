@@ -14,10 +14,13 @@ func IsCommandAvailable(command string) bool {
 	return true
 }
 
-func ExecStdoutStderr(name string, arg ...string) error {
+func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
+
+	// TODO: Pass an io.Writer / io.Reader for each, use os as defaults
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Stdin = os.Stdin
 
 	err := cmd.Run()
 	return err
