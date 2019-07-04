@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/deps"
-	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/git"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/src/config"
+	"github.com/TouchBistro/tb/src/deps"
+	"github.com/TouchBistro/tb/src/docker"
+	"github.com/TouchBistro/tb/src/git"
+	"github.com/TouchBistro/tb/src/util"
 	"github.com/spf13/cobra"
 )
 
@@ -42,15 +42,24 @@ var upCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
+
+		// ECR Login
+		err = docker.ECRLogin()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Println("...done")
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
-		start, _ := cmd.PersistentFlags().GetBool("start-servers")
-		fmt.Println("starting server option enabled", start)
-		if start {
-			os.Setenv("START_SERVER", "true")
-		} else {
+
+		noStartServers, _ := cmd.PersistentFlags().GetBool("no-start-servers")
+		fmt.Println("starting server option enabled", noStartServers)
+		if noStartServers {
 			os.Setenv("START_SERVER", "false")
+		} else {
+			os.Setenv("START_SERVER", "true")
 		}
 
 		// Stop running docker containers
@@ -94,17 +103,19 @@ var upCmd = &cobra.Command{
 				continue
 			}
 
-			var composeName string
 			if s.ECR {
-				composeServiceNames = append(composeServiceNames, composeName+"ecr")
+				composeServiceNames = append(composeServiceNames, s.Name+"-ecr")
 			} else {
-				composeServiceNames = append(composeServiceNames, composeName)
+				composeServiceNames = append(composeServiceNames, s.Name)
 			}
 
 			selectedServices = append(selectedServices, s)
 		}
 
+		fmt.Println(composeServiceNames)
+
 		// Pull Latest ECR images
+		fmt.Println("Pulling the latest ecr images...")
 		for _, s := range selectedServices {
 			if s.ECR {
 				err := docker.Pull(s.ImageURI)
@@ -113,8 +124,10 @@ var upCmd = &cobra.Command{
 				}
 			}
 		}
+		fmt.Println("...done")
 
 		// Pull latest github repos
+		fmt.Println("Pulling the latest git branch...")
 		for _, s := range selectedServices {
 			if s.IsGithubRepo && !s.ECR {
 				err := git.Pull(s.Name)
@@ -123,16 +136,17 @@ var upCmd = &cobra.Command{
 				}
 			}
 		}
+		fmt.Println("...done")
 
 		// Start building enabled services
-		buildArgs := fmt.Sprintf("%s build --parallel %s", composeFiles, composeServiceNames)
+		buildArgs := fmt.Sprintf("%s build --parallel %s", composeFiles, strings.Join(composeServiceNames, " "))
 		err = util.Exec("docker-compose", strings.Fields(buildArgs)...)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		reset, _ := cmd.PersistentFlags().GetBool("reset-db")
-		if reset {
+		skipDBReset, _ := cmd.PersistentFlags().GetBool("no-db-reset")
+		if !skipDBReset {
 			fmt.Println("Performing database migrations and seeds...")
 			for _, s := range selectedServices {
 				if !s.Migrations {
@@ -141,7 +155,7 @@ var upCmd = &cobra.Command{
 
 				var composeName string
 				if s.ECR {
-					composeName = s.Name + "ecr"
+					composeName = s.Name + "-ecr"
 				} else {
 					composeName = s.Name
 				}
@@ -166,7 +180,7 @@ var upCmd = &cobra.Command{
 		// TODO: Launch lazydocker instead.
 		// Running up without detaching to see all logs in a single stream.
 		fmt.Println("Running docker-compose up...")
-		upArgs := fmt.Sprintf("%s up --abort-on-container-exit %s", composeFiles, composeServiceNames)
+		upArgs := fmt.Sprintf("%s up --abort-on-container-exit %s", composeFiles, strings.Join(composeServiceNames, " "))
 		err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 		if err != nil {
 			log.Fatal(err)
@@ -175,8 +189,8 @@ var upCmd = &cobra.Command{
 }
 
 func init() {
-	upCmd.PersistentFlags().Bool("start-servers", true, "start servers with yarn start or yarn serve on container boot")
-	upCmd.PersistentFlags().Bool("reset-db", true, "reset databases (calls yarn db:prepare && yarn db:prepare:test on every service with migrations)")
+	upCmd.PersistentFlags().Bool("no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
+	upCmd.PersistentFlags().Bool("no-db-reset", false, "dont reset databases with yarn db:prepare")
 
 	RootCmd.AddCommand(upCmd)
 }

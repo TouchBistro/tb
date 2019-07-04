@@ -5,7 +5,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/src/util"
 )
 
 // Dependency is an os dependency needed to run core-devtools

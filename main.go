@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TouchBistro/tb/cmd"
-	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/src/cmd"
+	"github.com/TouchBistro/tb/src/config"
 )
 
 func main() {

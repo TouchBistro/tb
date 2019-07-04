@@ -2,7 +2,7 @@ package git
 
 import (
 	"fmt"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/src/util"
 )
 
 func Clone(repoName string) error {

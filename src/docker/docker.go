@@ -2,12 +2,26 @@ package docker
 
 import (
 	"fmt"
-	"github.com/TouchBistro/tb/util"
+	"os/exec"
+	"strings"
+
+	"github.com/TouchBistro/tb/src/util"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
+
+func ECRLogin() error {
+	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
+	if err != nil {
+		return err
+	}
+
+	dockerLoginArgs := strings.Fields(string(out))
+	err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	return nil
+}
 
 func Pull(imageURI string) error {
 	err := util.Exec("docker", "pull", imageURI)
@@ -48,7 +62,6 @@ func RmContainers() error {
 	}
 
 	for _, container := range containers {
-		fmt.Println(container.ID)
 		if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
 			return err
 		}

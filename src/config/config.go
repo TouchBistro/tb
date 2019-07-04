@@ -35,7 +35,7 @@ func All() *[]Service {
 
 func BaseImages() []string {
 	return []string{
-		"alpine-node:10-build",
-		"alpine-node:10-runtime",
+		"touchbistro/alpine-node:10-build",
+		"touchbistro/alpine-node:10-runtime",
 	}
 }

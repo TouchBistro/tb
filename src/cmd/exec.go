@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/TouchBistro/tb/deps"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/src/deps"
+	"github.com/TouchBistro/tb/src/util"
 	"github.com/spf13/cobra"
 )
 
