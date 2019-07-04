@@ -121,5 +121,26 @@
     "migrations": false,
     "ecr": true,
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-cloud-service:develop"
+  },
+  {
+    "name": "venue-admin-frontend",
+    "repo": true,
+    "migrations": false,
+    "ecr": true,
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/admin-service:master"
+  },
+  {
+    "name": "touchbistro-user-profile-service",
+    "repo": true,
+    "migrations": false,
+    "ecr": true,
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-identity-user:develop"
+  },
+  {
+    "name": "mokta",
+    "repo": true,
+    "migrations": true,
+    "ecr": true,
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/mokta:develop"
   }
 ]
