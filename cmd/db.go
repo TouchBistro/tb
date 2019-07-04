@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/TouchBistro/tb/deps"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +18,13 @@ var dbCmd = &cobra.Command{
 	Use:   "db <db-name>",
 	Short: "Connects to the database in a service",
 	Args:  cobra.ExactArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		// TODO only check for pgcli and mssql-cli
+		err := deps.Resolve()
+		if err != nil {
+			log.Fatal(err)
+		}
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var cli, cmdStr string
 		dbName := args[0]

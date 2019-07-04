@@ -26,7 +26,11 @@ var deps = []Dependency{
 		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
 	},
 	Dependency{
-		Name:       "pgcli",
+		Name: "pgcli",
+		BeforeInstall: func() error {
+			err := util.Exec("brew", "tap", "dbcli/tap")
+			return err
+		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
 	},
 	Dependency{
