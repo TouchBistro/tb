@@ -31,6 +31,10 @@ touchbistro-partner-config
 touchbistro-etl
 touchbistro-node-legacy-cloud
 touchbistro-orchestration-partner
+touchbistro-user-profile-service
+venue-admin-frontend
+mokta
+
 
 # vim
 *.swp
