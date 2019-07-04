@@ -5,13 +5,13 @@ import (
 	"os"
 )
 
-var config *Config
+var config *[]Service
 
-type Config []struct {
+type Service struct {
 	Name         string `json:"name"`
 	IsGithubRepo bool   `json:"repo"`
 	Migrations   bool   `json:"migrations"`
-	HasECRImage  bool   `json:"ecr"`
+	ECR          bool   `json:"ecr"`
 	ImageURI     string `json:"imageURI"`
 }
 
@@ -29,7 +29,7 @@ func Init(path string) error {
 	return err
 }
 
-func All() *Config {
+func All() *[]Service {
 	return config
 }
 
