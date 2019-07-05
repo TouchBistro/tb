@@ -67,32 +67,32 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server-frontend:develop"
   },
   {
-    "name": "touchbistro-ordering-service",
+    "name": "ordering-ooa-service",
     "repo": true,
     "migrations": true,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-service:develop"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:develop"
   },
   {
-    "name": "touchbistro-ordering-frontend",
+    "name": "ordering-gateways-frontend",
     "repo": true,
     "migrations": false,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-frontend:develop"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:develop"
   },
   {
     "name": "ordering-deliveroo-service",
     "repo": true,
     "migrations": true,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:develop"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-deliveroo-service:develop"
   },
   {
     "name": "ordering-demo-frontend",
     "repo": true,
     "migrations": true,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-gateway:develop"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-demo-frontend:develop"
   },
   {
     "name": "touchbistro-etl",

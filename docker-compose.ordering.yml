@@ -42,10 +42,10 @@ x-nodeservice:
   << : *json-logger-config
   HTTP_PORT: 8080
 
-x-touchbistro-ordering-service-boilerplate:
-  &touchbistro-ordering-service-boilerplate
+x-ordering-ooa-service-boilerplate:
+  &ordering-ooa-service-boilerplate
   env_file:
-    - ./touchbistro-ordering-service/.env.example
+    - ./ordering-ooa-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
@@ -113,7 +113,7 @@ x-ordering-demo-frontend-boilerplate:
     << : *node-service
     DELIVEROO_BASE_URL: http://ordering-deliveroo-service-ecr:8080
     DELIVEROO_DISABLED: 'false'
-    ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
     URL_CALLBACK_URL: http://ordering-demo-frontend-ecr:8080/callback
   ports:
     - "8010:8080"
@@ -128,21 +128,21 @@ x-ordering-demo-frontend-venue-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    INVENUE_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
+    INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
     MODE: venue
   ports:
     - "8020:8080"
   depends_on:
     - postgres
 
-x-touchbistro-ordering-frontend-boilerplate:
-  &touchbistro-ordering-frontend-boilerplate
+x-ordering-gateways-frontend-boilerplate:
+  &ordering-gateways-frontend-boilerplate
   env_file:
-    - ./touchbistro-ordering-frontend/.env.example
+    - ./ordering-gateways-frontend/.env.example
   environment:
     << : *node-service
-    ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
-    ORDERING_INTERNAL_BASE_URL: http://touchbistro-ordering-service-ecr:8080/internal 
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service-ecr:8080/internal 
   ports:
     - "8030:8080"
 
@@ -155,7 +155,7 @@ x-ordering-deliveroo-service-boilerplate:
     << : *postgres-connect
     << : *node-service
     DELIVEROO_BASE_URL: http://ordering-demo-frontend-ecr:8080/deliveroo
-    ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
     URL_BASE_URL: http://ordering-deliveroo-service-ecr:8080
   ports:
     - "8015:8080"
@@ -163,26 +163,26 @@ x-ordering-deliveroo-service-boilerplate:
     - postgres
 
 services:
-  touchbistro-ordering-service-ecr:
-    << : *touchbistro-ordering-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-service:develop
-    container_name: ordering-devtools_touchbistro-ordering-service-ecr_container
+  ordering-ooa-service-ecr:
+    << : *ordering-ooa-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:develop
+    container_name: ordering-devtools_ordering-ooa-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-ordering-service:
-    << : *touchbistro-ordering-service-boilerplate
+  ordering-ooa-service:
+    << : *ordering-ooa-service-boilerplate
     build:
       target: dev
-      context: ./touchbistro-ordering-service
+      context: ./ordering-ooa-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: ordering-devtools_touchbistro-ordering-service
-    container_name: ordering-devtools_touchbistro-ordering-service_container
+    image: ordering-devtools_ordering-ooa-service
+    container_name: ordering-devtools_ordering-ooa-service_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-ordering-service:/home/node/app:delegated
-      - touchbistro-ordering-service-node_modules:/home/node/app/node_modules
+      - ./ordering-ooa-service:/home/node/app:delegated
+      - ordering-ooa-service-node_modules:/home/node/app/node_modules
 
   ordering-demo-frontend-ecr:
     << : *ordering-demo-frontend-boilerplate
@@ -220,7 +220,7 @@ services:
     environment:
       << : *postgres-connect
       << : *node-service
-      INVENUE_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
+      INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
       MODE: venue
     volumes:
       - ./ordering-demo-frontend:/home/node/app:delegated
@@ -230,26 +230,26 @@ services:
     depends_on:
       - postgres
 
-  touchbistro-ordering-frontend-ecr:
-    << : *touchbistro-ordering-frontend-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-frontend:develop
-    container_name: ordering-devtools_touchbistro-ordering-frontend-ecr_container
+  ordering-gateways-frontend-ecr:
+    << : *ordering-gateways-frontend-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:develop
+    container_name: ordering-devtools_ordering-gateways-frontend-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-ordering-frontend:
-    << : *touchbistro-ordering-frontend-boilerplate
+  ordering-gateways-frontend:
+    << : *ordering-gateways-frontend-boilerplate
     build:
       target: dev
-      context: ./touchbistro-ordering-frontend
+      context: ./ordering-gateways-frontend
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: ordering-devtools_touchbistro-ordering-frontend
-    container_name: ordering-devtools_touchbistro-ordering-frontend_container
+    image: ordering-devtools_ordering-gateways-frontend
+    container_name: ordering-devtools_ordering-gateways-frontend_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-ordering-frontend:/home/node/app:delegated
-      - touchbistro-ordering-frontend-node_modules:/home/node/app/node_modules
+      - ./ordering-gateways-frontend:/home/node/app:delegated
+      - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
 
   ordering-deliveroo-service-ecr:
     << : *ordering-deliveroo-service-boilerplate
@@ -273,8 +273,8 @@ services:
       - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
 
 volumes:
-  touchbistro-ordering-service-node_modules:
+  ordering-ooa-service-node_modules:
   ordering-demo-frontend-node_modules:
   ordering-demo-frontend-venue-node_modules:
   ordering-deliveroo-service-node_modules:
-  touchbistro-ordering-frontend-node_modules:
+  ordering-gateways-frontend-node_modules:

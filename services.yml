@@ -20,9 +20,9 @@ playlists:
   ordering:
     - postgres
     - localstack
-    - touchbistro-ordering-service
-    - touchbistro-ordering-frontend
-    - ordering-deliveroo
+    - ordering-ooa-service
+    - ordering-gateways-frontend
+    - ordering-deliveroo-service
     - ordering-demo-frontend
     - ordering-demo-frontend-venue
   partners:
