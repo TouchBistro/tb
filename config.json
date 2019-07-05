@@ -81,7 +81,7 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-frontend:develop"
   },
   {
-    "name": "ordering-deliveroo",
+    "name": "ordering-deliveroo-service",
     "repo": true,
     "migrations": true,
     "ecr": true,

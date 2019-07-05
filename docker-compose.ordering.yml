@@ -111,7 +111,7 @@ x-ordering-demo-frontend-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    DELIVEROO_BASE_URL: http://ordering-deliveroo-ecr:8080
+    DELIVEROO_BASE_URL: http://ordering-deliveroo-service-ecr:8080
     DELIVEROO_DISABLED: 'false'
     ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
     URL_CALLBACK_URL: http://ordering-demo-frontend-ecr:8080/callback
@@ -146,17 +146,17 @@ x-touchbistro-ordering-frontend-boilerplate:
   ports:
     - "8030:8080"
 
-x-ordering-deliveroo-boilerplate:
-  &ordering-deliveroo-boilerplate
+x-ordering-deliveroo-service-boilerplate:
+  &ordering-deliveroo-service-boilerplate
   env_file:
-    - ./ordering-deliveroo/.env.example
+    - ./ordering-deliveroo-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
     << : *node-service
     DELIVEROO_BASE_URL: http://ordering-demo-frontend-ecr:8080/deliveroo
     ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
-    URL_BASE_URL: http://ordering-deliveroo-ecr:8080
+    URL_BASE_URL: http://ordering-deliveroo-service-ecr:8080
   ports:
     - "8015:8080"
   depends_on:
@@ -251,30 +251,30 @@ services:
       - ./touchbistro-ordering-frontend:/home/node/app:delegated
       - touchbistro-ordering-frontend-node_modules:/home/node/app/node_modules
 
-  ordering-deliveroo-ecr:
-    << : *ordering-deliveroo-boilerplate
+  ordering-deliveroo-service-ecr:
+    << : *ordering-deliveroo-service-boilerplate
     image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:develop
-    container_name: ordering-devtools_ordering-deliveroo-ecr_container
+    container_name: ordering-devtools_ordering-deliveroo-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  ordering-deliveroo:
-    << : *ordering-deliveroo-boilerplate
+  ordering-deliveroo-service:
+    << : *ordering-deliveroo-service-boilerplate
     build:
       target: dev
-      context: ./ordering-deliveroo
+      context: ./ordering-deliveroo-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: ordering-devtools_ordering-deliveroo
-    container_name: ordering-devtools_ordering-deliveroo_container
+    image: ordering-devtools_ordering-deliveroo-service
+    container_name: ordering-devtools_ordering-deliveroo-service_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./ordering-deliveroo:/home/node/app:delegated
-      - ordering-deliveroo-node_modules:/home/node/app/node_modules
+      - ./ordering-deliveroo-service:/home/node/app:delegated
+      - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
 
 volumes:
   touchbistro-ordering-service-node_modules:
   ordering-demo-frontend-node_modules:
   ordering-demo-frontend-venue-node_modules:
-  ordering-deliveroo-node_modules:
+  ordering-deliveroo-service-node_modules:
   touchbistro-ordering-frontend-node_modules:

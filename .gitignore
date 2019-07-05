@@ -26,7 +26,7 @@ cloud-server-frontend
 touchbistro-ordering-service
 ordering-demo-frontend
 touchbistro-ordering-frontend
-ordering-deliveroo
+ordering-deliveroo-service
 touchbistro-partner-config
 touchbistro-etl
 touchbistro-node-legacy-cloud
