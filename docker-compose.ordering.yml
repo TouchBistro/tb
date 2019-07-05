@@ -103,10 +103,10 @@ x-touchbistro-ordering-service-boilerplate:
     - postgres
     - localstack
 
-x-touchbistro-ordering-gateway-sample-boilerplate:
-  &touchbistro-ordering-gateway-sample-boilerplate
+x-ordering-demo-frontend-boilerplate:
+  &ordering-demo-frontend-boilerplate
   env_file:
-    - ./touchbistro-ordering-gateway-sample/.env.example
+    - ./ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
@@ -114,16 +114,16 @@ x-touchbistro-ordering-gateway-sample-boilerplate:
     DELIVEROO_BASE_URL: http://ordering-deliveroo-ecr:8080
     DELIVEROO_DISABLED: 'false'
     ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
-    URL_CALLBACK_URL: http://touchbistro-ordering-gateway-sample-ecr:8080/callback
+    URL_CALLBACK_URL: http://ordering-demo-frontend-ecr:8080/callback
   ports:
     - "8010:8080"
   depends_on:
     - postgres
 
-x-touchbistro-ordering-gateway-sample-venue-boilerplate:
-  &touchbistro-ordering-gateway-sample-venue-boilerplate
+x-ordering-demo-frontend-venue-boilerplate:
+  &ordering-demo-frontend-venue-boilerplate
   env_file:
-    - ./touchbistro-ordering-gateway-sample/.env.example
+    - ./ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
@@ -154,7 +154,7 @@ x-ordering-deliveroo-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    DELIVEROO_BASE_URL: http://touchbistro-ordering-gateway-sample-ecr:8080/deliveroo
+    DELIVEROO_BASE_URL: http://ordering-demo-frontend-ecr:8080/deliveroo
     ORDERING_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
     URL_BASE_URL: http://ordering-deliveroo-ecr:8080
   ports:
@@ -184,47 +184,47 @@ services:
       - ./touchbistro-ordering-service:/home/node/app:delegated
       - touchbistro-ordering-service-node_modules:/home/node/app/node_modules
 
-  touchbistro-ordering-gateway-sample-ecr:
-    << : *touchbistro-ordering-gateway-sample-boilerplate
+  ordering-demo-frontend-ecr:
+    << : *ordering-demo-frontend-boilerplate
     image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-gateway:develop
-    container_name: ordering-devtools_touchbistro-ordering-gateway-sample-ecr_container
+    container_name: ordering-devtools_ordering-demo-frontend-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-ordering-gateway-sample:
-    << : *touchbistro-ordering-gateway-sample-boilerplate
+  ordering-demo-frontend:
+    << : *ordering-demo-frontend-boilerplate
     build:
       target: dev
-      context: ./touchbistro-ordering-gateway-sample
+      context: ./ordering-demo-frontend
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: ordering-devtools_touchbistro-ordering-gateway-sample
-    container_name: ordering-devtools_touchbistro-ordering-gateway-sample_container
+    image: ordering-devtools_ordering-demo-frontend
+    container_name: ordering-devtools_ordering-demo-frontend_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-ordering-gateway-sample:/home/node/app:delegated
-      - touchbistro-ordering-gateway-sample-node_modules:/home/node/app/node_modules
+      - ./ordering-demo-frontend:/home/node/app:delegated
+      - ordering-demo-frontend-node_modules:/home/node/app/node_modules
 
-  touchbistro-ordering-gateway-sample-venue:
+  ordering-demo-frontend-venue:
     build:
       target: dev
-      context: ./touchbistro-ordering-gateway-sample
+      context: ./ordering-demo-frontend
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: ordering-devtools_touchbistro-ordering-gateway-sample-venue
-    container_name: ordering-devtools_touchbistro-ordering-gateway-sample-venue_container
+    image: ordering-devtools_ordering-demo-frontend-venue
+    container_name: ordering-devtools_ordering-demo-frontend-venue_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     env_file:
-      - ./touchbistro-ordering-gateway-sample/.env.example
+      - ./ordering-demo-frontend/.env.example
     environment:
       << : *postgres-connect
       << : *node-service
       INVENUE_BASE_URL: http://touchbistro-ordering-service-ecr:8080/external
       MODE: venue
     volumes:
-      - ./touchbistro-ordering-gateway-sample:/home/node/app:delegated
-      - touchbistro-ordering-gateway-sample-venue-node_modules:/home/node/app/node_modules
+      - ./ordering-demo-frontend:/home/node/app:delegated
+      - ordering-demo-frontend-venue-node_modules:/home/node/app/node_modules
     ports:
       - "8020:8080"
     depends_on:
@@ -274,7 +274,7 @@ services:
 
 volumes:
   touchbistro-ordering-service-node_modules:
-  touchbistro-ordering-gateway-sample-node_modules:
-  touchbistro-ordering-gateway-sample-venue-node_modules:
+  ordering-demo-frontend-node_modules:
+  ordering-demo-frontend-venue-node_modules:
   ordering-deliveroo-node_modules:
   touchbistro-ordering-frontend-node_modules:

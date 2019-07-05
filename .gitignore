@@ -24,7 +24,7 @@ health-clinic
 cloud-server
 cloud-server-frontend
 touchbistro-ordering-service
-touchbistro-ordering-gateway-sample
+ordering-demo-frontend
 touchbistro-ordering-frontend
 ordering-deliveroo
 touchbistro-partner-config
