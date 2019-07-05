@@ -27,7 +27,7 @@ playlists:
     - ordering-demo-frontend-venue
   partners:
     - postgres
-    - touchbistro-etl
+    - partners-etl-service
     - touchbistro-partner-config
     - touchbistro-orchestration-partner
     - touchbistro-node-legacy-cloud

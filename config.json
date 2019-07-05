@@ -95,11 +95,11 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-demo-frontend:develop"
   },
   {
-    "name": "touchbistro-etl",
+    "name": "partners-etl-service",
     "repo": true,
     "migrations": true,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-etl:develop"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-etl-service:develop"
   },
   {
     "name": "touchbistro-orchestration-partner",

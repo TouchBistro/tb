@@ -27,7 +27,7 @@ ordering-demo-frontend
 ordering-gateways-frontend
 ordering-deliveroo-service
 touchbistro-partner-config
-touchbistro-etl
+partners-etl-service
 touchbistro-node-legacy-cloud
 touchbistro-orchestration-partner
 touchbistro-user-profile-service
