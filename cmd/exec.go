@@ -16,7 +16,7 @@ var execCmd = &cobra.Command{
 	Short: "executes a command in a service container",
 	Args:  cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := deps.Resolve()
+		err := deps.Resolve(deps.Docker)
 		if err != nil {
 			log.Fatal(err)
 		}

@@ -16,33 +16,47 @@ type Dependency struct {
 	AfterInstall  func() error
 }
 
-var deps = []Dependency{
+// Dependency names because magic strings suck
+const (
+	// XcodeSelect = "xcode-select"
+	Brew       = "brew"
+	Pgcli      = "pgcli"
+	Jq         = "jq"
+	Aws        = "aws"
+	Lazydocker = "lazydocker"
+	// Nvm = "nvm"
+	Node   = "node"
+	Yarn   = "yarn"
+	Docker = "docker"
+)
+
+var deps = map[string]Dependency{
 	// ROT IN HELL STEVE
-	// Dependency{
+	// XcodeSelect: Dependency{
 	// 	Name:       "xcode-select -p",
 	// 	InstallCmd: []string{"xcode-select", "--install"},
 	// },
-	Dependency{
+	Brew: Dependency{
 		Name:       "brew",
 		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
 	},
-	Dependency{
+	Pgcli: Dependency{
 		Name: "pgcli",
 		BeforeInstall: func() error {
-			err := util.Exec("brew", "tap", "dbcli/tap")
+			_, err := util.Exec("brew", "tap", "dbcli/tap")
 			return err
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
 	},
-	Dependency{
+	Jq: Dependency{
 		Name:       "jq",
 		InstallCmd: []string{"brew", "install", "jq"},
 	},
-	Dependency{
+	Aws: Dependency{
 		Name:       "aws",
 		InstallCmd: []string{"brew", "install", "awscli"},
 	},
-	Dependency{
+	Lazydocker: Dependency{
 		Name: "lazydocker",
 		BeforeInstall: func() error {
 			_, err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
@@ -51,7 +65,7 @@ var deps = []Dependency{
 		InstallCmd: []string{"brew", "install", "lazydocker"},
 	},
 
-	// Dependency{
+	// Nvm: Dependency{
 	// 	Name:       "nvm",
 	// 	InstallCmd: []string{"brew", "install", "nvm"},
 	// 	AfterInstall: func() error {
@@ -75,15 +89,15 @@ var deps = []Dependency{
 	// },
 
 	// TODO: Check that `which node` resolves to something like /Users/<user>/.nvm/version/node/<version>/bin/node
-	Dependency{
+	Node: Dependency{
 		Name:       "node",
 		InstallCmd: []string{"nvm", "install", "stable"},
 	},
-	Dependency{
+	Yarn: Dependency{
 		Name:       "yarn",
 		InstallCmd: []string{"brew", "install", "yarn"},
 	},
-	Dependency{
+	Docker: Dependency{
 		Name: "docker",
 		BeforeInstall: func() error {
 			_, err := util.Exec("brew", "tap", "caskroom/versions")
@@ -93,7 +107,7 @@ var deps = []Dependency{
 	},
 }
 
-func Resolve() error {
+func Resolve(depNames ...string) error {
 	log.Println("checking dependencies...")
 
 	if runtime.GOOS != "darwin" {
@@ -102,7 +116,13 @@ func Resolve() error {
 		os.Exit(1)
 	}
 
-	for _, dep := range deps {
+	for _, depName := range depNames {
+		dep, ok := deps[depName]
+
+		if !ok {
+			log.Fatalf("%s is not a valid dependency\n", depName)
+		}
+
 		if util.IsCommandAvailable(dep.Name) {
 			log.Printf("%s was found.\n", dep.Name)
 			continue

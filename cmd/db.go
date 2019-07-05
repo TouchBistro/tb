@@ -19,7 +19,7 @@ var dbCmd = &cobra.Command{
 	Short: "Connects to the database in a service",
 	Args:  cobra.ExactArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := deps.Resolve()
+		err := deps.Resolve(deps.Pgcli)
 		if err != nil {
 			log.Fatal(err)
 		}
