@@ -10,10 +10,10 @@ x-cloud-server-frontend-boilerplate:
   depends_on:
     - cloud-server-ecr
 
-x-touchbistro-manage-database-boilerplate:
-  &touchbistro-manage-database-boilerplate
+x-legacy-database-boilerplate:
+  &legacy-database-boilerplate
   env_file:
-    - ./touchbistro-manage-database/.env.example
+    - ./legacy-database/.env.example
   environment:
     DB_PORT: 1433
     DB_USER: SA
@@ -31,7 +31,7 @@ x-cloud-server-boilerplate:
     env_file:
       - ./cloud-server/.env.compose
     environment:
-      - MSSQL_HOST=touchbistro-manage-database-ecr
+      - MSSQL_HOST=legacy-database-ecr
     entrypoint: [ "bash", "./docker-entrypoint.sh" ]
     command: >
       bash -c '
@@ -47,28 +47,28 @@ x-cloud-server-boilerplate:
       - "3000:3000"
     depends_on:
       - redis
-      - touchbistro-manage-database-ecr
+      - legacy-database-ecr
 
 services:
-  touchbistro-manage-database:
-    << : *touchbistro-manage-database-boilerplate
+  legacy-database:
+    << : *legacy-database-boilerplate
     build:
       target: db-migrate-with-seeds
-      context: ./touchbistro-manage-database
+      context: ./legacy-database
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: core-devtools_touchbistro-manage-database
-    container_name: core-devtools_touchbistro-manage-database_container
+    image: core-devtools_legacy-database
+    container_name: core-devtools_legacy-database_container
     volumes:
-      - touchbistro-manage-database:/var/opt/mssql/data
+      - legacy-database:/var/opt/mssql/data
 
-  touchbistro-manage-database-ecr:
-    << : *touchbistro-manage-database-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/manage-database:master-db-migrate-with-seeds
-    container_name: core-devtools_touchbistro-manage-database-ecr_container
+  legacy-database-ecr:
+    << : *legacy-database-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/legacy-database:master-db-migrate-with-seeds
+    container_name: core-devtools_legacy-database-ecr_container
     volumes:
-      - touchbistro-manage-database:/var/opt/mssql/data
+      - legacy-database:/var/opt/mssql/data
 
   cloud-server:
     << : *cloud-server-boilerplate
@@ -97,4 +97,4 @@ services:
     container_name: cloud-server-frontend_container
 
 volumes:
-  touchbistro-manage-database:
+  legacy-database:

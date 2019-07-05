@@ -17,7 +17,7 @@
 core-backend
 core-database
 legacy-bridge-manage
-touchbistro-manage-database
+legacy-database
 provisioning-service
 health-clinic
 cloud-server

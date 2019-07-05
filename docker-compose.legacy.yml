@@ -31,7 +31,7 @@ x-json-logger-config:
 
 x-mssqlconnect:
   &mssql-connect
-  DB_HOST: touchbistro-manage-database-ecr
+  DB_HOST: legacy-database-ecr
   DB_PORT: 1433
   DB_USER: SA
   DB_PASSWORD: Password123
@@ -49,7 +49,7 @@ x-legacy-bridge-manage-boilerplate:
   ports:
     - "8999:8080"
   depends_on:
-    - touchbistro-manage-database-ecr
+    - legacy-database-ecr
 
 x-touchbistro-node-legacy-cloud-boilerplate:
   &touchbistro-node-legacy-cloud-boilerplate
@@ -64,7 +64,7 @@ x-touchbistro-node-legacy-cloud-boilerplate:
   ports:
     - "8101:8080"
   depends_on:
-    - touchbistro-manage-database-ecr
+    - legacy-database-ecr
 
 services:
   dotnet-manage:
@@ -79,7 +79,7 @@ services:
     entrypoint:
       [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
     depends_on:
-      - touchbistro-manage-database-ecr
+      - legacy-database-ecr
 
   dotnet-api:
     image: hpgy/mono-xsp4
@@ -93,7 +93,7 @@ services:
     entrypoint:
       [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
     depends_on:
-      - touchbistro-manage-database-ecr
+      - legacy-database-ecr
 
   legacy-bridge-manage:
     << : *legacy-bridge-manage-boilerplate

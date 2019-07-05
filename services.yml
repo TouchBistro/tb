@@ -6,7 +6,7 @@ playlists:
     - touchbistro-user-profile-service
   cloud:
     - redis
-    - touchbistro-manage-database
+    - legacy-database
     - cloud-server
     - cloud-server-frontend
     - dotnet-manage
@@ -32,12 +32,12 @@ playlists:
     - partners-orchestration-service
     - touchbistro-node-legacy-cloud
     - localstack
-    - touchbistro-manage-database
+    - legacy-database
   venueadmin:
     - localstack
     - postgres
     - core-backend
-    - touchbistro-manage-database
+    - legacy-database
     - redis
     - cloud-server
     - cloud-server-frontend
@@ -48,7 +48,7 @@ playlists:
     - localstack
     - postgres
     - core-backend
-    - touchbistro-manage-database
+    - legacy-database
     - redis
     - cloud-server
     - cloud-server-frontend

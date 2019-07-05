@@ -7,11 +7,11 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-manage-service:develop"
   },
   {
-    "name": "touchbistro-manage-database",
+    "name": "legacy-database",
     "repo": true,
     "migrations": true,
     "ecr": true,
-    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/manage-database:develop-db"
+    "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/legacy-database:develop-db"
   },
   {
     "name": "core-backend",
