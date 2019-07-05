@@ -1,6 +1,6 @@
 [
   {
-    "name": "legacy-bridge-manage",
+    "name": "legacy-bridge-manage-service",
     "repo": true,
     "migrations": false,
     "ecr": true,
@@ -116,7 +116,7 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-config-service:develop"
   },
   {
-    "name": "touchbistro-node-legacy-cloud",
+    "name": "legacy-bridge-cloud-service",
     "repo": true,
     "migrations": false,
     "ecr": true,

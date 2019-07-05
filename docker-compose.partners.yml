@@ -104,7 +104,7 @@ x-partners-orchestration-service-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    LEGACY_CLOUD_SERVICE_URL: http://touchbistro-node-legacy-cloud-ecr:8080
+    LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service-ecr:8080
     PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >

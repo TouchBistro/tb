@@ -96,7 +96,7 @@ x-ordering-ooa-service-boilerplate:
           "sleepTimeSeconds": 5
         }
       }
-    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://touchbistro-node-legacy-cloud-ecr:8080
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://legacy-bridge-cloud-service-ecr:8080
   ports:
     - "8005:8080"
   depends_on:

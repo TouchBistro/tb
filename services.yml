@@ -11,7 +11,7 @@ playlists:
     - cloud-server-frontend
     - dotnet-manage
     - dotnet-api
-    - legacy-bridge-manage
+    - legacy-bridge-manage-service
   core:
     - core-backend
     - postgres
@@ -30,7 +30,7 @@ playlists:
     - partners-etl-service
     - partners-config-service
     - partners-orchestration-service
-    - touchbistro-node-legacy-cloud
+    - legacy-bridge-cloud-service
     - localstack
     - legacy-database
   venueadmin:
@@ -41,7 +41,7 @@ playlists:
     - redis
     - cloud-server
     - cloud-server-frontend
-    - touchbistro-node-legacy-cloud
+    - legacy-bridge-cloud-service
     - partners-config-service
     - venue-admin-frontend
   venueadmin-depsonly:
@@ -52,5 +52,5 @@ playlists:
     - redis
     - cloud-server
     - cloud-server-frontend
-    - touchbistro-node-legacy-cloud
+    - legacy-bridge-cloud-service
     - partners-config-service

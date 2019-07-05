@@ -16,7 +16,7 @@
 #
 core-backend
 core-database
-legacy-bridge-manage
+legacy-bridge-manage-service
 legacy-database
 provisioning-service
 health-clinic
@@ -28,7 +28,7 @@ ordering-gateways-frontend
 ordering-deliveroo-service
 partners-config-service
 partners-etl-service
-touchbistro-node-legacy-cloud
+legacy-bridge-cloud-service
 partners-orchestration-service
 touchbistro-user-profile-service
 venue-admin-frontend
