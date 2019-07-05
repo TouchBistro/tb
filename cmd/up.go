@@ -18,8 +18,16 @@ var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Starts services defined in docker-compose.*.yml files",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		// TODO: Only resolve deps needed for this command.
-		err := deps.Resolve()
+		err := deps.Resolve(
+			deps.Brew,
+			deps.Jq,
+			deps.Aws,
+			deps.Lazydocker,
+			deps.Node,
+			deps.Yarn,
+			deps.Docker,
+		)
+
 		if err != nil {
 			log.Fatal(err)
 		}
