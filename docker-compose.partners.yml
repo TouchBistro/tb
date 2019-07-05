@@ -42,10 +42,10 @@ x-nodeservice:
   << : *json-logger-config
   HTTP_PORT: 8080
 
-x-touchbistro-etl-boilerplate:
-  &touchbistro-etl-boilerplate
+x-partners-etl-service-boilerplate:
+  &partners-etl-service-boilerplate
   env_file:
-    - ./touchbistro-etl/.env.example
+    - ./partners-etl-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *node-service
@@ -131,26 +131,26 @@ x-touchbistro-orchestration-partner-boilerplate:
     - localstack
 
 services:
-  touchbistro-etl-ecr:
-    << : *touchbistro-etl-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-etl:master
-    container_name: partners-devtools_touchbistro-etl-ecr_container
+  partners-etl-service-ecr:
+    << : *partners-etl-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-etl-service:master
+    container_name: partners-devtools_partners-etl-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-etl:
-    << : *touchbistro-etl-boilerplate
+  partners-etl-service:
+    << : *partners-etl-service-boilerplate
     build:
       target: dev
-      context: ./touchbistro-etl
+      context: ./partners-etl-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: partners-devtools_touchbistro-etl
-    container_name: partners-devtools_touchbistro-etl_container
+    image: partners-devtools_partners-etl-service
+    container_name: partners-devtools_partners-etl-service_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-etl:/home/node/app:delegated
-      - touchbistro-etl-node_modules:/home/node/app/node_modules
+      - ./partners-etl-service:/home/node/app:delegated
+      - partners-etl-service-node_modules:/home/node/app/node_modules
 
   touchbistro-partner-config-ecr:
     << : *touchbistro-partner-config-boilerplate
@@ -195,6 +195,6 @@ services:
       - touchbistro-orchestration-partner-node_modules:/home/node/app/node_modules
 
 volumes:
-  touchbistro-etl-node_modules:
+  partners-etl-service-node_modules:
   touchbistro-partner-config-node_modules:
   touchbistro-orchestration-partner-node_modules:
