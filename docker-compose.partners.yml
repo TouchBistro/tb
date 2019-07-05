@@ -52,7 +52,7 @@ x-partners-etl-service-boilerplate:
     << : *postgres-connect
     AWS_S3_ENDPOINT: http://localstack:4572
     AWS_S3_STUB: "false"
-    PARTNER_CONFIG_SERVICE_URL: http://touchbistro-partner-config-ecr:8080
+    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -71,10 +71,10 @@ x-partners-etl-service-boilerplate:
     - postgres
     - localstack
 
-x-touchbistro-partner-config-boilerplate:
-  &touchbistro-partner-config-boilerplate
+x-partners-config-service-boilerplate:
+  &partners-config-service-boilerplate
   env_file:
-    - ./touchbistro-partner-config/.env.example
+    - ./partners-config-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
@@ -105,7 +105,7 @@ x-touchbistro-orchestration-partner-boilerplate:
     << : *postgres-connect
     << : *node-service
     LEGACY_CLOUD_SERVICE_URL: http://touchbistro-node-legacy-cloud-ecr:8080
-    PARTNER_CONFIG_SERVICE_URL: http://touchbistro-partner-config-ecr:8080
+    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -152,26 +152,26 @@ services:
       - ./partners-etl-service:/home/node/app:delegated
       - partners-etl-service-node_modules:/home/node/app/node_modules
 
-  touchbistro-partner-config-ecr:
-    << : *touchbistro-partner-config-boilerplate
+  partners-config-service-ecr:
+    << : *partners-config-service-boilerplate
     image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-config-service:master
-    container_name: partners-devtools_touchbistro-partner-config-ecr_container
+    container_name: partners-devtools_partners-config-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-partner-config:
-    << : *touchbistro-partner-config-boilerplate
+  partners-config-service:
+    << : *partners-config-service-boilerplate
     build:
       target: dev
-      context: ./touchbistro-partner-config
+      context: ./partners-config-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: partners-devtools_touchbistro-partner-config
-    container_name: partners-devtools_touchbistro-partner-config_container
+    image: partners-devtools_partners-config-service
+    container_name: partners-devtools_partners-config-service_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-partner-config:/home/node/app:delegated
-      - touchbistro-partner-config-node_modules:/home/node/app/node_modules
+      - ./partners-config-service:/home/node/app:delegated
+      - partners-config-service-node_modules:/home/node/app/node_modules
 
   touchbistro-orchestration-partner-ecr:
     << : *touchbistro-orchestration-partner-boilerplate
@@ -196,5 +196,5 @@ services:
 
 volumes:
   partners-etl-service-node_modules:
-  touchbistro-partner-config-node_modules:
+  partners-config-service-node_modules:
   touchbistro-orchestration-partner-node_modules:

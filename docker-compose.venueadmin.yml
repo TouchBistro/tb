@@ -6,7 +6,7 @@ x-venue-admin-frontend:
     - ./venue-admin-frontend/.env.example
   environment:
     - CORE_BACKEND_URL_BASE=http://core-backend-ecr:8080
-    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://touchbistro-partner-config-ecr:8080
+    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://partners-config-service-ecr:8080
     - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://touchbistro-node-legacy-cloud-ecr:8080
     - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
     - NODE_ENV=production
@@ -19,7 +19,7 @@ x-venue-admin-frontend:
     - core-backend-ecr
     - cloud-server-ecr    
     - touchbistro-node-legacy-cloud-ecr
-    - touchbistro-partner-config-ecr
+    - partners-config-service-ecr
 
 services:
   venue-admin-frontend:

@@ -28,7 +28,7 @@ playlists:
   partners:
     - postgres
     - partners-etl-service
-    - touchbistro-partner-config
+    - partners-config-service
     - touchbistro-orchestration-partner
     - touchbistro-node-legacy-cloud
     - localstack
@@ -42,7 +42,7 @@ playlists:
     - cloud-server
     - cloud-server-frontend
     - touchbistro-node-legacy-cloud
-    - touchbistro-partner-config
+    - partners-config-service
     - venue-admin-frontend
   venueadmin-depsonly:
     - localstack
@@ -53,4 +53,4 @@ playlists:
     - cloud-server
     - cloud-server-frontend
     - touchbistro-node-legacy-cloud
-    - touchbistro-partner-config
+    - partners-config-service

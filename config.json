@@ -109,7 +109,7 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-orchestration-service:develop"
   },
   {
-    "name": "touchbistro-partner-config",
+    "name": "partners-config-service",
     "repo": true,
     "migrations": true,
     "ecr": true,
