@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/tb/util"
+	"os/exec"
 	"path/filepath"
 
 	"github.com/docker/docker/api/types"
@@ -28,7 +29,7 @@ func ComposeFiles() (string, error) {
 }
 
 func ECRLogin() error {
-	out, err := util.Exec("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...)
+	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
 	if err != nil {
 		return err
 	}
