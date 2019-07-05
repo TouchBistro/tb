@@ -1,11 +1,11 @@
 package deps
 
 import (
-	"fmt"
 	"os"
 	"runtime"
 
 	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 )
 
 // Dependency is an os dependency needed to run core-devtools
@@ -17,10 +17,11 @@ type Dependency struct {
 }
 
 var deps = []Dependency{
-	Dependency{
-		Name:       "xcode-select -p",
-		InstallCmd: []string{"xcode-select", "--install"},
-	},
+	// ROT IN HELL STEVE
+	// Dependency{
+	// 	Name:       "xcode-select -p",
+	// 	InstallCmd: []string{"xcode-select", "--install"},
+	// },
 	Dependency{
 		Name:       "brew",
 		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
@@ -41,28 +42,30 @@ var deps = []Dependency{
 		Name:       "aws",
 		InstallCmd: []string{"brew", "install", "awscli"},
 	},
-	Dependency{
-		Name:       "nvm",
-		InstallCmd: []string{"brew", "install", "nvm"},
-		// AfterInstall: func() error {
-		// 	home := os.Getenv("HOME") // TODO: Make portable for uzi?
-		// 	dirPath := fmt.Sprintf("%s/.nvm", home)
-		// 	if !util.FileOrDirExists(dirPath) {
-		// 		err := os.Mkdir(dirPath, os.ModeDir)
-		// 		return err
-		// 	}
-		// 	for _, rcFile := range []string{".zshrc", ".bashrc"} {
-		// 		rcPath := fmt.Sprintf("%s/%s", home, rcFile)
-		// 		fmt.Printf("...adding nvm export to %s\n", rcPath)
-		// 		err := util.AppendLineToFile(rcPath, "export NVM_DIR=\"$HOME/.nvm\"")
-		// 		err = util.AppendLineToFile(rcPath, ". \"/usr/local/opt/nvm/nvm.sh\"")
-		// 		if err != nil {
-		// 			return err
-		// 		}
-		// 	}
-		// 	return nil
-		// },
-	},
+
+	// Dependency{
+	// 	Name:       "nvm",
+	// 	InstallCmd: []string{"brew", "install", "nvm"},
+	// 	AfterInstall: func() error {
+	// 		home := os.Getenv("HOME") // TODO: Make portable for uzi?
+	// 		dirPath := fmt.Sprintf("%s/.nvm", home)
+	// 		if !util.FileOrDirExists(dirPath) {
+	// 			err := os.Mkdir(dirPath, os.ModeDir)
+	// 			return err
+	// 		}
+	// 		for _, rcFile := range []string{".zshrc", ".bashrc"} {
+	// 			rcPath := fmt.Sprintf("%s/%s", home, rcFile)
+	// 			fmt.Printf("...adding nvm export to %s\n", rcPath)
+	// 			err := util.AppendLineToFile(rcPath, "export NVM_DIR=\"$HOME/.nvm\"")
+	// 			err = util.AppendLineToFile(rcPath, ". \"/usr/local/opt/nvm/nvm.sh\"")
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 		return nil
+	// 	},
+	// },
+
 	// TODO: Check that `which node` resolves to something like /Users/<user>/.nvm/version/node/<version>/bin/node
 	Dependency{
 		Name:       "node",
@@ -75,7 +78,7 @@ var deps = []Dependency{
 	Dependency{
 		Name: "docker",
 		BeforeInstall: func() error {
-			err := util.Exec("brew", "tap", "caskroom/versions")
+			_, err := util.Exec("brew", "tap", "caskroom/versions")
 			return err
 		},
 		InstallCmd: []string{"brew", "cask", "install", "docker"},
@@ -83,23 +86,23 @@ var deps = []Dependency{
 }
 
 func Resolve() error {
-	fmt.Println("checking dependencies...")
+	log.Println("checking dependencies...")
 
 	if runtime.GOOS != "darwin" {
-		fmt.Println("tb currently supports Darwin (MacOS) only for installing dependencies.")
-		fmt.Println("if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
+		log.Println("tb currently supports Darwin (MacOS) only for installing dependencies.")
+		log.Println("if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
 		os.Exit(1)
 	}
 
 	for _, dep := range deps {
 		if util.IsCommandAvailable(dep.Name) {
-			fmt.Printf("%s was found.\n", dep.Name)
+			log.Printf("%s was found.\n", dep.Name)
 			continue
 		} else {
-			fmt.Printf("%s was NOT found.\n", dep.Name)
+			log.Printf("%s was NOT found.\n", dep.Name)
 		}
 
-		fmt.Printf("installing %s.\n", dep.Name)
+		log.Printf("installing %s.\n", dep.Name)
 
 		if dep.BeforeInstall != nil {
 			err := dep.BeforeInstall()
@@ -111,7 +114,7 @@ func Resolve() error {
 		installCmd := dep.InstallCmd[0]
 		installArgs := dep.InstallCmd[1:]
 
-		err := util.Exec(installCmd, installArgs...)
+		_, err := util.Exec(installCmd, installArgs...)
 		if err != nil {
 			return err
 		}
@@ -123,7 +126,7 @@ func Resolve() error {
 			}
 		}
 
-		fmt.Printf("finished installing %s.\n", dep.Name)
+		log.Printf("finished installing %s.\n", dep.Name)
 	}
 	return nil
 }

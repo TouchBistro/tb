@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/TouchBistro/tb/deps"
+	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,8 +22,7 @@ var execCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		files, err := util.ComposeFiles()
-
+		files, err := docker.ComposeFiles()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -31,7 +31,7 @@ var execCmd = &cobra.Command{
 		cmds := strings.Join(args[1:], " ")
 		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
 
-		err = util.Exec("docker-compose", strings.Fields(cmdStr)...)
+		_, err = util.Exec("docker-compose", strings.Fields(cmdStr)...)
 		if err != nil {
 			log.Fatal(err)
 		}

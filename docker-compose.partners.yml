@@ -1,0 +1,200 @@
+version: '3.7'
+
+x-json-logger-config:
+  &json-logger-config
+  LOGGER_CONFIG_JSON: >
+    {
+      "transports": {
+        "devConsole": {
+          "provider": "winston.transports.Console",
+          "config": {
+            "colorize": true,
+            "timestamp": true,
+            "json": false
+          }
+        }
+      },
+      "env": {
+        "development": {
+          "rules": [
+            {
+              "pattern": "*",
+              "binding": {
+                "transport": ["devConsole"],
+                "level": "info"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+x-postgresconnect:
+  &postgres-connect
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: core
+  DB_PASSWORD: localdev
+  DB_DISABLE_SSL: "true"
+
+x-nodeservice:
+  &node-service
+  << : *json-logger-config
+  HTTP_PORT: 8080
+
+x-touchbistro-etl-boilerplate:
+  &touchbistro-etl-boilerplate
+  env_file:
+    - ./touchbistro-etl/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *node-service
+    << : *postgres-connect
+    AWS_S3_ENDPOINT: http://localstack:4572
+    AWS_S3_STUB: "false"
+    PARTNER_CONFIG_SERVICE_URL: http://touchbistro-partner-config-ecr:8080
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "etl.job.execute": {
+          "queueURL": "http://localstack:4576/queue/etlExecute",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://cloud-server-ecr:3000/api/v2_5
+  ports:
+    - "8888:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-touchbistro-partner-config-boilerplate:
+  &touchbistro-partner-config-boilerplate
+  env_file:
+    - ./touchbistro-partner-config/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "partners-config.task.venueIntegrationUpdate": {
+          "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8090:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-touchbistro-orchestration-partner-boilerplate:
+  &touchbistro-orchestration-partner-boilerplate
+  env_file:
+    - ./touchbistro-orchestration-partner/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    LEGACY_CLOUD_SERVICE_URL: http://touchbistro-node-legacy-cloud-ecr:8080
+    PARTNER_CONFIG_SERVICE_URL: http://touchbistro-partner-config-ecr:8080
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "partners-config.task.venueIntegrationUpdate": {
+          "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8085:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+services:
+  touchbistro-etl-ecr:
+    << : *touchbistro-etl-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-etl:master
+    container_name: partners-devtools_touchbistro-etl-ecr_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+  touchbistro-etl:
+    << : *touchbistro-etl-boilerplate
+    build:
+      target: dev
+      context: ./touchbistro-etl
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: partners-devtools_touchbistro-etl
+    container_name: partners-devtools_touchbistro-etl_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+    volumes:
+      - ./touchbistro-etl:/home/node/app:delegated
+      - touchbistro-etl-node_modules:/home/node/app/node_modules
+
+  touchbistro-partner-config-ecr:
+    << : *touchbistro-partner-config-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-config-service:master
+    container_name: partners-devtools_touchbistro-partner-config-ecr_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+  touchbistro-partner-config:
+    << : *touchbistro-partner-config-boilerplate
+    build:
+      target: dev
+      context: ./touchbistro-partner-config
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: partners-devtools_touchbistro-partner-config
+    container_name: partners-devtools_touchbistro-partner-config_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+    volumes:
+      - ./touchbistro-partner-config:/home/node/app:delegated
+      - touchbistro-partner-config-node_modules:/home/node/app/node_modules
+
+  touchbistro-orchestration-partner-ecr:
+    << : *touchbistro-orchestration-partner-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-orchestration-service:master
+    container_name: partners-devtools_touchbistro-orchestration-partner-ecr_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+  touchbistro-orchestration-partner:
+    << : *touchbistro-orchestration-partner-boilerplate
+    build:
+      target: dev
+      context: ./touchbistro-orchestration-partner
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: partners-devtools_touchbistro-orchestration-partner
+    container_name: partners-devtools_touchbistro-orchestration-partner_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+    volumes:
+      - ./touchbistro-orchestration-partner:/home/node/app:delegated
+      - touchbistro-orchestration-partner-node_modules:/home/node/app/node_modules
+
+volumes:
+  touchbistro-etl-node_modules:
+  touchbistro-partner-config-node_modules:
+  touchbistro-orchestration-partner-node_modules:

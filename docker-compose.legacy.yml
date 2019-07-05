@@ -1,0 +1,138 @@
+version: '3.7'
+
+x-json-logger-config:
+  &json-logger-config
+  LOGGER_CONFIG_JSON: >
+    {
+      "transports": {
+        "devConsole": {
+          "provider": "winston.transports.Console",
+          "config": {
+            "colorize": true,
+            "timestamp": true,
+            "json": false
+          }
+        }
+      },
+      "env": {
+        "development": {
+          "rules": [
+            {
+              "pattern": "*",
+              "binding": {
+                "transport": ["devConsole"],
+                "level": "info"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+x-mssqlconnect:
+  &mssql-connect
+  DB_HOST: touchbistro-manage-database-ecr
+  DB_PORT: 1433
+  DB_USER: SA
+  DB_PASSWORD: Password123
+  DB_DISABLE_SSL: "true"
+
+x-legacy-bridge-manage-boilerplate:
+  &legacy-bridge-manage-boilerplate
+  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  env_file:
+    - ./legacy-bridge-manage/.env.example
+  environment:
+    << : *mssql-connect
+    DB_NAME: cloud_db
+    << : *json-logger-config
+  ports:
+    - "8999:8080"
+  depends_on:
+    - touchbistro-manage-database-ecr
+
+x-touchbistro-node-legacy-cloud-boilerplate:
+  &touchbistro-node-legacy-cloud-boilerplate
+  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  env_file:
+    - ./touchbistro-node-legacy-cloud/.env.example
+  environment:
+    << : *mssql-connect
+    HTTP_PORT: 8080
+    << : *json-logger-config
+    DB_NAME: cloud_db
+  ports:
+    - "8101:8080"
+  depends_on:
+    - touchbistro-manage-database-ecr
+
+services:
+  dotnet-manage:
+    image: hpgy/mono-xsp4
+    container_name: core-devtools_dotnet-manage_container
+    ports:
+      - "9000:80"
+    volumes:
+      - ./dotnet-depot/manage:/app:delegated
+    environment:
+      MONO_OPTIONS: --debug
+    entrypoint:
+      [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
+    depends_on:
+      - touchbistro-manage-database-ecr
+
+  dotnet-api:
+    image: hpgy/mono-xsp4
+    container_name: core-devtools_dotnet-api_container
+    ports:
+      - "9001:80"
+    volumes:
+      - ./dotnet-depot/api:/app:delegated
+    environment:
+      MONO_OPTIONS: --debug
+    entrypoint:
+      [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
+    depends_on:
+      - touchbistro-manage-database-ecr
+
+  legacy-bridge-manage:
+    << : *legacy-bridge-manage-boilerplate
+    build:
+      target: dev
+      context: ./legacy-bridge-manage
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+        - GITSHA=TESTME
+    image: core-devtools_legacy-bridge-manage
+    container_name: core-devtools_legacy-bridge-manage_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+
+  legacy-bridge-manage-ecr:
+    << : *legacy-bridge-manage-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-manage-service:develop
+    container_name: core-devtools_legacy-bridge-manage-ecr_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+  touchbistro-node-legacy-cloud:
+    << : *touchbistro-node-legacy-cloud-boilerplate
+    build:
+      target: dev
+      context: ./touchbistro-node-legacy-cloud
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: core-devtools_touchbistro-node-legacy-cloud
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+    container_name: core-devtools_touchbistro-node-legacy-cloud_container
+    volumes:
+      - ./touchbistro-node-legacy-cloud:/home/node/app:delegated
+      - touchbistro-node-legacy-cloud-node_modules:/home/node/app/node_modules
+
+  touchbistro-node-legacy-cloud-ecr:
+    << : *touchbistro-node-legacy-cloud-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-cloud-service:develop
+    container_name: core-devtools_touchbistro-node-legacy-cloud-ecr_container
+    command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+volumes:
+  touchbistro-node-legacy-cloud-node_modules:

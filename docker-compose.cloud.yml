@@ -1,0 +1,100 @@
+version: '3.7'
+
+x-cloud-server-frontend-boilerplate:
+  &cloud-server-frontend-boilerplate
+  init: true
+  env_file:
+    - ./cloud-server-frontend/packages/frontend/.env.example
+  ports:
+    - "8080:80"
+  depends_on:
+    - cloud-server-ecr
+
+x-touchbistro-manage-database-boilerplate:
+  &touchbistro-manage-database-boilerplate
+  env_file:
+    - ./touchbistro-manage-database/.env.example
+  environment:
+    DB_PORT: 1433
+    DB_USER: SA
+    DB_PASSWORD: Password123
+    DB_DISABLE_SSL: "true"
+    DB_HOST: localhost
+    DB_NAME: cloud_db
+  ports:
+    - "1433:1433"
+  entrypoint: [ "bash", "./docker-entrypoint-db.sh" ]
+  command: [ "tail", "-f", "/dev/null" ]
+
+x-cloud-server-boilerplate:
+  &cloud-server-boilerplate
+    env_file:
+      - ./cloud-server/.env.compose
+    environment:
+      - MSSQL_HOST=touchbistro-manage-database-ecr
+    entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+    command: >
+      bash -c '
+        echo '...done'
+        if [ "$START_SERVER" = "true" ]; then
+          echo "Starting server.."
+          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+        else
+          echo "Not starting server.."
+          tail -f /dev/null
+        fi'
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - touchbistro-manage-database-ecr
+
+services:
+  touchbistro-manage-database:
+    << : *touchbistro-manage-database-boilerplate
+    build:
+      target: db-migrate-with-seeds
+      context: ./touchbistro-manage-database
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: core-devtools_touchbistro-manage-database
+    container_name: core-devtools_touchbistro-manage-database_container
+    volumes:
+      - touchbistro-manage-database:/var/opt/mssql/data
+
+  touchbistro-manage-database-ecr:
+    << : *touchbistro-manage-database-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/manage-database:master-db-migrate-with-seeds
+    container_name: core-devtools_touchbistro-manage-database-ecr_container
+    volumes:
+      - touchbistro-manage-database:/var/opt/mssql/data
+
+  cloud-server:
+    << : *cloud-server-boilerplate
+    build:
+      context: ./cloud-server
+    container_name: cloud-server_container
+
+  cloud-server-ecr:
+    << : *cloud-server-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server:develop
+    container_name: cloud-server-ecr_container
+
+  cloud-server-frontend-ecr:
+    << : *cloud-server-frontend-boilerplate
+    container_name: cloud-server-frontend-ecr_container
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server-frontend:develop
+
+  cloud-server-frontend:
+    << : *cloud-server-frontend-boilerplate
+    build:
+      context: ./cloud-server-frontend/packages/frontend
+      args:
+        # This is for running a prod build of the frontend locally
+        # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
+        - USE_INSECURE_COOKIE=insecure
+    container_name: cloud-server-frontend_container
+
+volumes:
+  touchbistro-manage-database:
