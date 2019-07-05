@@ -2,15 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"strings"
 
-	"github.com/TouchBistro/tb/src/config"
-	"github.com/TouchBistro/tb/src/deps"
-	"github.com/TouchBistro/tb/src/docker"
-	"github.com/TouchBistro/tb/src/git"
-	"github.com/TouchBistro/tb/src/util"
+	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/deps"
+	"github.com/TouchBistro/tb/docker"
+	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -35,14 +35,13 @@ var upCmd = &cobra.Command{
 			}
 
 			if !util.FileOrDirExists(path) {
-				fmt.Printf("%s is missing. cloning...\n", s.Name)
+				log.Printf("%s is missing. cloning...\n", s.Name)
 				err = git.Clone(s.Name)
 			}
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
-
 		// ECR Login
 		err = docker.ECRLogin()
 		if err != nil {
@@ -50,12 +49,13 @@ var upCmd = &cobra.Command{
 		}
 
 		log.Println("...done")
+
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 
 		noStartServers, _ := cmd.PersistentFlags().GetBool("no-start-servers")
-		fmt.Println("starting server option enabled", noStartServers)
+		log.Println("starting server option enabled", noStartServers)
 		if noStartServers {
 			os.Setenv("START_SERVER", "false")
 		} else {
@@ -69,12 +69,12 @@ var upCmd = &cobra.Command{
 		}
 
 		// Stop docker-compose services
-		composeFiles, err := util.ComposeFiles()
+		composeFiles, err := docker.ComposeFiles()
 		if err != nil {
 			log.Fatal(err)
 		}
 		stopArgs := fmt.Sprintf("%s stop", composeFiles)
-		err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
+		_, err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -86,14 +86,14 @@ var upCmd = &cobra.Command{
 		}
 
 		// Pull latest tb images
-		fmt.Println("Pulling the latest touchbistro base images...")
+		log.Println("Pulling the latest touchbistro base images...")
 		for _, b := range config.BaseImages() {
 			err := docker.Pull(b)
 			if err != nil {
 				log.Fatal(err)
 			}
 		}
-		fmt.Println("done...")
+		log.Println("done...")
 
 		selectedServices := make([]config.Service, 0)
 		composeServiceNames := make([]string, 0)
@@ -112,10 +112,8 @@ var upCmd = &cobra.Command{
 			selectedServices = append(selectedServices, s)
 		}
 
-		fmt.Println(composeServiceNames)
-
 		// Pull Latest ECR images
-		fmt.Println("Pulling the latest ecr images...")
+		log.Println("Pulling the latest ecr images...")
 		for _, s := range selectedServices {
 			if s.ECR {
 				err := docker.Pull(s.ImageURI)
@@ -124,10 +122,10 @@ var upCmd = &cobra.Command{
 				}
 			}
 		}
-		fmt.Println("...done")
+		log.Println("...done")
 
 		// Pull latest github repos
-		fmt.Println("Pulling the latest git branch...")
+		log.Println("Pulling the latest git branch...")
 		for _, s := range selectedServices {
 			if s.IsGithubRepo && !s.ECR {
 				err := git.Pull(s.Name)
@@ -136,18 +134,18 @@ var upCmd = &cobra.Command{
 				}
 			}
 		}
-		fmt.Println("...done")
+		log.Println("...done")
 
 		// Start building enabled services
 		buildArgs := fmt.Sprintf("%s build --parallel %s", composeFiles, strings.Join(composeServiceNames, " "))
-		err = util.Exec("docker-compose", strings.Fields(buildArgs)...)
+		_, err = util.Exec("docker-compose", strings.Fields(buildArgs)...)
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		skipDBReset, _ := cmd.PersistentFlags().GetBool("no-db-reset")
 		if !skipDBReset {
-			fmt.Println("Performing database migrations and seeds...")
+			log.Println("Performing database migrations and seeds...")
 			for _, s := range selectedServices {
 				if !s.Migrations {
 					continue
@@ -160,28 +158,28 @@ var upCmd = &cobra.Command{
 					composeName = s.Name
 				}
 
-				fmt.Println("Resetting test database...")
+				log.Println("Resetting test database...")
 				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFiles, composeName)
-				err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
+				_, err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 				if err != nil {
 					log.Fatal(err)
 				}
 
-				fmt.Println("Resetting development database...")
+				log.Println("Resetting development database...")
 				composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFiles, composeName)
-				err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
+				_, err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 				if err != nil {
 					log.Fatal(err)
 				}
 			}
-			fmt.Println("...done")
+			log.Println("...done")
 		}
 
 		// TODO: Launch lazydocker instead.
 		// Running up without detaching to see all logs in a single stream.
-		fmt.Println("Running docker-compose up...")
+		log.Println("Running docker-compose up...")
 		upArgs := fmt.Sprintf("%s up --abort-on-container-exit %s", composeFiles, strings.Join(composeServiceNames, " "))
-		err = util.Exec("docker-compose", strings.Fields(upArgs)...)
+		_, err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 		if err != nil {
 			log.Fatal(err)
 		}

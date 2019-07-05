@@ -1,30 +1,45 @@
 package docker
 
 import (
-	"fmt"
-	"os/exec"
 	"strings"
 
-	"github.com/TouchBistro/tb/src/util"
+	"github.com/TouchBistro/tb/util"
+	"path/filepath"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
 
+func ComposeFiles() (string, error) {
+	matches, err := filepath.Glob("./docker-compose.*.yml")
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(matches) == 0 {
+		return "", nil
+	}
+
+	str := "-f " + strings.Join(matches, " -f ")
+
+	return str, nil
+}
+
 func ECRLogin() error {
-	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
+	out, err := util.Exec("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...)
 	if err != nil {
 		return err
 	}
 
 	dockerLoginArgs := strings.Fields(string(out))
-	err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
-	return nil
+	_, err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	return err
 }
 
 func Pull(imageURI string) error {
-	err := util.Exec("docker", "pull", imageURI)
+	_, err := util.Exec("docker", "pull", imageURI)
 	return err
 }
 
@@ -41,7 +56,6 @@ func StopAllContainers() error {
 	}
 
 	for _, container := range containers {
-		fmt.Println(container.ID)
 		if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
 			return err
 		}
