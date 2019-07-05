@@ -3,7 +3,7 @@ playlists:
   auth:
     - postgres
     - mokta
-    - touchbistro-user-profile-service
+    - identity-user-service
   cloud:
     - redis
     - legacy-database

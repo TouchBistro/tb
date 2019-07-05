@@ -30,7 +30,7 @@ partners-config-service
 partners-etl-service
 legacy-bridge-cloud-service
 partners-orchestration-service
-touchbistro-user-profile-service
+identity-user-service
 venue-admin-frontend
 mokta
 
