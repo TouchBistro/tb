@@ -29,7 +29,7 @@ ordering-deliveroo-service
 partners-config-service
 partners-etl-service
 touchbistro-node-legacy-cloud
-touchbistro-orchestration-partner
+partners-orchestration-service
 touchbistro-user-profile-service
 venue-admin-frontend
 mokta

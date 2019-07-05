@@ -102,7 +102,7 @@
     "imageURI": "651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-etl-service:develop"
   },
   {
-    "name": "touchbistro-orchestration-partner",
+    "name": "partners-orchestration-service",
     "repo": true,
     "migrations": true,
     "ecr": true,

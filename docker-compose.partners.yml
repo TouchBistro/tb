@@ -96,10 +96,10 @@ x-partners-config-service-boilerplate:
     - postgres
     - localstack
 
-x-touchbistro-orchestration-partner-boilerplate:
-  &touchbistro-orchestration-partner-boilerplate
+x-partners-orchestration-service-boilerplate:
+  &partners-orchestration-service-boilerplate
   env_file:
-    - ./touchbistro-orchestration-partner/.env.example
+    - ./partners-orchestration-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     << : *postgres-connect
@@ -173,28 +173,28 @@ services:
       - ./partners-config-service:/home/node/app:delegated
       - partners-config-service-node_modules:/home/node/app/node_modules
 
-  touchbistro-orchestration-partner-ecr:
-    << : *touchbistro-orchestration-partner-boilerplate
+  partners-orchestration-service-ecr:
+    << : *partners-orchestration-service-boilerplate
     image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-orchestration-service:master
-    container_name: partners-devtools_touchbistro-orchestration-partner-ecr_container
+    container_name: partners-devtools_partners-orchestration-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-  touchbistro-orchestration-partner:
-    << : *touchbistro-orchestration-partner-boilerplate
+  partners-orchestration-service:
+    << : *partners-orchestration-service-boilerplate
     build:
       target: dev
-      context: ./touchbistro-orchestration-partner
+      context: ./partners-orchestration-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: partners-devtools_touchbistro-orchestration-partner
-    container_name: partners-devtools_touchbistro-orchestration-partner_container
+    image: partners-devtools_partners-orchestration-service
+    container_name: partners-devtools_partners-orchestration-service_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
     volumes:
-      - ./touchbistro-orchestration-partner:/home/node/app:delegated
-      - touchbistro-orchestration-partner-node_modules:/home/node/app/node_modules
+      - ./partners-orchestration-service:/home/node/app:delegated
+      - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
 volumes:
   partners-etl-service-node_modules:
   partners-config-service-node_modules:
-  touchbistro-orchestration-partner-node_modules:
+  partners-orchestration-service-node_modules:

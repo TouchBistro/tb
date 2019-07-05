@@ -29,7 +29,7 @@ playlists:
     - postgres
     - partners-etl-service
     - partners-config-service
-    - touchbistro-orchestration-partner
+    - partners-orchestration-service
     - touchbistro-node-legacy-cloud
     - localstack
     - touchbistro-manage-database
