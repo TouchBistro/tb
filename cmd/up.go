@@ -42,14 +42,15 @@ var upCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
+		log.Println("...done")
+
 		// ECR Login
+		log.Println("Logging into ECR...")
 		err = docker.ECRLogin()
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		log.Println("...done")
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
@@ -62,13 +63,14 @@ var upCmd = &cobra.Command{
 			os.Setenv("START_SERVER", "true")
 		}
 
-		// Stop running docker containers
+		log.Println("stopping running containers...")
 		err = docker.StopAllContainers()
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println("...done")
 
-		// Stop docker-compose services
+		log.Println("stopping compose services...")
 		composeFiles, err := docker.ComposeFiles()
 		if err != nil {
 			log.Fatal(err)
@@ -78,12 +80,14 @@ var upCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println("...done")
 
-		// Remove running docker containers
+		log.Println("removing any running containers...")
 		err = docker.RmContainers()
 		if err != nil {
 			log.Fatal(err)
 		}
+		log.Println("...done")
 
 		// Pull latest tb images
 		log.Println("Pulling the latest touchbistro base images...")
@@ -93,7 +97,7 @@ var upCmd = &cobra.Command{
 				log.Fatal(err)
 			}
 		}
-		log.Println("done...")
+		log.Println("...done")
 
 		selectedServices := make([]config.Service, 0)
 		composeServiceNames := make([]string, 0)
@@ -112,8 +116,12 @@ var upCmd = &cobra.Command{
 			selectedServices = append(selectedServices, s)
 		}
 
+		for _, s := range selectedServices {
+			log.Println("Selected service: ", s)
+		}
+
 		// Pull Latest ECR images
-		log.Println("Pulling the latest ecr images...")
+		log.Println("Pulling the latest ecr images for selected services...")
 		for _, s := range selectedServices {
 			if s.ECR {
 				err := docker.Pull(s.ImageURI)
@@ -125,7 +133,7 @@ var upCmd = &cobra.Command{
 		log.Println("...done")
 
 		// Pull latest github repos
-		log.Println("Pulling the latest git branch...")
+		log.Println("Pulling the latest git branch for selected services...")
 		for _, s := range selectedServices {
 			if s.IsGithubRepo && !s.ECR {
 				err := git.Pull(s.Name)
@@ -175,14 +183,18 @@ var upCmd = &cobra.Command{
 			log.Println("...done")
 		}
 
-		// TODO: Launch lazydocker instead.
-		// Running up without detaching to see all logs in a single stream.
 		log.Println("Running docker-compose up...")
-		upArgs := fmt.Sprintf("%s up --abort-on-container-exit %s", composeFiles, strings.Join(composeServiceNames, " "))
+		upArgs := fmt.Sprintf("%s up -d %s", composeFiles, strings.Join(composeServiceNames, " "))
 		_, err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 		if err != nil {
 			log.Fatal(err)
 		}
+
+		_, err = util.Exec("lazydocker")
+		if err != nil {
+			log.Fatal(err)
+		}
+
 	},
 }
 

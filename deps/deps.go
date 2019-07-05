@@ -38,6 +38,14 @@ var deps = []Dependency{
 		Name:       "aws",
 		InstallCmd: []string{"brew", "install", "awscli"},
 	},
+	Dependency{
+		Name: "lazydocker",
+		BeforeInstall: func() error {
+			_, err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
+			return err
+		},
+		InstallCmd: []string{"brew", "install", "lazydocker"},
+	},
 
 	// Dependency{
 	// 	Name:       "nvm",
