@@ -79,12 +79,8 @@ var upCmd = &cobra.Command{
 		log.Println("...done")
 
 		log.Println("stopping compose services...")
-		composeFiles, err := docker.ComposeFiles()
-		if err != nil {
-			log.Fatal(err)
-		}
-		stopArgs := fmt.Sprintf("%s stop", composeFiles)
-		_, err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
+		err = docker.ComposeStop()
+
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -153,6 +149,11 @@ var upCmd = &cobra.Command{
 		log.Println("...done")
 
 		// Start building enabled services
+		composeFiles, err := docker.ComposeFiles()
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		buildArgs := fmt.Sprintf("%s build --parallel %s", composeFiles, strings.Join(composeServiceNames, " "))
 		_, err = util.Exec("docker-compose", strings.Fields(buildArgs)...)
 		if err != nil {

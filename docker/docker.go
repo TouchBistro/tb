@@ -1,32 +1,14 @@
 package docker
 
 import (
+	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/tb/util"
-	"os/exec"
-	"path/filepath"
-
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
-
-func ComposeFiles() (string, error) {
-	matches, err := filepath.Glob("./docker-compose.*.yml")
-
-	if err != nil {
-		return "", err
-	}
-
-	if len(matches) == 0 {
-		return "", nil
-	}
-
-	str := "-f " + strings.Join(matches, " -f ")
-
-	return str, nil
-}
 
 func ECRLogin() error {
 	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
@@ -83,3 +65,67 @@ func RmContainers() error {
 	}
 	return nil
 }
+
+func RmImages() error {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+
+	if err != nil {
+		return err
+	}
+
+	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true})
+	if err != nil {
+		return err
+	}
+
+	for _, image := range images {
+		if _, err := cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func RmNetworks() error {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+
+	if err != nil {
+		return err
+	}
+
+	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, network := range networks {
+		if err := cli.NetworkRemove(ctx, network.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// VolumeList is wack and doesn't return an ID like everything else
+// Gotta figure out how to delete the volumes
+// func RmVolumes() error {
+// 	ctx := context.Background()
+// 	cli, err := client.NewEnvClient()
+
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	volumes, err := cli.VolumeList(ctx, filters.Args{})
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	for _, volume := range volumes.Volumes {
+// 		if err := cli.VolumeRemove(ctx, volume.Name)
+// 	}
+// }
