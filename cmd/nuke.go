@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra"
 )
 
@@ -38,6 +40,14 @@ var nukeCmd = &cobra.Command{
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
 			log.Fatal(err)
+		}
+
+		for _, repo := range git.RepoNames(config.All()) {
+			path := fmt.Sprintf("./%s", repo)
+
+			if !util.FileOrDirExists(path) {
+				log.Fatalf("Repo %s is missing. Please ensure all repos exist before running nuke.\n", repo)
+			}
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -109,5 +119,5 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeVolumes, "volumes", false, "nuke all volumes")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeNetworks, "networks", false, "nuke all networks")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
-	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke evenrything")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 }
