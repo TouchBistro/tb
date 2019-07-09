@@ -19,12 +19,14 @@ type options struct {
 	shouldSkipServerStart bool
 	shouldSkipGitPull     bool
 	shouldSkipDockerPull  bool
+	cliServiceNames       []string
 	playlistName          string
 }
 
 var (
-	composeFiles string
-	opts         options
+	composeFiles     string
+	selectedServices []config.Service
+	opts             options
 )
 
 func initComposeFiles() {
@@ -164,9 +166,13 @@ func dockerComposeUp(serviceNames []string) {
 }
 
 func validatePlaylistName(playlistName string) {
+	if len(playlistName) == 0 {
+		log.Println("playlist name cannot be blank")
+		os.Exit(1)
+	}
 	names := config.GetPlaylist(playlistName)
 	if len(names) == 0 {
-		log.Println("You must specify at least one service")
+		log.Printf("You must specify at least one service in playlist %s\n", playlistName)
 		os.Exit(1)
 	}
 }
@@ -185,33 +191,46 @@ func toComposeNames(configs []config.Service) []string {
 	return names
 }
 
-func filterByPlaylist(configs []config.Service, playlistName string) []config.Service {
-	names := config.GetPlaylist(playlistName)
-
-	playlistServices := make(map[string]bool)
+func filterByNames(configs []config.Service, names []string) []config.Service {
+	set := make(map[string]bool, len(names))
 	for _, name := range names {
-		playlistServices[name] = true
+		set[name] = true
 	}
 
-	selected := make([]config.Service, 0)
+	selected := make([]config.Service, len(names))
 	for _, s := range configs {
-		if _, ok := playlistServices[s.Name]; !ok {
+		if _, ok := set[s.Name]; !ok {
 			continue
 		}
-
 		selected = append(selected, s)
 	}
 	return selected
+}
+
+func initSelectedServices() {
+	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
+		log.Println("can only specify one of --playlist or --services")
+		os.Exit(1)
+	}
+
+	var names []string
+	if opts.playlistName != "" {
+		validatePlaylistName(opts.playlistName)
+		names = config.GetPlaylist(opts.playlistName)
+	} else if len(opts.cliServiceNames) > 0 {
+		names = opts.cliServiceNames
+	} else {
+		log.Println("must specify either --playlist or --services")
+		os.Exit(1)
+	}
+	selectedServices = filterByNames(*config.All(), names)
 }
 
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Starts services defined in docker-compose.*.yml files",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		log.Println("skip server option:", opts.shouldSkipServerStart)
-		log.Println("skip db option:", opts.shouldSkipDBPrepare)
-		log.Println("playlist option:", opts.playlistName)
-		validatePlaylistName(opts.playlistName)
+		initSelectedServices()
 
 		err := deps.Resolve(
 			deps.Brew,
@@ -237,8 +256,6 @@ var upCmd = &cobra.Command{
 		if !opts.shouldSkipDockerPull {
 			pullTBBaseImages()
 		}
-
-		selectedServices := filterByPlaylist(*config.All(), opts.playlistName)
 
 		if !opts.shouldSkipDockerPull {
 			log.Println("Pulling the latest ecr images for selected services...")
@@ -303,7 +320,8 @@ func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "dont get new ecr images")
-	upCmd.PersistentFlags().StringVar(&opts.playlistName, "playlist", "custom", "the name of a service playlist")
+	upCmd.PersistentFlags().StringVar(&opts.playlistName, "playlist", "", "the name of a service playlist")
+	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
 	RootCmd.AddCommand(upCmd)
 }
