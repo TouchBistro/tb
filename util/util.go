@@ -19,6 +19,7 @@ func IsCommandAvailable(command string) bool {
 
 func Exec(name string, arg ...string) (string, error) {
 	cmd := exec.Command(name, arg...)
+	cmd.Stdin = os.Stdin
 
 	var stdoutBuf, stderrBuf bytes.Buffer
 	stdoutIn, _ := cmd.StdoutPipe()
@@ -51,8 +52,8 @@ func Exec(name string, arg ...string) (string, error) {
 		log.Fatal("failed to capture stdout or stderr\n")
 	}
 
-	outStr, errStr := string(stdoutBuf.Bytes()), string(stderrBuf.Bytes())
-	return outStr + errStr, nil
+	stdOutStdErr := string(stdoutBuf.Bytes()) + string(stderrBuf.Bytes())
+	return stdOutStdErr, nil
 }
 
 func FileOrDirExists(path string) bool {
