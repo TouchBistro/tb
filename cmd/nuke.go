@@ -36,21 +36,18 @@ var nukeCmd = &cobra.Command{
 		}
 
 		err := deps.Resolve(deps.Docker)
-
 		if err != nil {
 			log.Fatal(err)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopAllContainers()
-
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		log.Println("stopping compose services...")
 		err = docker.ComposeStop()
-
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -59,7 +56,6 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Println("Removing containers...")
 			err = docker.RmContainers()
-
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -69,7 +65,6 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeImages || nukeOpts.shouldNukeAll {
 			log.Println("Removing images...")
 			err = docker.RmImages()
-
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -79,7 +74,6 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeNetworks || nukeOpts.shouldNukeAll {
 			log.Println("Removing networks...")
 			err = docker.RmNetworks()
-
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -89,7 +83,6 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeAll {
 			log.Println("Removing volumes...")
 			err = docker.RmVolumes()
-
 			if err != nil {
 				log.Fatal(err)
 			}
@@ -100,7 +93,6 @@ var nukeCmd = &cobra.Command{
 			log.Println("Removing repos...")
 			for _, repo := range git.RepoNames(config.All()) {
 				err = os.RemoveAll(repo)
-
 				if err != nil {
 					log.Fatal(err)
 				}
