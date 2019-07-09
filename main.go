@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	err := config.Init("./config.json")
+	err := config.Init("./config.json", "./playlists.yml")
 	if err != nil {
 		log.Println(err.Error())
 		os.Exit(1)
