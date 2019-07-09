@@ -6,6 +6,7 @@ import (
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"golang.org/x/net/context"
 )
@@ -102,6 +103,10 @@ func RmNetworks() error {
 	}
 
 	for _, network := range networks {
+		if network.Name == "bridge" || network.Name == "host" || network.Name == "none" {
+			continue
+		}
+
 		if err := cli.NetworkRemove(ctx, network.ID); err != nil {
 			return err
 		}
@@ -110,22 +115,24 @@ func RmNetworks() error {
 	return nil
 }
 
-// VolumeList is wack and doesn't return an ID like everything else
-// Gotta figure out how to delete the volumes
-// func RmVolumes() error {
-// 	ctx := context.Background()
-// 	cli, err := client.NewEnvClient()
+func RmVolumes() error {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
 
-// 	if err != nil {
-// 		return err
-// 	}
+	if err != nil {
+		return err
+	}
 
-// 	volumes, err := cli.VolumeList(ctx, filters.Args{})
-// 	if err != nil {
-// 		return err
-// 	}
+	volumes, err := cli.VolumeList(ctx, filters.Args{})
+	if err != nil {
+		return err
+	}
 
-// 	for _, volume := range volumes.Volumes {
-// 		if err := cli.VolumeRemove(ctx, volume.Name)
-// 	}
-// }
+	for _, volume := range volumes.Volumes {
+		if err := cli.VolumeRemove(ctx, volume.Name, true); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
