@@ -21,7 +21,7 @@ func main() {
 	log.SetLevel(logLevel)
 	log.SetReportCaller(logLevel == log.DebugLevel)
 
-	err = config.Init("./config.json", "./playlists.yml")
+	err = config.Init("./services.yml", "./playlists.yml")
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
 	}

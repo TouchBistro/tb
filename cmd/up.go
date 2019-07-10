@@ -25,7 +25,7 @@ type options struct {
 
 var (
 	composeFiles     string
-	selectedServices []config.Service
+	selectedServices map[string]config.Service
 	opts             options
 )
 
@@ -39,10 +39,10 @@ func initComposeFiles() {
 
 func cloneMissingRepos() {
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	services := *config.All()
+	services := config.Services()
 	log.Info("Checking repos...")
-	for _, s := range services {
-		path := fmt.Sprintf("./%s", s.Name)
+	for name, s := range services {
+		path := fmt.Sprintf("./%s", name)
 		if !s.IsGithubRepo {
 			continue
 		}
@@ -51,10 +51,10 @@ func cloneMissingRepos() {
 			continue
 		}
 
-		log.Infof("%s is missing. cloning...\n", s.Name)
-		err := git.Clone(s.Name)
+		log.Infof("%s is missing. cloning...\n", name)
+		err := git.Clone(name)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "repo": s.Name}).Fatal("Failed cloning repo")
+			log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed cloning repo")
 		}
 	}
 	log.Info("...done")
@@ -97,28 +97,28 @@ func pullTBBaseImages() {
 	log.Info("...done")
 }
 
-func execDBPrepare(s config.Service) {
+func execDBPrepare(name string, isECR bool) {
 	var composeName string
 	var err error
 
-	if s.ECR {
-		composeName = s.Name + "-ecr"
+	if isECR {
+		composeName = name + "-ecr"
 	} else {
-		composeName = s.Name
+		composeName = name
 	}
 
 	log.Debugf("Resetting test database...")
 	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFiles, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(), "service": s.Name}).Fatal("Failed running yarn db:prepare:test")
+		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare:test")
 	}
 
 	log.Debugf("Resetting development database...")
 	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFiles, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(), "service": s.Name}).Fatal("Failed running yarn db:prepare")
+		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare")
 	}
 }
 
@@ -160,32 +160,26 @@ func validatePlaylistName(playlistName string) {
 	}
 }
 
-func toComposeNames(configs []config.Service) []string {
+func toComposeNames(configs map[string]config.Service) []string {
 	names := make([]string, len(configs))
-	for _, s := range configs {
-		var name string
+	for name, s := range configs {
+		var composeName string
 		if s.ECR {
-			name = s.Name + "-ecr"
+			composeName = name + "-ecr"
 		} else {
-			name = s.Name
+			composeName = name
 		}
-		names = append(names, name)
+		names = append(names, composeName)
 	}
 	return names
 }
 
-func filterByNames(configs []config.Service, names []string) []config.Service {
-	set := make(map[string]bool, len(names))
+func filterByNames(configs map[string]config.Service, names []string) map[string]config.Service {
+	selected := make(map[string]config.Service, 0)
 	for _, name := range names {
-		set[name] = true
-	}
-
-	selected := make([]config.Service, 0)
-	for _, s := range configs {
-		if _, ok := set[s.Name]; !ok {
-			continue
+		if _, ok := configs[name]; ok {
+			selected[name] = configs[name]
 		}
-		selected = append(selected, s)
 	}
 
 	return selected
@@ -207,7 +201,7 @@ func initSelectedServices() {
 		log.Fatal("must specify either --playlist or --services")
 	}
 
-	selectedServices = filterByNames(*config.All(), names)
+	selectedServices = filterByNames(config.Services(), names)
 	if len(selectedServices) == 0 {
 		log.Fatal("You must specify at least one service from TouchBistro/tb/config.json")
 	}
@@ -271,11 +265,11 @@ var upCmd = &cobra.Command{
 			// Pull latest github repos
 			log.Info("Pulling the latest git branch for selected services...")
 			// TODO: Parallelize this shit
-			for _, s := range selectedServices {
+			for name, s := range selectedServices {
 				if s.IsGithubRepo && !s.ECR {
-					err := git.Pull(s.Name)
+					err := git.Pull(name)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err.Error(), "repo": s.Name}).Fatal("Failed pulling git repo.")
+						log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed pulling git repo.")
 					}
 				}
 			}
@@ -288,12 +282,12 @@ var upCmd = &cobra.Command{
 		if !opts.shouldSkipDBPrepare {
 			log.Info("Performing database migrations and seeds...")
 			// TODO: Parallelize this shit
-			for _, s := range selectedServices {
+			for name, s := range selectedServices {
 				if !s.Migrations {
 					continue
 				}
 				// TODO: merge compose files into one again
-				execDBPrepare(s)
+				execDBPrepare(name, s.ECR)
 			}
 			log.Info("...done")
 		}

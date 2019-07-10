@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"strings"
 
+	"os"
+	"os/exec"
+
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
-	"os/exec"
 )
 
 var execCmd = &cobra.Command{
@@ -29,6 +31,12 @@ var execCmd = &cobra.Command{
 		}
 
 		service := args[0]
+
+		// Make sure it's a valid service
+		if _, ok := config.Services()[service]; !ok {
+			log.Fatalf("%s is not a valid service\n", service)
+		}
+
 		cmds := strings.Join(args[1:], " ")
 		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
 
