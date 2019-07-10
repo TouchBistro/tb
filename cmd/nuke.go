@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/TouchBistro/tb/config"
@@ -10,6 +9,7 @@ import (
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
