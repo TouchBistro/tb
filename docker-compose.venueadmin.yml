@@ -5,7 +5,7 @@ x-venue-admin-frontend:
   env_file:
     - ./venue-admin-frontend/.env.example
   environment:
-    - CORE_BACKEND_URL_BASE=http://core-backend-ecr:8080
+    - CORE_BACKEND_URL_BASE=http://venue-core-service-ecr:8080
     - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://partners-config-service-ecr:8080
     - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://legacy-bridge-cloud-service-ecr:8080
     - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
@@ -16,7 +16,7 @@ x-venue-admin-frontend:
   entrypoint: [ "bash", "../docker-entrypoint.sh" ]  
   command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
   depends_on:
-    - core-backend-ecr
+    - venue-core-service-ecr
     - cloud-server-ecr    
     - legacy-bridge-cloud-service-ecr
     - partners-config-service-ecr
@@ -35,12 +35,12 @@ services:
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
     container_name: venue-admin-frontend
     # depends_on:
-    #   - core-backend-ecr
+    #   - venue-core-service-ecr
     #   - 
 
   venue-admin-frontend-ecr:
     << : *venue-admin-frontend
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/admin-service:${VAF_TAG:-master}
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-admin-frontend:${VAF_TAG:-master}
     container_name: venue-admin-frontend-ecr${VAF_TAG:-master}
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 

@@ -50,12 +50,12 @@ x-health-clinic-boilerplate:
   ports:
     - "8089:8089"
 
-x-core-backend-boilerplate:
-  &core-backend-boilerplate
+x-venue-core-service-boilerplate:
+  &venue-core-service-boilerplate
   command: ["tail", "-f", "/dev/null"]
   entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
   env_file:
-    - ./core-backend/.env.example
+    - ./venue-core-service/.env.example
   environment:
     HTTP_PORT: 8080
     DB_HOST: postgres
@@ -79,9 +79,9 @@ x-core-backend-boilerplate:
     - postgres
 
 services:
-  core-backend-ecr:
-    << : *core-backend-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/core-backend:master
+  venue-core-service-ecr:
+    << : *venue-core-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-core-service:master
     command: >
       bash -c '
         echo '...done'
@@ -92,18 +92,18 @@ services:
           echo "Not starting server.."
           tail -f /dev/null
         fi'
-    container_name: core-backend-ecr
+    container_name: venue-core-service-ecr
 
-  core-backend:
-    << : *core-backend-boilerplate
+  venue-core-service:
+    << : *venue-core-service-boilerplate
     build:
       target: local
-      context: ./core-backend
+      context: ./venue-core-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
-    image: core-devtools_core-backend
-    container_name: core-devtools_core-backend_container
+    image: core-devtools_venue-core-service
+    container_name: core-devtools_venue-core-service_container
     command: >
       bash -c '
         echo '...done'
@@ -115,8 +115,8 @@ services:
           tail -f /dev/null
         fi'
     volumes:
-      - ./core-backend:/home/node/app:delegated
-      - core-backend-node_modules:/home/node/app/node_modules:delegated
+      - ./venue-core-service:/home/node/app:delegated
+      - venue-core-service-node_modules:/home/node/app/node_modules:delegated
 
   provisioning-service-ecr:
     << : *provisioning-service-boilerplate
@@ -150,4 +150,4 @@ services:
       - ./health-clinic:/home/python/app
 
 volumes:
-  core-backend-node_modules:
+  venue-core-service-node_modules:
