@@ -19,9 +19,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.SetLevel(logLevel)
-
-	// TODO: This is ugly and supposedly slow - we should only enable it if the user wants verbose logging on.
-	// log.SetReportCaller(true)
+	log.SetReportCaller(logLevel == log.DebugLevel)
 
 	err = config.Init("./config.json", "./playlists.yml")
 	if err != nil {
