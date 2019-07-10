@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -133,6 +134,26 @@ func RmVolumes() error {
 			return err
 		}
 	}
+
+	return nil
+}
+
+func StopContainersAndServices() error {
+	var err error
+
+	log.Println("stopping running containers...")
+	err = StopAllContainers()
+	if err != nil {
+		return err
+	}
+	log.Println("...done")
+
+	log.Println("stopping compose services...")
+	err = ComposeStop()
+	if err != nil {
+		return err
+	}
+	log.Println("...done")
 
 	return nil
 }

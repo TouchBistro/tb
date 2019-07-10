@@ -51,17 +51,10 @@ var nukeCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := docker.StopAllContainers()
+		err := docker.StopContainersAndServices()
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		log.Println("stopping compose services...")
-		err = docker.ComposeStop()
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println("...done")
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Println("Removing containers...")
