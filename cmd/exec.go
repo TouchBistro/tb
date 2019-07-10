@@ -6,9 +6,10 @@ import (
 
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"os"
+	"os/exec"
 )
 
 var execCmd = &cobra.Command{
@@ -31,9 +32,14 @@ var execCmd = &cobra.Command{
 		cmds := strings.Join(args[1:], " ")
 		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
 
-		err = util.Exec("docker-compose", strings.Fields(cmdStr)...)
+		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
+		execCmd.Stdout = os.Stdout
+		execCmd.Stderr = os.Stderr
+		execCmd.Stdin = os.Stdin
+
+		err = execCmd.Run()
 		if err != nil {
-			log.Fatal(err)
+			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to run exec command.")
 		}
 	},
 }

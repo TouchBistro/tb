@@ -40,6 +40,7 @@ var dbCmd = &cobra.Command{
 		if err != nil {
 			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start database client.")
 		}
+
 	},
 }
 
