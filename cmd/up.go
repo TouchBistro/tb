@@ -205,13 +205,11 @@ func initSelectedServices() {
 		names = opts.cliServiceNames
 	} else {
 		log.Fatal("must specify either --playlist or --services")
-		os.Exit(1)
 	}
 
 	selectedServices = filterByNames(*config.All(), names)
 	if len(selectedServices) == 0 {
 		log.Fatal("You must specify at least one service from TouchBistro/tb/config.json")
-		os.Exit(1)
 	}
 
 }
