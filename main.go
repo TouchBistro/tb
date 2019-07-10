@@ -1,19 +1,27 @@
 package main
 
 import (
+	"os"
+
 	"github.com/TouchBistro/tb/cmd"
 	"github.com/TouchBistro/tb/config"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 func main() {
-	log.SetLevel(log.DebugLevel) // TODO: Make this configurable in viper.
+	err := config.InitRC()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
 
-	// TODO: This is ugly and supposedly slow - we should only enable it if the user wants verbose logging on.
-	// log.SetReportCaller(true)
+	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetLevel(logLevel)
+	log.SetReportCaller(logLevel == log.DebugLevel)
 
-	err := config.Init("./config.json", "./playlists.yml")
+	err = config.Init("./config.json", "./playlists.yml")
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
 	}

@@ -3,9 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
-	"log"
 	"os"
+
+	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 )
 
 var config *[]Service
@@ -25,7 +26,7 @@ func Init(confPath, playlistPath string) error {
 		return err
 	}
 
-	err = loadPlaylists(playlistPath)
+	err = util.ReadYaml(playlistPath, &playlists)
 	if err != nil {
 		return err
 	}
@@ -47,21 +48,6 @@ func loadConfig(path string) error {
 	return err
 }
 
-func loadPlaylists(path string) error {
-	var err error
-
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	dec := yaml.NewDecoder(file)
-	err = dec.Decode(&playlists)
-
-	return err
-}
-
 func All() *[]Service {
 	return config
 }
@@ -79,8 +65,20 @@ func GetPlaylist(name string) []string {
 	if list == nil {
 		log.Panic("this is a bug. playlists is not initialised")
 	}
+	customList := tbrc.Playlists
 
-	if names, ok := list[name]; ok {
+	// Check custom playlists first
+	if playlist, ok := customList[name]; ok {
+		// TODO: Circular extends can make this infinite loop
+		// Make sure people don't do that
+		// Resolve parent playlist defined in extends
+		if playlist.Extends != "" {
+			parentPlaylist := GetPlaylist(playlist.Extends)
+			return append(parentPlaylist, playlist.Services...)
+		}
+
+		return playlist.Services
+	} else if names, ok := list[name]; ok {
 		return names
 	}
 
