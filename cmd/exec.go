@@ -31,7 +31,7 @@ var execCmd = &cobra.Command{
 		cmds := strings.Join(args[1:], " ")
 		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
 
-		_, err = util.Exec("docker-compose", strings.Fields(cmdStr)...)
+		err = util.Exec("docker-compose", strings.Fields(cmdStr)...)
 		if err != nil {
 			log.Fatal(err)
 		}

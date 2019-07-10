@@ -19,12 +19,12 @@ func ECRLogin() error {
 	}
 
 	dockerLoginArgs := strings.Fields(string(out))
-	_, err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
 	return err
 }
 
 func Pull(imageURI string) error {
-	_, err := util.Exec("docker", "pull", imageURI)
+	err := util.Exec("docker", "pull", imageURI)
 	return err
 }
 
@@ -145,19 +145,19 @@ func RmVolumes() error {
 func StopContainersAndServices() error {
 	var err error
 
-	log.Println("stopping running containers...")
+	log.Debug("stopping running containers...")
 	err = StopAllContainers()
 	if err != nil {
 		return err
 	}
-	log.Println("...done")
+	log.Debug("...done")
 
-	log.Println("stopping compose services...")
+	log.Debug("stopping compose services...")
 	err = ComposeStop()
 	if err != nil {
 		return err
 	}
-	log.Println("...done")
+	log.Debug("...done")
 
 	return nil
 }

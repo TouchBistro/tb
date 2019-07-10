@@ -42,7 +42,7 @@ var deps = map[string]Dependency{
 	Pgcli: Dependency{
 		Name: "pgcli",
 		BeforeInstall: func() error {
-			_, err := util.Exec("brew", "tap", "dbcli/tap")
+			err := util.Exec("brew", "tap", "dbcli/tap")
 			return err
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
@@ -58,7 +58,7 @@ var deps = map[string]Dependency{
 	Lazydocker: Dependency{
 		Name: "lazydocker",
 		BeforeInstall: func() error {
-			_, err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
+			err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
 			return err
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
@@ -99,7 +99,7 @@ var deps = map[string]Dependency{
 	Docker: Dependency{
 		Name: "docker",
 		BeforeInstall: func() error {
-			_, err := util.Exec("brew", "tap", "caskroom/versions")
+			err := util.Exec("brew", "tap", "caskroom/versions")
 			return err
 		},
 		InstallCmd: []string{"brew", "cask", "install", "docker"},
@@ -139,7 +139,7 @@ func Resolve(depNames ...string) error {
 		installCmd := dep.InstallCmd[0]
 		installArgs := dep.InstallCmd[1:]
 
-		_, err := util.Exec(installCmd, installArgs...)
+		err := util.Exec(installCmd, installArgs...)
 		if err != nil {
 			return err
 		}

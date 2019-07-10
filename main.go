@@ -11,7 +11,7 @@ func main() {
 	log.SetLevel(log.DebugLevel) // TODO: Make this configurable in viper.
 
 	// TODO: This is ugly and supposedly slow - we should only enable it if the user wants verbose logging on.
-	log.SetReportCaller(true)
+	// log.SetReportCaller(true)
 
 	err := config.Init("./config.json", "./playlists.yml")
 	if err != nil {
