@@ -9,7 +9,18 @@ import (
 )
 
 func main() {
-	err := config.Init("./config.json", "./playlists.yml")
+	err := config.InitRC()
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+
+	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetLevel(logLevel)
+
+	err = config.Init("./config.json", "./playlists.yml")
 	if err != nil {
 		log.Println(err.Error())
 		os.Exit(1)
