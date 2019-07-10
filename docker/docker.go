@@ -13,7 +13,7 @@ import (
 )
 
 func ECRLogin() error {
-	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).CombinedOutput()
+	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
 	if err != nil {
 		return err
 	}
