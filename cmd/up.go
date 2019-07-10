@@ -72,20 +72,10 @@ func initECRLogin() {
 func initDockerStop() {
 	var err error
 
-	log.Println("stopping running containers...")
-	err = docker.StopAllContainers()
+	err = docker.StopContainersAndServices()
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println("...done")
-
-	log.Println("stopping compose services...")
-	stopArgs := fmt.Sprintf("%s stop", composeFiles)
-	_, err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Println("...done")
 
 	log.Println("removing any running containers...")
 	err = docker.RmContainers()

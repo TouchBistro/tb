@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/TouchBistro/tb/config"
@@ -10,6 +9,7 @@ import (
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -51,17 +51,10 @@ var nukeCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := docker.StopAllContainers()
+		err := docker.StopContainersAndServices()
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		log.Println("stopping compose services...")
-		err = docker.ComposeStop()
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println("...done")
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Println("Removing containers...")

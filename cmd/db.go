@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/tb/deps"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
