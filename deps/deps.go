@@ -1,7 +1,6 @@
 package deps
 
 import (
-	"os"
 	"runtime"
 
 	"github.com/TouchBistro/tb/util"
@@ -108,29 +107,27 @@ var deps = map[string]Dependency{
 }
 
 func Resolve(depNames ...string) error {
-	log.Println("checking dependencies...")
+	log.Info("> Checking dependencies")
 
 	if runtime.GOOS != "darwin" {
-		log.Println("tb currently supports Darwin (MacOS) only for installing dependencies.")
-		log.Println("if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
-		os.Exit(1)
+		log.Fatal("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
 	}
 
 	for _, depName := range depNames {
 		dep, ok := deps[depName]
 
 		if !ok {
-			log.Fatalf("%s is not a valid dependency\n", depName)
+			log.Fatalf("%s is not a valid dependency.", depName)
 		}
 
 		if util.IsCommandAvailable(dep.Name) {
-			log.Printf("%s was found.\n", dep.Name)
+			log.Debugf("%s was found.\n", dep.Name)
 			continue
 		} else {
-			log.Printf("%s was NOT found.\n", dep.Name)
+			log.Warnf("%s was NOT found.\n", dep.Name)
 		}
 
-		log.Printf("installing %s.\n", dep.Name)
+		log.Debugf("installing %s.\n", dep.Name)
 
 		if dep.BeforeInstall != nil {
 			err := dep.BeforeInstall()
@@ -154,7 +151,9 @@ func Resolve(depNames ...string) error {
 			}
 		}
 
-		log.Printf("finished installing %s.\n", dep.Name)
+		log.Debugf("finished installing %s.\n", dep.Name)
 	}
+
+	log.Info("< finished checking dependencies")
 	return nil
 }

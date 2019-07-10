@@ -13,7 +13,7 @@ import (
 )
 
 func ECRLogin() error {
-	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
+	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).CombinedOutput()
 	if err != nil {
 		return err
 	}
@@ -62,6 +62,7 @@ func RmContainers() error {
 
 	for _, container := range containers {
 		if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
+			log.WithFields(log.Fields{"error": err.Error(), "containerID": container.ID}).Debug("Failed to remove container")
 			return err
 		}
 	}
@@ -83,6 +84,7 @@ func RmImages() error {
 
 	for _, image := range images {
 		if _, err := cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{}); err != nil {
+			log.WithFields(log.Fields{"error": err.Error(), "ImageID": image.ID}).Debug("Failed to remove image")
 			return err
 		}
 	}
@@ -109,6 +111,7 @@ func RmNetworks() error {
 		}
 
 		if err := cli.NetworkRemove(ctx, network.ID); err != nil {
+			log.WithFields(log.Fields{"error": err.Error(), "NetworkID": network.ID}).Debug("Failed to remove network.")
 			return err
 		}
 	}
@@ -131,6 +134,7 @@ func RmVolumes() error {
 
 	for _, volume := range volumes.Volumes {
 		if err := cli.VolumeRemove(ctx, volume.Name, true); err != nil {
+			log.WithFields(log.Fields{"error": err.Error(), "VolumeID": volume.Name}).Debug("Failed to remove volume.")
 			return err
 		}
 	}

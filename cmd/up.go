@@ -187,13 +187,14 @@ func filterByNames(configs []config.Service, names []string) []config.Service {
 		set[name] = true
 	}
 
-	selected := make([]config.Service, len(names))
+	selected := make([]config.Service, 0)
 	for _, s := range configs {
 		if _, ok := set[s.Name]; !ok {
 			continue
 		}
 		selected = append(selected, s)
 	}
+
 	return selected
 }
 
@@ -208,12 +209,19 @@ func initSelectedServices() {
 		validatePlaylistName(opts.playlistName)
 		names = config.GetPlaylist(opts.playlistName)
 	} else if len(opts.cliServiceNames) > 0 {
+		// TODO: be more strict about failing if any cliServicesName is invalid.
 		names = opts.cliServiceNames
 	} else {
 		log.Println("must specify either --playlist or --services")
 		os.Exit(1)
 	}
+
 	selectedServices = filterByNames(*config.All(), names)
+	if len(selectedServices) == 0 {
+		log.Fatal("You must specify at least one service from TouchBistro/tb/config.json")
+		os.Exit(1)
+	}
+
 }
 
 var upCmd = &cobra.Command{
