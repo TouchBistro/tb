@@ -11,6 +11,7 @@ import (
 var listCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
+	Args:    cobra.NoArgs,
 	Short:   "Lists all available services",
 	Run: func(cmd *cobra.Command, args []string) {
 		services := config.Services()
