@@ -1,0 +1,102 @@
+legacy-bridge-manage-service:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-manage-service:develop'
+legacy-database:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/legacy-database:master-db-migrate-with-seeds'
+venue-core-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-core-service:master'
+provisioning-service:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-provisioning-service:master'
+health-clinic:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-health-clinic:master'
+postgres:
+  repo: false
+  migrations: false
+  ecr: false
+redis:
+  repo: false
+  migrations: false
+  ecr: false
+localstack:
+  repo: false
+  migrations: false
+  ecr: false
+cloud-server:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server:develop'
+cloud-server-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server-frontend:develop'
+ordering-ooa-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:master'
+ordering-gateways-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:master'
+ordering-deliveroo-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-deliveroo-service:master'
+ordering-demo-frontend:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-demo-frontend:master'
+partners-etl-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-etl-service:master'
+partners-orchestration-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-orchestration-service:master'
+partners-config-service:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-config-service:master'
+legacy-bridge-cloud-service:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-cloud-service:develop'
+venue-admin-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-admin-frontend:master'
+identity-user-service:
+  repo: true
+  migrations: false
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-identity-user:develop'
+mokta:
+  repo: true
+  migrations: true
+  ecr: true
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/mokta:develop'
