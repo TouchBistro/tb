@@ -1,11 +1,7 @@
 package util
 
 import (
-	"bytes"
-	"io"
-	"os"
 	"os/exec"
-	"sync"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -13,46 +9,31 @@ import (
 func IsCommandAvailable(command string) bool {
 	_, err := exec.LookPath(command)
 	if err != nil {
+		log.WithFields(log.Fields{"error": err.Error(), "command": command}).Debug("Error looking up command.")
 		return false
 	}
 	return true
 }
 
-func Exec(name string, arg ...string) (string, error) {
+func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
-	cmd.Stdin = os.Stdin
 
-	var stdoutBuf, stderrBuf bytes.Buffer
-	stdoutIn, _ := cmd.StdoutPipe()
-	stderrIn, _ := cmd.StderrPipe()
+	stdOutLogger := log.New()
+	stdOutWriter := stdOutLogger.WriterLevel(log.DebugLevel)
+	defer stdOutWriter.Close()
 
-	var errStdout, errStderr error
-	stdout := io.MultiWriter(os.Stdout, &stdoutBuf)
-	stderr := io.MultiWriter(os.Stderr, &stderrBuf)
-	err := cmd.Start()
+	stdErrLogger := log.New()
+	stdErrWriter := stdErrLogger.WriterLevel(log.WarnLevel)
+	defer stdOutWriter.Close()
+
+	cmd.Stdout = stdOutWriter
+	cmd.Stderr = stdErrWriter
+
+	err := cmd.Run()
 	if err != nil {
-		log.Fatalf("cmd.Start() failed with '%s'\n", err)
+		log.Warnf("cmd.Run() failed with %s while running %s %s\n", err, name, arg)
+		return err
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		_, errStdout = io.Copy(stdout, stdoutIn)
-		wg.Done()
-	}()
-
-	_, errStderr = io.Copy(stderr, stderrIn)
-	wg.Wait()
-
-	err = cmd.Wait()
-	if err != nil {
-		log.Fatalf("cmd.Run() failed with %s\n", err)
-	}
-	if errStdout != nil || errStderr != nil {
-		log.Fatal("failed to capture stdout or stderr\n")
-	}
-
-	stdOutStdErr := string(stdoutBuf.Bytes()) + string(stderrBuf.Bytes())
-	return stdOutStdErr, nil
+	return nil
 }

@@ -32,7 +32,7 @@ func ComposeStop() error {
 	}
 
 	stopArgs := fmt.Sprintf("%s stop", composeFiles)
-	_, err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
+	err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
 
 	return err
 }

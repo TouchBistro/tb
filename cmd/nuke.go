@@ -39,7 +39,7 @@ var nukeCmd = &cobra.Command{
 
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			log.Fatal(err)
+			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to resolve dependencies.")
 		}
 
 		for _, repo := range git.RepoNames(config.All()) {
@@ -53,14 +53,14 @@ var nukeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopContainersAndServices()
 		if err != nil {
-			log.Fatal(err)
+			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed stopping docker containers and services.")
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Println("Removing containers...")
 			err = docker.RmContainers()
 			if err != nil {
-				log.Fatal(err)
+				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker containers")
 			}
 			log.Println("...done")
 		}
@@ -69,7 +69,7 @@ var nukeCmd = &cobra.Command{
 			log.Println("Removing images...")
 			err = docker.RmImages()
 			if err != nil {
-				log.Fatal(err)
+				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker images")
 			}
 			log.Println("...done")
 		}
@@ -78,7 +78,7 @@ var nukeCmd = &cobra.Command{
 			log.Println("Removing networks...")
 			err = docker.RmNetworks()
 			if err != nil {
-				log.Fatal(err)
+				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker networks")
 			}
 			log.Println("...done")
 		}
@@ -87,7 +87,7 @@ var nukeCmd = &cobra.Command{
 			log.Println("Removing volumes...")
 			err = docker.RmVolumes()
 			if err != nil {
-				log.Fatal(err)
+				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker volumes")
 			}
 			log.Println("...done")
 		}
@@ -97,7 +97,7 @@ var nukeCmd = &cobra.Command{
 			for _, repo := range git.RepoNames(config.All()) {
 				err = os.RemoveAll(repo)
 				if err != nil {
-					log.Fatal(err)
+					log.WithFields(log.Fields{"error": err.Error(), "repo": repo}).Fatal("Failed removing git repo")
 				}
 			}
 			log.Println("...done")
