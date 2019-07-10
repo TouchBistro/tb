@@ -2,11 +2,12 @@ package util
 
 import (
 	"bytes"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"os/exec"
 	"sync"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func IsCommandAvailable(command string) bool {
@@ -54,22 +55,4 @@ func Exec(name string, arg ...string) (string, error) {
 
 	stdOutStdErr := string(stdoutBuf.Bytes()) + string(stderrBuf.Bytes())
 	return stdOutStdErr, nil
-}
-
-func FileOrDirExists(path string) bool {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-func AppendLineToFile(path string, line string) error {
-	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, err = f.WriteString(line + "\n")
-	return err
 }
