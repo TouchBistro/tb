@@ -3,10 +3,10 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/TouchBistro/tb/util"
+	log "github.com/sirupsen/logrus"
 )
 
 var config *[]Service

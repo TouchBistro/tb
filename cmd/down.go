@@ -21,7 +21,7 @@ var downCmd = &cobra.Command{
 			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed stopping containers and services.")
 		}
 
-		log.Println("removing any running containers...")
+		log.Println("removing stopped containers...")
 		err = docker.RmContainers()
 		if err != nil {
 			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing containers")
