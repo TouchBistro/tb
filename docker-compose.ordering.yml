@@ -253,7 +253,7 @@ services:
 
   ordering-deliveroo-service-ecr:
     << : *ordering-deliveroo-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:master
     container_name: ordering-devtools_ordering-deliveroo-service-ecr_container
     command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 

@@ -1,55 +1,54 @@
 ---
 auth:
-  - postgres
-  - mokta
-  - identity-user-service
+  services:
+    - postgres
+    - mokta
+    - identity-user-service
 cloud:
-  - redis
-  - legacy-database
-  - cloud-server
-  - cloud-server-frontend
-  - dotnet-manage
-  - dotnet-api
-  - legacy-bridge-manage-service
+  services:
+    - redis
+    - legacy-database
+    - cloud-server
+    - cloud-server-frontend
+    - dotnet-manage
+    - dotnet-api
+    - legacy-bridge-manage-service
 core:
-  - core-backend
-  - postgres
-  - localstack
-  - provisioning-service
+  services:
+    - venue-core-service
+    - postgres
+    - localstack
+    - provisioning-service
 ordering:
-  - postgres
-  - localstack
-  - ordering-ooa-service
-  - ordering-gateways-frontend
-  - ordering-deliveroo-service
-  - ordering-demo-frontend
-  - ordering-demo-frontend-venue
+  services:
+    - postgres
+    - localstack
+    - ordering-ooa-service
+    - ordering-gateways-frontend
+    - ordering-deliveroo-service
+    - ordering-demo-frontend
+    - ordering-demo-frontend-venue
 partners:
-  - postgres
-  - partners-etl-service
-  - partners-config-service
-  - partners-orchestration-service
-  - legacy-bridge-cloud-service
-  - localstack
-  - legacy-database
+  services:
+    - postgres
+    - partners-etl-service
+    - partners-config-service
+    - partners-orchestration-service
+    - legacy-bridge-cloud-service
+    - localstack
+    - legacy-database
+venueadmin-deps:
+  services:
+    - localstack
+    - postgres
+    - venue-core-service
+    - legacy-database
+    - redis
+    - cloud-server
+    - cloud-server-frontend
+    - legacy-bridge-cloud-service
+    - partners-config-service
 venueadmin:
-  - localstack
-  - postgres
-  - core-backend
-  - legacy-database
-  - redis
-  - cloud-server
-  - cloud-server-frontend
-  - legacy-bridge-cloud-service
-  - partners-config-service
-  - venue-admin-frontend
-venueadmin-depsonly:
-  - localstack
-  - postgres
-  - core-backend
-  - legacy-database
-  - redis
-  - cloud-server
-  - cloud-server-frontend
-  - legacy-bridge-cloud-service
-  - partners-config-service
+  extends: venueadmin-deps
+  services:
+    - venue-admin-frontend  

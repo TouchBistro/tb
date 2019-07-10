@@ -42,7 +42,7 @@ var nukeCmd = &cobra.Command{
 			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to resolve dependencies.")
 		}
 
-		for _, repo := range git.RepoNames(config.All()) {
+		for _, repo := range git.RepoNames(config.Services()) {
 			path := fmt.Sprintf("./%s", repo)
 
 			if !util.FileOrDirExists(path) {
@@ -94,7 +94,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Println("Removing repos...")
-			for _, repo := range git.RepoNames(config.All()) {
+			for _, repo := range git.RepoNames(config.Services()) {
 				err = os.RemoveAll(repo)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err.Error(), "repo": repo}).Fatal("Failed removing git repo")

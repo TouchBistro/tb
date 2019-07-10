@@ -31,11 +31,13 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "./localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
-      - "./core-backend/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
+      - "./venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
       - "./ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
       - "./partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
       - "./partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
       - "./partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
+    logging:
+      driver: none   # Remove this line to see noisy localstack logs.
 
 volumes:
   postgres:

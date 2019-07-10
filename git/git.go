@@ -19,12 +19,12 @@ func Pull(repoName string) error {
 	return err
 }
 
-func RepoNames(services *[]config.Service) []string {
+func RepoNames(services map[string]config.Service) []string {
 	var repos []string
 
-	for _, s := range *services {
+	for name, s := range services {
 		if s.IsGithubRepo {
-			repos = append(repos, s.Name)
+			repos = append(repos, name)
 		}
 	}
 

@@ -1,27 +1,24 @@
 package config
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 )
 
-var config *[]Service
-var playlists *map[string][]string
+var services map[string]Service
+var playlists map[string]Playlist
 
 type Service struct {
-	Name         string `json:"name"`
-	IsGithubRepo bool   `json:"repo"`
-	Migrations   bool   `json:"migrations"`
-	ECR          bool   `json:"ecr"`
-	ImageURI     string `json:"imageURI"`
+	IsGithubRepo bool   `yaml:"repo"`
+	Migrations   bool   `yaml:"migrations"`
+	ECR          bool   `yaml:"ecr"`
+	ImageURI     string `yaml:"imageURI"`
 }
 
 func Init(confPath, playlistPath string) error {
-	err := loadConfig(confPath)
+	err := util.ReadYaml(confPath, &services)
 	if err != nil {
 		return err
 	}
@@ -34,22 +31,8 @@ func Init(confPath, playlistPath string) error {
 	return nil
 }
 
-func loadConfig(path string) error {
-	var err error
-
-	file, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
-	dec := json.NewDecoder(file)
-	err = dec.Decode(&config)
-	return err
-}
-
-func All() *[]Service {
-	return config
+func Services() map[string]Service {
+	return services
 }
 
 func BaseImages() []string {
@@ -61,8 +44,7 @@ func BaseImages() []string {
 
 func GetPlaylist(name string) []string {
 	// TODO: Make this less yolo if Init() wasn't called
-	list := *playlists
-	if list == nil {
+	if playlists == nil {
 		log.Panic("this is a bug. playlists is not initialised")
 	}
 	customList := tbrc.Playlists
@@ -78,8 +60,13 @@ func GetPlaylist(name string) []string {
 		}
 
 		return playlist.Services
-	} else if names, ok := list[name]; ok {
-		return names
+	} else if playlist, ok := playlists[name]; ok {
+		if playlist.Extends != "" {
+			parentPlaylist := GetPlaylist(playlist.Extends)
+			return append(parentPlaylist, playlist.Services...)
+		}
+
+		return playlist.Services
 	}
 
 	// TODO: Fallback to user-custom choice somehow

@@ -14,8 +14,9 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 #
-core-backend
+venue-core-service
 core-database
+ordering-ooa-service
 legacy-bridge-manage-service
 legacy-database
 provisioning-service
@@ -30,8 +31,8 @@ partners-config-service
 partners-etl-service
 legacy-bridge-cloud-service
 partners-orchestration-service
-identity-user-service
 venue-admin-frontend
+identity-user-service
 mokta
 
 
