@@ -45,7 +45,7 @@ var dbCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(dbCmd)
+	rootCmd.AddCommand(dbCmd)
 	dbCmd.Flags().StringVarP(&host, "host", "H", "localhost", "host address of the database")
 	dbCmd.Flags().IntVarP(&port, "port", "p", 5432, "port that the database is listening on")
 	dbCmd.Flags().StringVarP(&user, "user", "u", "core", "user name to connect to the database")

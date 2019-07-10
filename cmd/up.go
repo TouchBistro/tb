@@ -311,5 +311,5 @@ func init() {
 	upCmd.PersistentFlags().StringVar(&opts.playlistName, "playlist", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
-	RootCmd.AddCommand(upCmd)
+	rootCmd.AddCommand(upCmd)
 }

@@ -1,11 +1,9 @@
 package cmd
 
 import (
-	"github.com/TouchBistro/tb/cmd"
 	"github.com/TouchBistro/tb/config"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var rootCmd = &cobra.Command{
@@ -40,10 +38,5 @@ func initConfig() {
 	err = config.Init("./services.yml", "./playlists.yml")
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
-	}
-
-	err = cmd.RootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
 	}
 }
