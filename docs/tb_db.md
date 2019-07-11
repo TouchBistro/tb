@@ -4,7 +4,7 @@ Connects to the database in a service
 
 ### Synopsis
 
-Connects to the database in a service
+TODO: Show usage example
 
 ```
 tb db <db-name> [flags]

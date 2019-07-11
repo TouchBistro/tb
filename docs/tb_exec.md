@@ -4,7 +4,14 @@ executes a command in a service container
 
 ### Synopsis
 
-executes a command in a service container
+Executes a command in a service container.
+
+Examples:
+- run yarn db:prepare:test in the core-database container.
+	tb exec core-database yarn db:prepare:test
+
+- start an interactive shell in the core-database container.
+	tb exec core-database bash
 
 ```
 tb exec <service-name> <command> [additional-commands...] [flags]

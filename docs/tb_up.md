@@ -4,7 +4,14 @@ Starts services from a playlist name or as a comma separated list of services
 
 ### Synopsis
 
-Starts services from a playlist name or as a comma separated list of services
+Starts services from a playlist name or as a comma separated list of services.
+
+Examples
+- run the services defined under the "core" key in playlists.yml
+	tb up --playlist core
+
+- run only postgres and localstack
+	tb up -s postgres,localstack
 
 ```
 tb up [flags]
