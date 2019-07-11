@@ -1,7 +1,9 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/gobuffalo/packr/v2"
 
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
@@ -17,13 +19,24 @@ type Service struct {
 	ImageURI     string `yaml:"imageURI"`
 }
 
-func Init(confPath, playlistPath string) error {
-	err := util.ReadYaml(confPath, &services)
+func Init(servicesPath, playlistPath string) error {
+	box := packr.New("static", "./static")
+
+	sBuf, err := box.Find(servicesPath)
 	if err != nil {
 		return err
 	}
 
-	err = util.ReadYaml(playlistPath, &playlists)
+	err = util.DecodeYaml(bytes.NewReader(sBuf), &services)
+	if err != nil {
+		return err
+	}
+
+	pBuf, err := box.Find(playlistPath)
+	if err != nil {
+		return err
+	}
+	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
 	if err != nil {
 		return err
 	}

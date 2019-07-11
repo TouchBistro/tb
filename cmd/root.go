@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"github.com/TouchBistro/tb/config"
-	"github.com/gobuffalo/packr"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -36,7 +35,7 @@ func initConfig() {
 	log.SetLevel(logLevel)
 	log.SetReportCaller(logLevel == log.DebugLevel)
 
-	err = config.Init("./services.yml", "./playlists.yml")
+	err = config.Init("./static/services.yml", "./static/playlists.yml")
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
 	}
