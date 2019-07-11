@@ -23,3 +23,6 @@
 dotnet-depot/.DS_Store
 services.txt
 tb
+
+# packr generated files
+*-packr.go
