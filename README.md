@@ -26,6 +26,10 @@ TBD: Add instructions for getting binary from homebrew when we set that app
 
 Run `tb up -s postgres` to setup your system and start a `postgresql` service running in a docker container. Try running `tb --help` or `tb up --help` to see what else you can do.
 
+## Commands
+
+`tb` comes with a lot of convenient commands. See the documentation [here](docs/tb.md) for the command documentation.
+
 ## Configuration
 
 `tb` can be configured to either build images/containers locally, or to pull existing images from ECR. This is all set in `config.yml` with the `ecr` and `imageURI` flags.
@@ -40,17 +44,9 @@ After that, you just need to clone the repo.
 
 TODO: Tell people what to do if they just want to add serivces.
 
-## Commands
-
-`tb` comes with a lot of convenient commands. See the documentation [here](https://github.com/TouchBistro/tb/blob/master/docs/tb.md) for the command documentation.
-
 ## Having trouble?
 
-Check the [FAQ](https://github.com/TouchBistro/core-devtools/blob/master/FAQ.md) for common problems and solutions. (Pull requests welcome!)
-
-## Configuration
-
-## FAQ
+Check the [FAQ](docs/FAQ.md) for common problems and solutions. (Pull requests welcome!)
 
 ## Gotchas / Tips
 
