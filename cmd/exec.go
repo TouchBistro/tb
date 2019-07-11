@@ -17,7 +17,15 @@ import (
 var execCmd = &cobra.Command{
 	Use:   "exec <service-name> <command> [additional-commands...]",
 	Short: "executes a command in a service container",
-	Args:  cobra.MinimumNArgs(2),
+	Long: `Executes a command in a service container.
+
+Examples:
+- run yarn db:prepare:test in the core-database container.
+	tb exec core-database yarn db:prepare:test
+
+- start an interactive shell in the core-database container.
+	tb exec core-database bash`,
+	Args: cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Docker)
 		if err != nil {

@@ -17,6 +17,7 @@ var port int
 var dbCmd = &cobra.Command{
 	Use:   "db <db-name>",
 	Short: "Connects to the database in a service",
+	Long:  "TODO: Show usage example",
 	Args:  cobra.ExactArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Pgcli)
