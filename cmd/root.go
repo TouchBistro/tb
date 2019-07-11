@@ -7,8 +7,9 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "tb",
-	Short: "tb is a CLI for running TouchBistro services on a development machine",
+	Use:     "tb",
+	Version: "0.0.0",
+	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 }
 
 func Execute() {
