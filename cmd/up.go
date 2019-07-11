@@ -42,17 +42,17 @@ func cloneMissingRepos() {
 	services := config.Services()
 	log.Info("Checking repos...")
 	for name, s := range services {
-		path := fmt.Sprintf("./%s", name)
 		if !s.IsGithubRepo {
 			continue
 		}
 
+		path := fmt.Sprintf("%s/%s", config.TBRootPath(), name)
 		if util.FileOrDirExists(path) {
 			continue
 		}
 
 		log.Infof("%s is missing. cloning...\n", name)
-		err := git.Clone(name)
+		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
 			log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed cloning repo")
 		}
