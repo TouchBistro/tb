@@ -3,6 +3,8 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"os"
+
 	"github.com/gobuffalo/packr/v2"
 
 	"github.com/TouchBistro/tb/util"
@@ -11,6 +13,7 @@ import (
 
 var services map[string]Service
 var playlists map[string]Playlist
+var tbRoot string
 
 type Service struct {
 	IsGithubRepo bool   `yaml:"repo"`
@@ -19,7 +22,24 @@ type Service struct {
 	ImageURI     string `yaml:"imageURI"`
 }
 
+func setupEnv() {
+	// Set $TB_ROOT so it works in the docker-compose file
+	tbRoot := fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
+	os.Setenv("TB_ROOT", tbRoot)
+
+	// Create $TB_ROOT directory if it doesn't exist
+	if !util.FileOrDirExists(tbRoot) {
+		os.Mkdir(tbRoot, 0644)
+	}
+}
+
+func TBRootPath() string {
+	return tbRoot
+}
+
 func Init(servicesPath, playlistPath string) error {
+	setupEnv()
+
 	box := packr.New("static", "./static")
 
 	sBuf, err := box.Find(servicesPath)
