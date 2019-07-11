@@ -210,7 +210,8 @@ func initSelectedServices() {
 
 var upCmd = &cobra.Command{
 	Use:   "up",
-	Short: "Starts services defined in docker-compose.*.yml files",
+	Short: "Starts services from a playlist name or as a comma separated list of services",
+	Args:  cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if opts.shouldSkipServerStart {
 			os.Setenv("START_SERVER", "false")
@@ -311,5 +312,5 @@ func init() {
 	upCmd.PersistentFlags().StringVar(&opts.playlistName, "playlist", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
-	RootCmd.AddCommand(upCmd)
+	rootCmd.AddCommand(upCmd)
 }

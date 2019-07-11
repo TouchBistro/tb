@@ -9,6 +9,7 @@ import (
 
 var downCmd = &cobra.Command{
 	Use:   "down",
+	Args:  cobra.NoArgs,
 	Short: "Stops any running services and removes all containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if err := deps.Resolve(deps.Docker); err != nil {
@@ -31,5 +32,5 @@ var downCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(downCmd)
+	rootCmd.AddCommand(downCmd)
 }

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"io"
 	"os"
 
 	"gopkg.in/yaml.v2"
@@ -47,8 +48,13 @@ func ReadYaml(path string, val interface{}) error {
 	}
 	defer file.Close()
 
-	dec := yaml.NewDecoder(file)
-	err = dec.Decode(val)
+	err = DecodeYaml(file, val)
+	return err
+}
+
+func DecodeYaml(r io.Reader, val interface{}) error {
+	dec := yaml.NewDecoder(r)
+	err := dec.Decode(val)
 
 	return err
 }
