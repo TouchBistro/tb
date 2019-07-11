@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/TouchBistro/tb/config"
+	"github.com/gobuffalo/packr"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
