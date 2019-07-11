@@ -24,12 +24,12 @@ type Service struct {
 
 func setupEnv() {
 	// Set $TB_ROOT so it works in the docker-compose file
-	tbRoot := fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
+	tbRoot = fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
 	os.Setenv("TB_ROOT", tbRoot)
 
 	// Create $TB_ROOT directory if it doesn't exist
 	if !util.FileOrDirExists(tbRoot) {
-		os.Mkdir(tbRoot, 0644)
+		os.Mkdir(tbRoot, 0755)
 	}
 }
 
