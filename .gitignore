@@ -14,27 +14,6 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 #
-venue-core-service
-core-database
-ordering-ooa-service
-legacy-bridge-manage-service
-legacy-database
-provisioning-service
-health-clinic
-cloud-server
-cloud-server-frontend
-ordering-ooa-service
-ordering-demo-frontend
-ordering-gateways-frontend
-ordering-deliveroo-service
-partners-config-service
-partners-etl-service
-legacy-bridge-cloud-service
-partners-orchestration-service
-venue-admin-frontend
-identity-user-service
-mokta
-
 
 # vim
 *.swp
@@ -46,5 +25,6 @@ services.txt
 tb
 
 dist
-config/config-packr.go
+# packr generated files
+*-packr.go
 packrd/

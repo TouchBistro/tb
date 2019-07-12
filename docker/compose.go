@@ -2,37 +2,19 @@ package docker
 
 import (
 	"fmt"
-	"path/filepath"
 	"strings"
 
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/util"
 )
 
-func ComposeFiles() (string, error) {
-	matches, err := filepath.Glob("./docker-compose.*.yml")
-
-	if err != nil {
-		return "", err
-	}
-
-	if len(matches) == 0 {
-		return "", nil
-	}
-
-	str := "-f " + strings.Join(matches, " -f ")
-
-	return str, nil
+func ComposeFile() string {
+	return fmt.Sprintf("-f %s/docker-compose.yml", config.TBRootPath())
 }
 
 func ComposeStop() error {
-	composeFiles, err := ComposeFiles()
-
-	if err != nil {
-		return err
-	}
-
-	stopArgs := fmt.Sprintf("%s stop", composeFiles)
-	err = util.Exec("docker-compose", strings.Fields(stopArgs)...)
+	stopArgs := fmt.Sprintf("%s stop", ComposeFile())
+	err := util.Exec("docker-compose", strings.Fields(stopArgs)...)
 
 	return err
 }

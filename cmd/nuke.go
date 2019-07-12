@@ -43,7 +43,7 @@ var nukeCmd = &cobra.Command{
 		}
 
 		for _, repo := range git.RepoNames(config.Services()) {
-			path := fmt.Sprintf("./%s", repo)
+			path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 
 			if !util.FileOrDirExists(path) {
 				log.Fatalf("Repo %s is missing. Please ensure all repos exist before running nuke.\n", repo)
@@ -95,7 +95,8 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Println("Removing repos...")
 			for _, repo := range git.RepoNames(config.Services()) {
-				err = os.RemoveAll(repo)
+				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
+				err = os.RemoveAll(repoPath)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err.Error(), "repo": repo}).Fatal("Failed removing git repo")
 				}

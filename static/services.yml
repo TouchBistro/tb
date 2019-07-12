@@ -100,3 +100,7 @@ mokta:
   migrations: true
   ecr: true
   imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/mokta:develop'
+dotnet-depo:
+  repo: true
+  migrations: false
+  ecr: false

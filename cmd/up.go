@@ -24,35 +24,27 @@ type options struct {
 }
 
 var (
-	composeFiles     string
+	composeFile      string
 	selectedServices map[string]config.Service
 	opts             options
 )
-
-func initComposeFiles() {
-	var err error
-	composeFiles, err = docker.ComposeFiles()
-	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed reading compose files.")
-	}
-}
 
 func cloneMissingRepos() {
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
 	services := config.Services()
 	log.Info("Checking repos...")
 	for name, s := range services {
-		path := fmt.Sprintf("./%s", name)
 		if !s.IsGithubRepo {
 			continue
 		}
 
+		path := fmt.Sprintf("%s/%s", config.TBRootPath(), name)
 		if util.FileOrDirExists(path) {
 			continue
 		}
 
 		log.Infof("%s is missing. cloning...\n", name)
-		err := git.Clone(name)
+		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
 			log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed cloning repo")
 		}
@@ -108,14 +100,14 @@ func execDBPrepare(name string, isECR bool) {
 	}
 
 	log.Debugf("Resetting test database...")
-	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFiles, composeName)
+	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare:test")
 	}
 
 	log.Debugf("Resetting development database...")
-	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFiles, composeName)
+	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
 		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare")
@@ -132,7 +124,7 @@ func dockerComposeBuild(serviceNames []string) {
 		str.WriteString(" ")
 	}
 
-	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFiles, str.String())
+	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str.String())
 	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
 		log.Fatal(err)
@@ -143,7 +135,7 @@ func dockerComposeUp(serviceNames []string) {
 	var err error
 	log.Info("Starting docker-compose up in detached mode...")
 
-	upArgs := fmt.Sprintf("%s up -d %s", composeFiles, strings.Join(serviceNames, " "))
+	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
 	err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
 		log.Fatal(err)
@@ -244,10 +236,10 @@ Examples:
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
+		composeFile = docker.ComposeFile()
 
 		cloneMissingRepos()
 		initECRLogin()
-		initComposeFiles()
 		initDockerStop()
 
 		if !opts.shouldSkipDockerPull {
