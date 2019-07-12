@@ -203,7 +203,15 @@ func initSelectedServices() {
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Starts services from a playlist name or as a comma separated list of services",
-	Args:  cobra.NoArgs,
+	Long: `Starts services from a playlist name or as a comma separated list of services.
+
+Examples:
+- run the services defined under the "core" key in playlists.yml
+	tb up --playlist core
+
+- run only postgres and localstack
+	tb up -s postgres,localstack`,
+	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if opts.shouldSkipServerStart {
 			os.Setenv("START_SERVER", "false")
