@@ -26,3 +26,4 @@ tb
 
 # packr generated files
 *-packr.go
+packrd/
