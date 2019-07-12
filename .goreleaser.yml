@@ -47,7 +47,7 @@ brews:
   -
     github:
       owner: TouchBistro
-      name: homebrew-tb
+      name: homebrew-tools
     download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
     # The PrivateRepositoryReleaseDownloadStrategy was removed by homebrew
     # Resorting to this hack for now: https://github.com/goreleaser/goreleaser/issues/967
