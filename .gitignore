@@ -46,3 +46,5 @@ services.txt
 tb
 
 dist
+config/config-packr.go
+packrd/

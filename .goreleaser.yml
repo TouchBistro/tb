@@ -59,10 +59,10 @@ brews:
     description: "a CLI for running TouchBistro services on a development machine"
 
     test: |
-      system "#{bin}/program --version"
+      system "#{bin}/tb --version"
 
     install: |
-      bin.install "program"
+      bin.install "tb"
 
 release:
   github:
