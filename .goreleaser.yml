@@ -47,11 +47,13 @@ brews:
   -
     github:
       owner: TouchBistro
-      name: homebrew-touchbistro
+      name: homebrew-tb
     download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
     commit_author:
       name: ohsabry
       email: osabry@touchbistro.com
+    folder: Formula
+    description: "a CLI for running TouchBistro services on a development machine"
 
     test: |
       system "#{bin}/program --version"
