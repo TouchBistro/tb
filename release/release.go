@@ -1,14 +1,8 @@
 package release
 
-import (
-	"fmt"
-)
-
-var (
-	version = "dev"
-	commit  = "none"
-)
+// TODO: Set this with an LDFLAG
+var version string
 
 func VersionString() string {
-	return fmt.Sprintf("%s-%s", version, commit)
+	return version
 }

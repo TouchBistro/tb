@@ -12,7 +12,7 @@ builds:
     env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X release.version={{.Version}} -X release.commit={{.ShortCommit}}
+      - -s -w -X release.version={{.Tag}} # TODO: Figure this shit out
     goos:
       - darwin
     hooks:
