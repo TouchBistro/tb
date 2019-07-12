@@ -25,11 +25,6 @@ var execCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		files, err := docker.ComposeFiles()
-		if err != nil {
-			log.Fatal(err)
-		}
-
 		service := args[0]
 
 		// Make sure it's a valid service
@@ -38,14 +33,14 @@ var execCmd = &cobra.Command{
 		}
 
 		cmds := strings.Join(args[1:], " ")
-		cmdStr := fmt.Sprintf("%s exec %s %s", files, service, cmds)
+		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), service, cmds)
 
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
 		execCmd.Stdin = os.Stdin
 
-		err = execCmd.Run()
+		err := execCmd.Run()
 		if err != nil {
 			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to run exec command.")
 		}
