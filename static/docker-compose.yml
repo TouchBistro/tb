@@ -1,0 +1,888 @@
+version: '3.7'
+
+###### ANCHORS ######
+
+x-json-logger-config:
+  &json-logger-config
+  LOGGER_CONFIG_JSON: >
+    {
+      "transports": {
+        "devConsole": {
+          "provider": "winston.transports.Console",
+          "config": {
+            "colorize": true,
+            "timestamp": true,
+            "json": false
+          }
+        }
+      },
+      "env": {
+        "development": {
+          "rules": [
+            {
+              "pattern": "*",
+              "binding": {
+                "transport": ["devConsole"],
+                "level": "info"
+              }
+            }
+          ]
+        }
+      }
+    }
+
+x-postgresconnect:
+  &postgres-connect
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: core
+  DB_PASSWORD: localdev
+  DB_DISABLE_SSL: "true"
+
+x-mssqlconnect:
+  &mssql-connect
+  DB_HOST: legacy-database-ecr
+  DB_PORT: 1433
+  DB_USER: SA
+  DB_PASSWORD: Password123
+  DB_DISABLE_SSL: "true"
+
+x-nodeservice:
+  &node-service
+  << : *json-logger-config
+  HTTP_PORT: 8080
+
+x-command-serve:
+  &command-serve
+  command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+
+x-command-start:
+  &command-start
+  command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+
+x-build-node-dev:
+  &build-node-dev
+  target: dev
+  args:
+    - NODE_ENV=development
+    - NPM_TOKEN=$NPM_TOKEN
+
+###### BOILERPLATES ######
+
+x-mokta-boilerplate:
+  &mokta-boilerplate
+  env_file:
+    - $TB_ROOT/mokta/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *node-service
+    << : *postgres-connect
+  ports:
+    - "9443:8080"
+  depends_on:
+    - postgres
+
+x-identity-user-service-boilerplate:
+  &identity-user-service-boilerplate
+  env_file:
+    - $TB_ROOT/identity-user-service/.env.example
+  ports:
+    - "8777:8080"
+
+x-cloud-server-frontend-boilerplate:
+  &cloud-server-frontend-boilerplate
+  init: true
+  env_file:
+    - $TB_ROOT/cloud-server-frontend/packages/frontend/.env.example
+  ports:
+    - "8080:80"
+  depends_on:
+    - cloud-server-ecr
+
+x-legacy-database-boilerplate:
+  &legacy-database-boilerplate
+  env_file:
+    - $TB_ROOT/legacy-database/.env.example
+  environment:
+    DB_PORT: 1433
+    DB_USER: SA
+    DB_PASSWORD: Password123
+    DB_DISABLE_SSL: "true"
+    DB_HOST: localhost
+    DB_NAME: cloud_db
+  ports:
+    - "1433:1433"
+  entrypoint: [ "bash", "./docker-entrypoint-db.sh" ]
+  command: [ "tail", "-f", "/dev/null" ]
+
+x-cloud-server-boilerplate:
+  &cloud-server-boilerplate
+    env_file:
+      - $TB_ROOT/cloud-server/.env.compose
+    environment:
+      - MSSQL_HOST=legacy-database-ecr
+    entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+    command: >
+      bash -c '
+        echo '...done'
+        if [ "$START_SERVER" = "true" ]; then
+          echo "Starting server.."
+          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+        else
+          echo "Not starting server.."
+          tail -f /dev/null
+        fi'
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+      - legacy-database-ecr
+
+x-provisioning-service-boilerplate:
+  &provisioning-service-boilerplate
+  env_file:
+    - $TB_ROOT/provisioning-service/.env.compose
+  environment:
+    << : *node-service
+  #entrypoint: ["bash", "./docker-entrypoint.sh"]
+  ports:
+    - "8666:8080"
+  depends_on:
+    - postgres
+
+x-health-clinic-boilerplate:
+  &health-clinic-boilerplate
+  command: ["tail", "-f", "/dev/null"]
+  env_file:
+    - $TB_ROOT/health-clinic/.env.compose
+  ports:
+    - "8089:8089"
+
+x-venue-core-service-boilerplate:
+  &venue-core-service-boilerplate
+  command: ["tail", "-f", "/dev/null"]
+  entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
+  env_file:
+    - $TB_ROOT/venue-core-service/.env.example
+  environment:
+    << : *node-service
+    DB_HOST: postgres
+    PROVISIONING_JWKS_URI: http://provisioning-service-ecr:8080/external/jwks
+    AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+    AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+    AWS_S3_ENDPOINT: http://localstack:4572
+    LOCALSTACK_SQS_URL: http://localstack:4576
+    USE_INSECURE_IMPERSONATE: insecure
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {"core.task.data.migration":{"queueURL":"http://localstack:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
+  ports:
+    - "8081:8080"  # Main HTTP port
+    - "9901:9229"  # 9229, 9330: Node debugger
+    - "9902:9230"  
+    - "4001:4001"  # JSDoc server
+    # - "8089:8089"   # Not used?
+  depends_on:
+    - localstack
+    - postgres
+
+x-legacy-bridge-manage-service-boilerplate:
+  &legacy-bridge-manage-service-boilerplate
+  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  env_file:
+    - $TB_ROOT/legacy-bridge-manage-service/.env.example
+  environment:
+    << : *mssql-connect
+    DB_NAME: cloud_db
+    << : *json-logger-config
+  ports:
+    - "8999:8080"
+  depends_on:
+    - legacy-database-ecr
+
+x-legacy-bridge-cloud-service-boilerplate:
+  &legacy-bridge-cloud-service-boilerplate
+  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  env_file:
+    - $TB_ROOT/legacy-bridge-cloud-service/.env.example
+  environment:
+    << : *mssql-connect
+    << : *node-service
+    DB_NAME: cloud_db
+  ports:
+    - "8101:8080"
+  depends_on:
+    - legacy-database-ecr
+
+x-ordering-ooa-service-boilerplate:
+  &ordering-ooa-service-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-ooa-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "ordering.notification.venue.menuUpdate": {
+          "queueURL": "http://localstack:4576/queue/menuUpdate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "ordering.notification.venue.orderCancelled": {
+          "queueURL": "http://localstack:4576/queue/orderCancelled",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "ordering.notification.venue.ordersPending": {
+          "queueURL": "http://localstack:4576/queue/ordersPending",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "ordering.notification.gateway.ordersStatus": {
+          "queueURL": "http://localstack:4576/queue/ordersStatus",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "ordering.order.expiryCheck": {
+          "queueURL": "http://localstack:4576/queue/expiryCheck",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "ordering.order.validate": {
+          "queueURL": "http://localstack:4576/queue/orderValidate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://legacy-bridge-cloud-service-ecr:8080
+  ports:
+    - "8005:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-ordering-demo-frontend-boilerplate:
+  &ordering-demo-frontend-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-demo-frontend/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    DELIVEROO_BASE_URL: http://ordering-deliveroo-service-ecr:8080
+    DELIVEROO_DISABLED: 'false'
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    URL_CALLBACK_URL: http://ordering-demo-frontend-ecr:8080/callback
+  ports:
+    - "8010:8080"
+  depends_on:
+    - postgres
+
+x-ordering-demo-frontend-venue-boilerplate:
+  &ordering-demo-frontend-venue-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-demo-frontend/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    MODE: venue
+  ports:
+    - "8020:8080"
+  depends_on:
+    - postgres
+
+x-ordering-gateways-frontend-boilerplate:
+  &ordering-gateways-frontend-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-gateways-frontend/.env.example
+  environment:
+    << : *node-service
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service-ecr:8080/internal 
+  ports:
+    - "8030:8080"
+
+x-ordering-deliveroo-service-boilerplate:
+  &ordering-deliveroo-service-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-deliveroo-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    DELIVEROO_BASE_URL: http://ordering-demo-frontend-ecr:8080/deliveroo
+    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    URL_BASE_URL: http://ordering-deliveroo-service-ecr:8080
+  ports:
+    - "8015:8080"
+  depends_on:
+    - postgres
+
+x-partners-etl-service-boilerplate:
+  &partners-etl-service-boilerplate
+  env_file:
+    - $TB_ROOT/partners-etl-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *node-service
+    << : *postgres-connect
+    AWS_S3_ENDPOINT: http://localstack:4572
+    AWS_S3_STUB: "false"
+    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "etl.job.execute": {
+          "queueURL": "http://localstack:4576/queue/etlExecute",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://cloud-server-ecr:3000/api/v2_5
+  ports:
+    - "8888:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-partners-config-service-boilerplate:
+  &partners-config-service-boilerplate
+  env_file:
+    - $TB_ROOT/partners-config-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "partners-config.task.venueIntegrationUpdate": {
+          "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8090:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-partners-orchestration-service-boilerplate:
+  &partners-orchestration-service-boilerplate
+  env_file:
+    - $TB_ROOT/partners-orchestration-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service-ecr:8080
+    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        "partners-config.task.venueIntegrationUpdate": {
+          "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8085:8080"
+  depends_on:
+    - postgres
+    - localstack
+
+x-venue-admin-frontend:
+  &venue-admin-frontend
+  env_file:
+    - $TB_ROOT/venue-admin-frontend/.env.example
+  environment:
+    - CORE_BACKEND_URL_BASE=http://venue-core-service-ecr:8080
+    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://partners-config-service-ecr:8080
+    - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://legacy-bridge-cloud-service-ecr:8080
+    - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
+    - NODE_ENV=production
+  ports:
+    - "9002:9002"
+  # Note the `../`, since the Dockerfile executes from $HOME/app/dist 
+  entrypoint: [ "bash", "../docker-entrypoint.sh" ]  
+  << : *command-serve
+  depends_on:
+    - venue-core-service-ecr
+    - cloud-server-ecr    
+    - legacy-bridge-cloud-service-ecr
+    - partners-config-service-ecr
+
+###### SERVICES ######
+
+services:
+  postgres:
+    image: postgres:10.6-alpine
+    container_name: tb_postgres_container
+    environment:
+      - POSTGRES_USER=core
+      - POSTGRES_PASSWORD=localdev
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis
+    container_name: cloud-server-redis_container
+    ports:
+      - "6379:6379"
+
+  localstack:
+    image: localstack/localstack
+    container_name: tb_localstack_container
+    ports:
+      - "9888:8080" # web interface
+      - "4567-4584:4567-4584"
+    environment:
+      - SERVICES=s3,sqs
+      - PORT_WEB_UI=8080
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+      - "$TB_ROOT/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
+      - "$TB_ROOT/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
+      - "$TB_ROOT/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
+      - "$TB_ROOT/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
+      - "$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
+    logging:
+      driver: none   # Remove this line to see noisy localstack logs.
+
+  mokta:
+    << : *mokta-boilerplate
+    build:
+      target: dev
+      context: $TB_ROOT/mokta
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+    container_name: mokta_container
+    << : *command-start
+
+  mokta-ecr:
+    << : *mokta-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/mokta:develop
+    container_name: mokta-ecr_container
+    << : *command-serve
+
+  identity-user-service:
+    << : *identity-user-service-boilerplate
+    build:
+      target: dev
+      context: $TB_ROOT/identity-user-service
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+    container_name: identity-user-service_container
+    environment:
+      << : *node-service
+      OKTA_BASE_URL: https://mokta:8080
+      INSECURE_DISABLE_SSL_VALIDATION: 'true'
+
+  identity-user-service-ecr:
+    << : *identity-user-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-identity-user:develop
+    container_name: identity-user-service-ecr_container
+    environment:
+      << : *node-service
+      OKTA_BASE_URL: https://mokta-ecr:8080
+      INSECURE_DISABLE_SSL_VALIDATION: 'true'
+
+  legacy-database:
+    << : *legacy-database-boilerplate
+    build:
+      target: db-migrate-with-seeds
+      context: $TB_ROOT/legacy-database
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: core-devtools_legacy-database
+    container_name: core-devtools_legacy-database_container
+    volumes:
+      - legacy-database:/var/opt/mssql/data
+
+  legacy-database-ecr:
+    << : *legacy-database-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/legacy-database:master-db-migrate-with-seeds
+    container_name: core-devtools_legacy-database-ecr_container
+    volumes:
+      - legacy-database:/var/opt/mssql/data
+
+  cloud-server:
+    << : *cloud-server-boilerplate
+    build:
+      context: $TB_ROOT/cloud-server
+    container_name: cloud-server_container
+
+  cloud-server-ecr:
+    << : *cloud-server-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server:develop
+    container_name: cloud-server-ecr_container
+
+  cloud-server-frontend-ecr:
+    << : *cloud-server-frontend-boilerplate
+    container_name: cloud-server-frontend-ecr_container
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/cloud-server-frontend:develop
+
+  cloud-server-frontend:
+    << : *cloud-server-frontend-boilerplate
+    build:
+      context: $TB_ROOT/cloud-server-frontend/packages/frontend
+      args:
+        # This is for running a prod build of the frontend locally
+        # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
+        - USE_INSECURE_COOKIE=insecure
+    container_name: cloud-server-frontend_container
+
+  venue-core-service-ecr:
+    << : *venue-core-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-core-service:master
+    command: >
+      bash -c '
+        echo '...done'
+        if [ "$START_SERVER" = "true" ]; then
+          echo "Starting server.."
+          yarn serve
+        else
+          echo "Not starting server.."
+          tail -f /dev/null
+        fi'
+    container_name: venue-core-service-ecr
+
+  venue-core-service:
+    << : *venue-core-service-boilerplate
+    build:
+      target: local
+      context: $TB_ROOT/venue-core-service
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+        - GITSHA=TESTME
+    image: core-devtools_venue-core-service
+    container_name: core-devtools_venue-core-service_container
+    command: >
+      bash -c '
+        echo '...done'
+        if [ "$START_SERVER" = "true" ]; then
+          echo "Starting server.."
+          yarn start
+        else
+          echo "Not starting server.."
+          tail -f /dev/null
+        fi'
+    volumes:
+      - $TB_ROOT/venue-core-service:/home/node/app:delegated
+      - venue-core-service-node_modules:/home/node/app/node_modules:delegated
+
+  provisioning-service-ecr:
+    << : *provisioning-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-provisioning-service:develop
+    container_name: provisioning-service-ecr_container
+    << : *command-serve
+
+  provisioning-service:
+    << : *provisioning-service-boilerplate
+    build:
+      context: $TB_ROOT/provisioning-service
+      args:
+        - NODE_ENV=development
+        - NPM_TOKEN=$NPM_TOKEN
+    image: core-devtools_provisioning-service
+    container_name: core-devtools_provisioning-service_container
+    << : *command-start
+
+  health-clinic-ecr:
+    << : *health-clinic-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-health-clinic:master
+    container_name: core-devtools_health-clinic-ecr_container
+
+  health-clinic:
+    << : *health-clinic-boilerplate
+    build:
+      context: $TB_ROOT/health-clinic
+    image: core-devtools_health-clinic
+    container_name: core-devtools_health-clinic_container
+    volumes:
+      - $TB_ROOT/health-clinic:/home/python/app
+
+  dotnet-manage:
+    image: hpgy/mono-xsp4
+    container_name: core-devtools_dotnet-manage_container
+    ports:
+      - "9000:80"
+    volumes:
+      - $TB_ROOT/dotnet-depot/manage:/app:delegated
+    environment:
+      MONO_OPTIONS: --debug
+    entrypoint:
+      [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
+    depends_on:
+      - legacy-database-ecr
+
+  dotnet-api:
+    image: hpgy/mono-xsp4
+    container_name: core-devtools_dotnet-api_container
+    ports:
+      - "9001:80"
+    volumes:
+      - $TB_ROOT/dotnet-depot/api:/app:delegated
+    environment:
+      MONO_OPTIONS: --debug
+    entrypoint:
+      [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
+    depends_on:
+      - legacy-database-ecr
+
+  legacy-bridge-manage-service:
+    << : *legacy-bridge-manage-service-boilerplate
+    build:
+      target: dev
+      context: $TB_ROOT/legacy-bridge-manage-service
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+        - GITSHA=TESTME
+    image: core-devtools_legacy-bridge-manage-service
+    container_name: core-devtools_legacy-bridge-manage-service_container
+    << : *command-start
+
+  legacy-bridge-manage-service-ecr:
+    << : *legacy-bridge-manage-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-manage-service:develop
+    container_name: core-devtools_legacy-bridge-manage-service-ecr_container
+    << : *command-serve
+
+  legacy-bridge-cloud-service:
+    << : *legacy-bridge-cloud-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/legacy-bridge-cloud-service
+    image: core-devtools_legacy-bridge-cloud-service
+    << : *command-start
+    container_name: core-devtools_legacy-bridge-cloud-service_container
+    volumes:
+      - $TB_ROOT/legacy-bridge-cloud-service:/home/node/app:delegated
+      - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
+
+  legacy-bridge-cloud-service-ecr:
+    << : *legacy-bridge-cloud-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/bridge-cloud-service:develop
+    container_name: core-devtools_legacy-bridge-cloud-service-ecr_container
+    << : *command-serve
+
+  ordering-ooa-service-ecr:
+    << : *ordering-ooa-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:develop
+    container_name: ordering-devtools_ordering-ooa-service-ecr_container
+    << : *command-serve
+
+  ordering-ooa-service:
+    << : *ordering-ooa-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-ooa-service
+    image: ordering-devtools_ordering-ooa-service
+    container_name: ordering-devtools_ordering-ooa-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/ordering-ooa-service:/home/node/app:delegated
+      - ordering-ooa-service-node_modules:/home/node/app/node_modules
+
+  ordering-demo-frontend-ecr:
+    << : *ordering-demo-frontend-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-gateway:develop
+    container_name: ordering-devtools_ordering-demo-frontend-ecr_container
+    << : *command-serve
+
+  ordering-demo-frontend:
+    << : *ordering-demo-frontend-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-demo-frontend
+    image: ordering-devtools_ordering-demo-frontend
+    container_name: ordering-devtools_ordering-demo-frontend_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
+      - ordering-demo-frontend-node_modules:/home/node/app/node_modules
+
+  ordering-demo-frontend-venue:
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-demo-frontend
+    image: ordering-devtools_ordering-demo-frontend-venue
+    container_name: ordering-devtools_ordering-demo-frontend-venue_container
+    << : *command-start
+    env_file:
+      - $TB_ROOT/ordering-demo-frontend/.env.example
+    environment:
+      << : *postgres-connect
+      << : *node-service
+      INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+      MODE: venue
+    volumes:
+      - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
+      - ordering-demo-frontend-venue-node_modules:/home/node/app/node_modules
+    ports:
+      - "8020:8080"
+    depends_on:
+      - postgres
+
+  ordering-gateways-frontend-ecr:
+    << : *ordering-gateways-frontend-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:develop
+    container_name: ordering-devtools_ordering-gateways-frontend-ecr_container
+    << : *command-serve
+
+  ordering-gateways-frontend:
+    << : *ordering-gateways-frontend-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-gateways-frontend
+    image: ordering-devtools_ordering-gateways-frontend
+    container_name: ordering-devtools_ordering-gateways-frontend_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/ordering-gateways-frontend:/home/node/app:delegated
+      - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
+
+  ordering-deliveroo-service-ecr:
+    << : *ordering-deliveroo-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:master
+    container_name: ordering-devtools_ordering-deliveroo-service-ecr_container
+    << : *command-serve
+
+  ordering-deliveroo-service:
+    << : *ordering-deliveroo-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-deliveroo-service
+    image: ordering-devtools_ordering-deliveroo-service
+    container_name: ordering-devtools_ordering-deliveroo-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/ordering-deliveroo-service:/home/node/app:delegated
+      - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
+
+  partners-etl-service-ecr:
+    << : *partners-etl-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-etl-service:master
+    container_name: partners-devtools_partners-etl-service-ecr_container
+    << : *command-serve
+
+  partners-etl-service:
+    << : *partners-etl-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/partners-etl-service
+    image: partners-devtools_partners-etl-service
+    container_name: partners-devtools_partners-etl-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/partners-etl-service:/home/node/app:delegated
+      - partners-etl-service-node_modules:/home/node/app/node_modules
+
+  partners-config-service-ecr:
+    << : *partners-config-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-config-service:master
+    container_name: partners-devtools_partners-config-service-ecr_container
+    << : *command-serve
+
+  partners-config-service:
+    << : *partners-config-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/partners-config-service
+    image: partners-devtools_partners-config-service
+    container_name: partners-devtools_partners-config-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/partners-config-service:/home/node/app:delegated
+      - partners-config-service-node_modules:/home/node/app/node_modules
+
+  partners-orchestration-service-ecr:
+    << : *partners-orchestration-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/partners-orchestration-service:master
+    container_name: partners-devtools_partners-orchestration-service-ecr_container
+    << : *command-serve
+
+  partners-orchestration-service:
+    << : *partners-orchestration-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/partners-orchestration-service
+    image: partners-devtools_partners-orchestration-service
+    container_name: partners-devtools_partners-orchestration-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/partners-orchestration-service:/home/node/app:delegated
+      - partners-orchestration-service-node_modules:/home/node/app/node_modules
+
+  venue-admin-frontend:
+    << : *venue-admin-frontend
+    build:
+      target: release
+      context: $TB_ROOT/venue-admin-frontend
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+        # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
+        # ^ This is to reduce the hard dependency on cloud-server[-frontend]
+        # until "mokta" is available.
+        # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
+    container_name: venue-admin-frontend
+    # depends_on:
+    #   - venue-core-service-ecr
+    #   - 
+
+  venue-admin-frontend-ecr:
+    << : *venue-admin-frontend
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-admin-frontend:${VAF_TAG:-master}
+    container_name: venue-admin-frontend-ecr${VAF_TAG:-master}
+    << : *command-serve
+
+###### VOLUMES ######
+
+volumes:
+  postgres:
+  legacy-database:
+  venue-core-service-node_modules:
+  legacy-bridge-cloud-service-node_modules:
+  ordering-ooa-service-node_modules:
+  ordering-demo-frontend-node_modules:
+  ordering-demo-frontend-venue-node_modules:
+  ordering-deliveroo-service-node_modules:
+  ordering-gateways-frontend-node_modules:
+  partners-etl-service-node_modules:
+  partners-config-service-node_modules:
+  partners-orchestration-service-node_modules:
