@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/gobuffalo/packr/v2"
@@ -16,8 +17,10 @@ var playlists map[string]Playlist
 var tbRoot string
 
 const (
-	servicesPath = "services.yml"
-	playlistPath = "playlists.yml"
+	servicesPath             = "services.yml"
+	playlistPath             = "playlists.yml"
+	dockerComposePath        = "docker-compose.yml"
+	localstackEntrypointPath = "localstack-entrypoint.sh"
 )
 
 type Service struct {
@@ -36,6 +39,23 @@ func setupEnv() {
 	if !util.FileOrDirExists(tbRoot) {
 		os.Mkdir(tbRoot, 0755)
 	}
+}
+
+func dumpFile(name string, box *packr.Box) error {
+	path := fmt.Sprintf("%s/%s", tbRoot, name)
+
+	if util.FileOrDirExists(path) {
+		log.Debugf("%s exists", path)
+		return nil
+	}
+
+	log.Debugf("%s does not exist, creating file...", path)
+	buf, err := box.Find(name)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(path, buf, 0644)
 }
 
 func TBRootPath() string {
@@ -62,6 +82,16 @@ func Init() error {
 		return err
 	}
 	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
+	if err != nil {
+		return err
+	}
+
+	err = dumpFile(dockerComposePath, box)
+	if err != nil {
+		return err
+	}
+
+	err = dumpFile(localstackEntrypointPath, box)
 	if err != nil {
 		return err
 	}
