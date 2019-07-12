@@ -18,16 +18,16 @@ func IsCommandAvailable(command string) bool {
 func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
-	stdOutLogger := log.New()
-	stdOutWriter := stdOutLogger.WriterLevel(log.DebugLevel)
-	defer stdOutWriter.Close()
+	stdoutLogger := log.New()
+	stdoutWriter := stdoutLogger.WriterLevel(log.DebugLevel)
+	defer stdoutWriter.Close()
 
-	stdErrLogger := log.New()
-	stdErrWriter := stdErrLogger.WriterLevel(log.WarnLevel)
-	defer stdOutWriter.Close()
+	stderrLogger := log.New()
+	stderrWriter := stderrLogger.WriterLevel(log.InfoLevel)
+	defer stderrWriter.Close()
 
-	cmd.Stdout = stdOutWriter
-	cmd.Stderr = stdErrWriter
+	cmd.Stdout = stdoutWriter
+	cmd.Stderr = stderrWriter
 
 	err := cmd.Run()
 	if err != nil {

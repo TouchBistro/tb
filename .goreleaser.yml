@@ -1,28 +1,71 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
+project_name: tb
+
 before:
   hooks:
-    # you may remove this if you don't use vgo
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
+    - packr2 clean
+
 builds:
-- env:
-  - CGO_ENABLED=0
+  -
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X release.version={{.Tag}} # TODO: Figure this shit out
+    goos:
+      - darwin
+    hooks:
+      pre: packr2
+    ignore:
+      - goos: darwin
+        goarch: 386
+
 archives:
-- replacements:
-    darwin: Darwin
-    linux: Linux
-    windows: Windows
-    386: i386
-    amd64: x86_64
+  -
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+
 checksum:
   name_template: 'checksums.txt'
+
 snapshot:
   name_template: "{{ .Tag }}-next"
+
 changelog:
   sort: asc
   filters:
     exclude:
     - '^docs:'
     - '^test:'
+
+brews:
+  -
+    github:
+      owner: TouchBistro
+      name: homebrew-tools
+    download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
+    # The PrivateRepositoryReleaseDownloadStrategy was removed by homebrew
+    # Resorting to this hack for now: https://github.com/goreleaser/goreleaser/issues/967
+    custom_require: "../custom_download_strategy"
+    commit_author:
+      name: ohsabry
+      email: osabry@touchbistro.com
+    folder: Formula
+    description: "a CLI for running TouchBistro services on a development machine"
+
+    test: |
+      system "#{bin}/tb --version"
+
+    install: |
+      bin.install "tb"
+
+release:
+  github:
+    owner: TouchBistro
+    name: tb
+  name_template: "{{.ProjectName}}-v{{.Version}}"
