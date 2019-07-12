@@ -15,6 +15,11 @@ var services map[string]Service
 var playlists map[string]Playlist
 var tbRoot string
 
+const (
+	servicesPath = "services.yml"
+	playlistPath = "playlists.yml"
+)
+
 type Service struct {
 	IsGithubRepo bool   `yaml:"repo"`
 	Migrations   bool   `yaml:"migrations"`
@@ -37,10 +42,10 @@ func TBRootPath() string {
 	return tbRoot
 }
 
-func Init(servicesPath, playlistPath string) error {
+func Init() error {
 	setupEnv()
 
-	box := packr.New("static", "./static")
+	box := packr.New("static", "../static")
 
 	sBuf, err := box.Find(servicesPath)
 	if err != nil {
