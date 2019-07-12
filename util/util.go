@@ -23,7 +23,7 @@ func Exec(name string, arg ...string) error {
 	defer stdoutWriter.Close()
 
 	stderrLogger := log.New()
-	stderrWriter := stderrLogger.WriterLevel(log.WarnLevel)
+	stderrWriter := stderrLogger.WriterLevel(log.InfoLevel)
 	defer stderrWriter.Close()
 
 	cmd.Stdout = stdoutWriter
