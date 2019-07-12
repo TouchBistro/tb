@@ -141,3 +141,18 @@ func GetPlaylist(name string) []string {
 	log.Fatal(fmt.Sprintf("Playlist %s does not exist", name))
 	return []string{}
 }
+
+func RmFiles() error {
+	files := [...]string{dockerComposePath, localstackEntrypointPath}
+
+	for _, file := range files {
+		log.Debugf("Removing %s...\n", file)
+		path := fmt.Sprintf("%s/%s", tbRoot, file)
+		err := os.Remove(path)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
