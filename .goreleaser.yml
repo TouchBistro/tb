@@ -6,7 +6,6 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
     - packr2 clean
-    # - go run build/build.go
 
 builds:
   -
@@ -31,6 +30,11 @@ archives:
       windows: Windows
       386: i386
       amd64: x86_64
+    files:
+      - README.md
+      - dist/completions.bash
+      - dist/_tb
+      - dist/man1/*
 
 checksum:
   name_template: 'checksums.txt'
@@ -65,9 +69,9 @@ brews:
 
     install: |
       bin.install "tb"
-      bash_completion.install "completions.bash"
-      zsh_completion.install "_tb"
-      man1.install Dir["man1/*.1"]
+      bash_completion.install "dist/completions.bash"
+      zsh_completion.install "dist/_tb"
+      man1.install Dir["dist/man1/*.1"]
 
 release:
   github:
