@@ -23,7 +23,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	bashCompPath := fmt.Sprintf("%s/completions.bash", dir)
+	bashCompPath := fmt.Sprintf("%s/tb.bash", dir)
 	err = rootCmd.GenBashCompletionFile(bashCompPath)
 	if err != nil {
 		log.Fatal(err)

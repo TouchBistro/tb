@@ -69,7 +69,7 @@ brews:
 
     install: |
       bin.install "tb"
-      bash_completion.install "dist/completions.bash"
+      bash_completion.install "dist/tb.bash"
       zsh_completion.install "dist/_tb"
       man1.install Dir["dist/man1/*.1"]
 
