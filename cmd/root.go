@@ -42,3 +42,7 @@ func initConfig() {
 		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
 	}
 }
+
+func Root() *cobra.Command {
+	return rootCmd
+}
