@@ -32,7 +32,7 @@ archives:
       amd64: x86_64
     files:
       - README.md
-      - dist/completions.bash
+      - dist/tb.bash
       - dist/_tb
       - dist/man1/*
 
