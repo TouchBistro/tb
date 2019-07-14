@@ -6,6 +6,7 @@ before:
     # you may remove this if you don't need go generate
     - go generate ./...
     - packr2 clean
+    # - go run build/build.go
 
 builds:
   -
@@ -17,6 +18,7 @@ builds:
       - darwin
     hooks:
       pre: packr2
+      post: go run build/build.go
     ignore:
       - goos: darwin
         goarch: 386
@@ -63,6 +65,9 @@ brews:
 
     install: |
       bin.install "tb"
+      bash_completion.install "completions.bash"
+      zsh_completion.install "_tb"
+      man1.install Dir["man1/*.1"]
 
 release:
   github:
