@@ -20,6 +20,28 @@ Once you have been provided access to our AWS account by DevOps Support, create 
 
 Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for region).
 
+## Installation
+
+`tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
+
+First add Touchbistro's tap to get access to all the available tools:
+
+```sh
+brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
+```
+
+In order to install `tb` you will need to create a GitHub Access Token. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more. When creating it select `repo` for the permissions. Also make sure you enable SSO for the token.
+
+Once you have your token add the following to your `.bash_profile` or `.zshrc`:
+```sh
+export HOMEBREW_GITHUB_API_TOKEN=YOUR_TOKEN
+```
+
+Now you can install `tb` with `brew`:
+```sh
+brew install tb
+```
+
 ## Quickstart
 
 TBD: Add instructions for getting binary from homebrew when we set that app
