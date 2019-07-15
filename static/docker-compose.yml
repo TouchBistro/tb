@@ -703,7 +703,7 @@ services:
 
   ordering-ooa-service-ecr:
     << : *ordering-ooa-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-ooa-service:master
     container_name: ordering-devtools_ordering-ooa-service-ecr_container
     << : *command-serve
 
@@ -721,7 +721,7 @@ services:
 
   ordering-demo-frontend-ecr:
     << : *ordering-demo-frontend-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-ordering-gateway:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-demo-frontend:master
     container_name: ordering-devtools_ordering-demo-frontend-ecr_container
     << : *command-serve
 
@@ -761,7 +761,7 @@ services:
 
   ordering-gateways-frontend-ecr:
     << : *ordering-gateways-frontend-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-gateways-frontend:master
     container_name: ordering-devtools_ordering-gateways-frontend-ecr_container
     << : *command-serve
 
@@ -779,7 +779,7 @@ services:
 
   ordering-deliveroo-service-ecr:
     << : *ordering-deliveroo-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/deliveroo-service:master
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/ordering-deliveroo-service:master
     container_name: ordering-devtools_ordering-deliveroo-service-ecr_container
     << : *command-serve
 
