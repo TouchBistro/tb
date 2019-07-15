@@ -223,7 +223,6 @@ Examples:
 
 		err := deps.Resolve(
 			deps.Brew,
-			deps.Jq,
 			deps.Aws,
 			deps.Lazydocker,
 			deps.Node,

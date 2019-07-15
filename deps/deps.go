@@ -20,7 +20,6 @@ const (
 	// XcodeSelect = "xcode-select"
 	Brew       = "brew"
 	Pgcli      = "pgcli"
-	Jq         = "jq"
 	Aws        = "aws"
 	Lazydocker = "lazydocker"
 	// Nvm = "nvm"
@@ -46,10 +45,6 @@ var deps = map[string]Dependency{
 			return err
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
-	},
-	Jq: Dependency{
-		Name:       "jq",
-		InstallCmd: []string{"brew", "install", "jq"},
 	},
 	Aws: Dependency{
 		Name:       "aws",
