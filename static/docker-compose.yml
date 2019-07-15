@@ -514,7 +514,7 @@ services:
 
   identity-user-service-ecr:
     << : *identity-user-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/identity-user-service:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/identity-user-service:master
     container_name: identity-user-service-ecr_container
     environment:
       << : *node-service
