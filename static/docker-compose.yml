@@ -138,10 +138,10 @@ x-cloud-server-boilerplate:
       - redis
       - legacy-database-ecr
 
-x-provisioning-service-boilerplate:
-  &provisioning-service-boilerplate
+x-venue-provisioning-service-boilerplate:
+  &venue-provisioning-service-boilerplate
   env_file:
-    - $TB_ROOT/provisioning-service/.env.compose
+    - $TB_ROOT/venue-provisioning-service/.env.compose
   environment:
     << : *node-service
   #entrypoint: ["bash", "./docker-entrypoint.sh"]
@@ -167,7 +167,7 @@ x-venue-core-service-boilerplate:
   environment:
     << : *node-service
     DB_HOST: postgres
-    PROVISIONING_JWKS_URI: http://provisioning-service-ecr:8080/external/jwks
+    PROVISIONING_JWKS_URI: http://venue-provisioning-service-ecr:8080/external/jwks
     AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_ENDPOINT: http://localstack:4572
@@ -606,21 +606,21 @@ services:
       - $TB_ROOT/venue-core-service:/home/node/app:delegated
       - venue-core-service-node_modules:/home/node/app/node_modules:delegated
 
-  provisioning-service-ecr:
-    << : *provisioning-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-provisioning-service:develop
-    container_name: provisioning-service-ecr_container
+  venue-provisioning-service-ecr:
+    << : *venue-provisioning-service-boilerplate
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:develop
+    container_name: venue-provisioning-service-ecr_container
     << : *command-serve
 
-  provisioning-service:
-    << : *provisioning-service-boilerplate
+  venue-provisioning-service:
+    << : *venue-provisioning-service-boilerplate
     build:
-      context: $TB_ROOT/provisioning-service
+      context: $TB_ROOT/venue-provisioning-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: core-devtools_provisioning-service
-    container_name: core-devtools_provisioning-service_container
+    image: core-devtools_venue-provisioning-service
+    container_name: core-devtools_venue-provisioning-service_container
     << : *command-start
 
   health-clinic-ecr:

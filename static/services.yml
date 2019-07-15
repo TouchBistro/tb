@@ -13,11 +13,11 @@ venue-core-service:
   migrations: true
   ecr: true
   imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-core-service:master'
-provisioning-service:
+venue-provisioning-service:
   repo: true
   migrations: false
   ecr: true
-  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-provisioning-service:master'
+  imageURI: '651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master'
 health-clinic:
   repo: true
   migrations: false
