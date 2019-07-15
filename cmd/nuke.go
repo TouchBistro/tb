@@ -19,6 +19,7 @@ type nukeOptions struct {
 	shouldNukeVolumes    bool
 	shouldNukeNetworks   bool
 	shouldNukeRepos      bool
+	shouldNukeConfig     bool
 	shouldNukeAll        bool
 }
 
@@ -33,6 +34,7 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeVolumes &&
 			!nukeOpts.shouldNukeNetworks &&
 			!nukeOpts.shouldNukeRepos &&
+			!nukeOpts.shouldNukeConfig &&
 			!nukeOpts.shouldNukeAll {
 			log.Fatalln("Error: Must specify what to nuke")
 		}
@@ -57,51 +59,58 @@ var nukeCmd = &cobra.Command{
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
-			log.Println("Removing containers...")
+			log.Infoln("Removing containers...")
 			err = docker.RmContainers()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker containers")
 			}
-			log.Println("...done")
+			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeImages || nukeOpts.shouldNukeAll {
-			log.Println("Removing images...")
+			log.Infoln("Removing images...")
 			err = docker.RmImages()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker images")
 			}
-			log.Println("...done")
+			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeNetworks || nukeOpts.shouldNukeAll {
-			log.Println("Removing networks...")
+			log.Infoln("Removing networks...")
 			err = docker.RmNetworks()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker networks")
 			}
-			log.Println("...done")
+			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeAll {
-			log.Println("Removing volumes...")
+			log.Infoln("Removing volumes...")
 			err = docker.RmVolumes()
 			if err != nil {
 				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker volumes")
 			}
-			log.Println("...done")
+			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
-			log.Println("Removing repos...")
+			log.Infoln("Removing repos...")
 			for _, repo := range git.RepoNames(config.Services()) {
+				log.Debugf("Removing repo %s...", repo)
 				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 				err = os.RemoveAll(repoPath)
 				if err != nil {
 					log.WithFields(log.Fields{"error": err.Error(), "repo": repo}).Fatal("Failed removing git repo")
 				}
 			}
-			log.Println("...done")
+			log.Infoln("...done")
+		}
+
+		if nukeOpts.shouldNukeConfig || nukeOpts.shouldNukeAll {
+			log.Infoln("Removing config files...")
+			config.RmFiles()
+			log.Infoln("...done")
 		}
 	},
 }
@@ -113,5 +122,6 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeVolumes, "volumes", false, "nuke all volumes")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeNetworks, "networks", false, "nuke all networks")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 }

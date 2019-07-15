@@ -17,6 +17,7 @@ builds:
       - darwin
     hooks:
       pre: packr2
+      post: go run build/build.go
     ignore:
       - goos: darwin
         goarch: 386
@@ -29,6 +30,11 @@ archives:
       windows: Windows
       386: i386
       amd64: x86_64
+    files:
+      - README.md
+      - dist/tb.bash
+      - dist/_tb
+      - dist/man1/*
 
 checksum:
   name_template: 'checksums.txt'
@@ -63,6 +69,9 @@ brews:
 
     install: |
       bin.install "tb"
+      bash_completion.install "dist/tb.bash"
+      zsh_completion.install "dist/_tb"
+      man1.install Dir["dist/man1/*.1"]
 
 release:
   github:
