@@ -18,7 +18,7 @@ core:
     - venue-core-service
     - postgres
     - localstack
-    - provisioning-service
+    - venue-provisioning-service
 ordering:
   services:
     - postgres
