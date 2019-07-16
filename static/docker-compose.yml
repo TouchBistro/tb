@@ -141,10 +141,11 @@ x-cloud-server-boilerplate:
 x-venue-provisioning-service-boilerplate:
   &venue-provisioning-service-boilerplate
   env_file:
-    - $TB_ROOT/venue-provisioning-service/.env.compose
+    - $TB_ROOT/venue-provisioning-service/.env.example
   environment:
+    << : *postgres-connect
     << : *node-service
-  #entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
   ports:
     - "8666:8080"
   depends_on:
@@ -178,7 +179,7 @@ x-venue-core-service-boilerplate:
   ports:
     - "8081:8080"  # Main HTTP port
     - "9901:9229"  # 9229, 9330: Node debugger
-    - "9902:9230"  
+    - "9902:9230"
     - "4001:4001"  # JSDoc server
     # - "8089:8089"   # Not used?
   depends_on:
@@ -514,7 +515,7 @@ services:
 
   identity-user-service-ecr:
     << : *identity-user-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/touchbistro-identity-user:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/identity-user-service:master
     container_name: identity-user-service-ecr_container
     environment:
       << : *node-service
@@ -608,7 +609,7 @@ services:
 
   venue-provisioning-service-ecr:
     << : *venue-provisioning-service-boilerplate
-    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:develop
+    image: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master
     container_name: venue-provisioning-service-ecr_container
     << : *command-serve
 
