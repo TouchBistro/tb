@@ -25,7 +25,7 @@ type options struct {
 
 var (
 	composeFile      string
-	selectedServices map[string]config.Service
+	selectedServices config.ServiceMap
 	opts             options
 )
 
@@ -152,7 +152,7 @@ func validatePlaylistName(playlistName string) {
 	}
 }
 
-func toComposeNames(configs map[string]config.Service) []string {
+func toComposeNames(configs config.ServiceMap) []string {
 	names := make([]string, len(configs))
 	for name, s := range configs {
 		var composeName string
@@ -166,8 +166,8 @@ func toComposeNames(configs map[string]config.Service) []string {
 	return names
 }
 
-func filterByNames(configs map[string]config.Service, names []string) map[string]config.Service {
-	selected := make(map[string]config.Service, 0)
+func filterByNames(configs config.ServiceMap, names []string) config.ServiceMap {
+	selected := make(config.ServiceMap, 0)
 	for _, name := range names {
 		if _, ok := configs[name]; ok {
 			selected[name] = configs[name]
@@ -268,7 +268,8 @@ Examples:
 			// TODO: Parallelize this shit
 			for name, s := range selectedServices {
 				if s.IsGithubRepo && !s.ECR {
-					err := git.Pull(name)
+					path := fmt.Sprintf("%s/%s", config.TBRootPath(), name)
+					err := git.Pull(path)
 					if err != nil {
 						log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed pulling git repo.")
 					}

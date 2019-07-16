@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var services map[string]Service
+var services ServiceMap
 var playlists map[string]Playlist
 var tbRoot string
 
@@ -24,13 +24,6 @@ const (
 	localstackEntrypointPath = "localstack-entrypoint.sh"
 	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
-
-type Service struct {
-	IsGithubRepo bool   `yaml:"repo"`
-	Migrations   bool   `yaml:"migrations"`
-	ECR          bool   `yaml:"ecr"`
-	ECRTag       string `yaml:"ecrTag"`
-}
 
 func setupEnv() {
 	// Set $TB_ROOT so it works in the docker-compose file
@@ -98,9 +91,14 @@ func Init() error {
 		return err
 	}
 
+	err = applyOverrides(services, tbrc.Overrides)
+	if err != nil {
+		return err
+	}
+
 	// Setup ECR image URIs for docker-compose
 	for name, s := range services {
-		if !s.ECR {
+		if s.ECRTag == "" {
 			continue
 		}
 
@@ -112,7 +110,7 @@ func Init() error {
 	return nil
 }
 
-func Services() map[string]Service {
+func Services() ServiceMap {
 	return services
 }
 
@@ -168,8 +166,4 @@ func RmFiles() error {
 	}
 
 	return nil
-}
-
-func ResolveEcrURI(service, tag string) string {
-	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
 }

@@ -18,13 +18,12 @@ func Clone(repoName, destDir string) error {
 	return err
 }
 
-func Pull(repoName string) error {
-	repoURL := repoURL(repoName)
-	err := util.Exec("git", "-C", repoURL, "pull")
+func Pull(repoPath string) error {
+	err := util.Exec("git", "-C", repoPath, "pull")
 	return err
 }
 
-func RepoNames(services map[string]config.Service) []string {
+func RepoNames(services config.ServiceMap) []string {
 	var repos []string
 
 	for name, s := range services {

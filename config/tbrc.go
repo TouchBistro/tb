@@ -15,8 +15,9 @@ type Playlist struct {
 }
 
 type UserConfig struct {
-	LogLevel  string              `yaml:"log-level"`
-	Playlists map[string]Playlist `yaml:"playlists"`
+	LogLevel  string                     `yaml:"log-level"`
+	Playlists map[string]Playlist        `yaml:"playlists"`
+	Overrides map[string]ServiceOverride `yaml:"overrides"`
 }
 
 func InitRC() error {
@@ -35,16 +36,24 @@ func TBRC() *UserConfig {
 	return &tbrc
 }
 
-const rcTemplate = `# Only print logs equal or high to this level
+const rcTemplate = `# Only print logs equal to or higher than this level
 log-level: "info"
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
-  db:
-    services:
-      - postgres
   dev-tools:
-    extends: db
     services:
       - localstack
+  partner-custom:
+    extends: dev-tools
+    services:
+      - partners-config-service
+      - partners-etl-service
+# Override service configuration
+overrides:
+  #mokta:
+    #ecr: false
+  #venue-admin-frontend:
+    #ecr: true
+    #ecrTag: master-65392c89be11a78b6caa3924c7af73ca76bcaac7
 `
