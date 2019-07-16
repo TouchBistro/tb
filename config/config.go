@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -21,13 +22,14 @@ const (
 	playlistPath             = "playlists.yml"
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
+	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
 type Service struct {
 	IsGithubRepo bool   `yaml:"repo"`
 	Migrations   bool   `yaml:"migrations"`
 	ECR          bool   `yaml:"ecr"`
-	ImageURI     string `yaml:"imageURI"`
+	ECRTag       string `yaml:"ecrTag"`
 }
 
 func setupEnv() {
@@ -96,6 +98,17 @@ func Init() error {
 		return err
 	}
 
+	// Setup ECR image URIs for docker-compose
+	for name, s := range services {
+		if !s.ECR {
+			continue
+		}
+
+		uri := ResolveEcrURI(name, s.ECRTag)
+		uriVar := strings.ReplaceAll(strings.ToUpper(name), "-", "_") + "_IMAGE_URI"
+		os.Setenv(uriVar, uri)
+	}
+
 	return nil
 }
 
@@ -155,4 +168,8 @@ func RmFiles() error {
 	}
 
 	return nil
+}
+
+func ResolveEcrURI(service, tag string) string {
+	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
 }
