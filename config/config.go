@@ -9,6 +9,7 @@ import (
 	"github.com/gobuffalo/packr/v2"
 
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,15 +31,19 @@ type Service struct {
 	ImageURI     string `yaml:"imageURI"`
 }
 
-func setupEnv() {
+func setupEnv() error {
 	// Set $TB_ROOT so it works in the docker-compose file
 	tbRoot = fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
 	os.Setenv("TB_ROOT", tbRoot)
 
 	// Create $TB_ROOT directory if it doesn't exist
 	if !util.FileOrDirExists(tbRoot) {
-		os.Mkdir(tbRoot, 0755)
+		err := os.Mkdir(tbRoot, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create $TB_ROOT directory at %s", tbRoot)
+		}
 	}
+	return nil
 }
 
 func dumpFile(name string, box *packr.Box) error {
@@ -52,10 +57,11 @@ func dumpFile(name string, box *packr.Box) error {
 	log.Debugf("%s does not exist, creating file...", path)
 	buf, err := box.Find(name)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to find packr box %s", name)
 	}
 
-	return ioutil.WriteFile(path, buf, 0644)
+	err = ioutil.WriteFile(path, buf, 0644)
+	return errors.Wrapf(err, "failed to write contents of %s to %s", name, path)
 }
 
 func TBRootPath() string {
@@ -63,37 +69,40 @@ func TBRootPath() string {
 }
 
 func Init() error {
-	setupEnv()
+	err := setupEnv()
+	if err != nil {
+		return errors.Wrap(err, "failed to setup $TB_ROOT env")
+	}
 
 	box := packr.New("static", "../static")
 
 	sBuf, err := box.Find(servicesPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
 	err = util.DecodeYaml(bytes.NewReader(sBuf), &services)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
 
 	pBuf, err := box.Find(playlistPath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to find packr box %s", playlistPath)
 	}
 	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
 	err = dumpFile(dockerComposePath, box)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to dump file to %s", dockerComposePath)
 	}
 
 	err = dumpFile(localstackEntrypointPath, box)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
 	return nil
@@ -137,8 +146,6 @@ func GetPlaylist(name string) []string {
 		return playlist.Services
 	}
 
-	// TODO: Fallback to user-custom choice somehow
-	log.Fatal(fmt.Sprintf("Playlist %s does not exist", name))
 	return []string{}
 }
 
@@ -150,7 +157,7 @@ func RmFiles() error {
 		path := fmt.Sprintf("%s/%s", tbRoot, file)
 		err := os.Remove(path)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "could not remove file at %s", path)
 		}
 	}
 

@@ -481,8 +481,6 @@ services:
       - "$TB_ROOT/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
       - "$TB_ROOT/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
       - "$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
-    logging:
-      driver: none   # Remove this line to see noisy localstack logs.
 
   mokta:
     << : *mokta-boilerplate

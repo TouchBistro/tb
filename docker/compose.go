@@ -6,6 +6,7 @@ import (
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 )
 
 func ComposeFile() string {
@@ -16,5 +17,5 @@ func ComposeStop() error {
 	stopArgs := fmt.Sprintf("%s stop", ComposeFile())
 	err := util.Exec("docker-compose", strings.Fields(stopArgs)...)
 
-	return err
+	return errors.Wrap(err, "could not exec docker-compose stop")
 }

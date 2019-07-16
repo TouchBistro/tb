@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/fatal"
 	_ "github.com/TouchBistro/tb/release"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -9,13 +10,13 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:     "tb",
-	Version: "0.0.7",
+	Version: "0.0.7", // TODO: Fix this hardcoded bullshit
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		log.Fatal(err)
+		fatal.ExitErr(err, "Failed executing command.")
 	}
 }
 
@@ -26,20 +27,22 @@ func init() {
 func initConfig() {
 	err := config.InitRC()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise .tbrc file")
+		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
 	}
 
 	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise logger level")
+		fatal.ExitErr(err, "Failed to initialise logger level.")
 	}
 
 	log.SetLevel(logLevel)
+
+	// TODO: Make this its own setting or make the format less intense.
 	log.SetReportCaller(logLevel == log.DebugLevel)
 
 	err = config.Init()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to initialise config files")
+		fatal.ExitErr(err, "Failed to initialise config files.")
 	}
 }
 
