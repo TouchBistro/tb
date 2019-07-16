@@ -6,6 +6,7 @@ import (
 
 	"github.com/TouchBistro/tb/cmd"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra/doc"
 )
 
