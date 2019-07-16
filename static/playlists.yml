@@ -49,6 +49,6 @@ vaf-deps:
     - legacy-bridge-cloud-service
     - partners-config-service
 vaf:
-  extends: venueadmin-deps
+  extends: vaf-deps
   services:
     - venue-admin-frontend

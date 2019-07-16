@@ -28,7 +28,7 @@ Examples:
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			fatal.Exit("could not resolve dependencies")
+			fatal.ExitErr(err, "Could not resolve dependencies.")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {

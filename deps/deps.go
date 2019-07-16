@@ -107,7 +107,6 @@ func Resolve(depNames ...string) error {
 	log.Info("> Checking dependencies")
 
 	if runtime.GOOS != "darwin" {
-		// TODO: Should we make a FatalErr and a Fatal instead of passing nil?
 		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
 	}
 
