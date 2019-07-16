@@ -3,6 +3,7 @@ package deps
 import (
 	"runtime"
 
+	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -107,7 +108,7 @@ func Resolve(depNames ...string) error {
 
 	if runtime.GOOS != "darwin" {
 		// TODO: Should we make a FatalErr and a Fatal instead of passing nil?
-		util.Fatal("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
+		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
 	}
 
 	for _, depName := range depNames {

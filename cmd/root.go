@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/fatal"
 	_ "github.com/TouchBistro/tb/release"
-	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		util.FatalErr(err, "Failed executing command.")
+		fatal.ExitErr(err, "Failed executing command.")
 	}
 }
 
@@ -27,12 +27,12 @@ func init() {
 func initConfig() {
 	err := config.InitRC()
 	if err != nil {
-		util.FatalErr(err, "Failed to initialise .tbrc file.")
+		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
 	}
 
 	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
 	if err != nil {
-		util.FatalErr(err, "Failed to initialise logger level.")
+		fatal.ExitErr(err, "Failed to initialise logger level.")
 	}
 
 	log.SetLevel(logLevel)
@@ -42,7 +42,7 @@ func initConfig() {
 
 	err = config.Init()
 	if err != nil {
-		util.FatalErr(err, "Failed to initialise config files.")
+		fatal.ExitErr(err, "Failed to initialise config files.")
 	}
 }
 

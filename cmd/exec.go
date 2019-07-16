@@ -9,7 +9,7 @@ import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +28,7 @@ Examples:
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			util.Fatal("could not resolve dependencies")
+			fatal.Exit("could not resolve dependencies")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -36,8 +36,7 @@ Examples:
 
 		// Make sure it's a valid service
 		if _, ok := config.Services()[service]; !ok {
-			message := fmt.Sprintf("%s is not a valid service\n. Try running `tb list` to see available services\n", service)
-			util.Fatal(message)
+			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", service)
 		}
 
 		cmds := strings.Join(args[1:], " ")
@@ -50,7 +49,7 @@ Examples:
 
 		err := execCmd.Run()
 		if err != nil {
-			util.FatalErr(err, "Could not execute command against this service.")
+			fatal.ExitErr(err, "Could not execute command against this service.")
 		}
 	},
 }

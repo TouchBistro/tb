@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
@@ -16,7 +16,7 @@ var docsCmd = &cobra.Command{
 		log.Info("Generating markdown documentation...")
 		err := doc.GenMarkdownTree(rootCmd, "./docs")
 		if err != nil {
-			util.FatalErr(err, "Failed to generate documentation.")
+			fatal.ExitErr(err, "Failed to generate documentation.")
 		}
 		log.Info("done...")
 	},
