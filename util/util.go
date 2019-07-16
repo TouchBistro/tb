@@ -3,6 +3,7 @@ package util
 import (
 	"os/exec"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,8 +32,7 @@ func Exec(name string, arg ...string) error {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Warnf("cmd.Run() failed with %s while running %s %s\n", err, name, arg)
-		return err
+		return errors.Wrapf(err, "Exec failed to run %s %s", name, arg)
 	}
 
 	return nil

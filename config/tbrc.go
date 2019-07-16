@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 )
 
 var tbrc UserConfig
@@ -24,11 +25,12 @@ func InitRC() error {
 
 	// Create default tbrc if it doesn't exist
 	if !util.FileOrDirExists(rcPath) {
-		util.CreateFile(rcPath, rcTemplate)
+		err := util.CreateFile(rcPath, rcTemplate)
+		return errors.Wrapf(err, "couldnt create default tbrc at %s", rcPath)
 	}
 
 	err := util.ReadYaml(rcPath, &tbrc)
-	return err
+	return errors.Wrapf(err, "couldn't read yaml file at %s", rcPath)
 }
 
 func TBRC() *UserConfig {

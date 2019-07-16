@@ -46,7 +46,8 @@ func cloneMissingRepos() {
 		log.Infof("%s is missing. cloning...\n", name)
 		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed cloning repo")
+			message := fmt.Sprintf("failed cloning repo %s", name)
+			util.FatalErr(message, err)
 		}
 	}
 	log.Info("...done")
@@ -56,7 +57,7 @@ func initECRLogin() {
 	log.Info("Logging into ECR...")
 	err := docker.ECRLogin()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed logging to ECR")
+		util.FatalErr("Failled logging into ECR", err)
 	}
 	log.Info("...done")
 }
@@ -67,13 +68,13 @@ func initDockerStop() {
 	log.Info("stopping any running containers or services...")
 	err = docker.StopContainersAndServices()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed stopping containers and services.")
+		util.FatalErr("failed stopping containers and services", err)
 	}
 
 	log.Info("removing stopped containers...")
 	err = docker.RmContainers()
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing containers")
+		util.FatalErr("failed removing containers", err)
 	}
 	log.Info("...done")
 }
@@ -83,7 +84,8 @@ func pullTBBaseImages() {
 	for _, b := range config.BaseImages() {
 		err := docker.Pull(b)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "image": b}).Fatal("Failed pulling docker image.")
+			message := fmt.Sprintf("Failed pulling docker image: %s", b)
+			util.FatalErr(message, err)
 		}
 	}
 	log.Info("...done")
@@ -103,14 +105,14 @@ func execDBPrepare(name string, isECR bool) {
 	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare:test")
+		util.FatalErr("Failed running yarn db:prepare:test", err)
 	}
 
 	log.Debugf("Resetting development database...")
 	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		log.WithFields(log.Fields{"error": err.Error(), "service": name}).Fatal("Failed running yarn db:prepare")
+		util.FatalErr("Failed running yarn db:prepare", err)
 	}
 }
 
@@ -127,7 +129,7 @@ func dockerComposeBuild(serviceNames []string) {
 	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str.String())
 	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
-		log.Fatal(err)
+		util.FatalErr("Could not build docker-compose services", err)
 	}
 }
 
@@ -138,17 +140,18 @@ func dockerComposeUp(serviceNames []string) {
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
 	err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
-		log.Fatal(err)
+		util.FatalErr("Could not docker-compose up", err)
 	}
 }
 
 func validatePlaylistName(playlistName string) {
 	if len(playlistName) == 0 {
-		log.Fatal("playlist name cannot be blank")
+		util.Fatal("Playlist name cannot be blank")
 	}
 	names := config.GetPlaylist(playlistName)
 	if len(names) == 0 {
-		log.Fatalf("You must specify at least one service in playlist %s\n", playlistName)
+		message := fmt.Sprintf("You must specify at least one service in playlist %s\n", playlistName)
+		util.Fatal(message)
 	}
 }
 
@@ -167,7 +170,7 @@ func toComposeNames(configs map[string]config.Service) []string {
 }
 
 func filterByNames(configs map[string]config.Service, names []string) map[string]config.Service {
-	selected := make(map[string]config.Service, 0)
+	selected := make(map[string]config.Service)
 	for _, name := range names {
 		if _, ok := configs[name]; ok {
 			selected[name] = configs[name]
@@ -179,7 +182,7 @@ func filterByNames(configs map[string]config.Service, names []string) map[string
 
 func initSelectedServices() {
 	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
-		log.Fatal("can only specify one of --playlist or --services")
+		util.Fatal("can only specify one of --playlist or --services")
 	}
 
 	var names []string
@@ -190,12 +193,12 @@ func initSelectedServices() {
 		// TODO: be more strict about failing if any cliServicesName is invalid.
 		names = opts.cliServiceNames
 	} else {
-		log.Fatal("must specify either --playlist or --services")
+		util.Fatal("must specify either --playlist or --services")
 	}
 
 	selectedServices = filterByNames(config.Services(), names)
 	if len(selectedServices) == 0 {
-		log.Fatal("You must specify at least one service from TouchBistro/tb/config.json")
+		util.Fatal("You must specify at least one service from TouchBistro/tb/config.json")
 	}
 
 }
@@ -230,7 +233,7 @@ Examples:
 			deps.Docker,
 		)
 		if err != nil {
-			log.Fatal(err)
+			util.FatalErr("Could not resolve dependencies", err)
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -252,7 +255,7 @@ Examples:
 					if s.ECR {
 						err := docker.Pull(s.ImageURI)
 						if err != nil {
-							log.WithFields(log.Fields{"error": err.Error(), "image": s.ImageURI}).Fatal("Failed pulling docker image.")
+							util.FatalErr(fmt.Sprintf("Failed pulling docker image %s", s.ImageURI), err)
 						}
 					}
 				}
@@ -269,7 +272,7 @@ Examples:
 				if s.IsGithubRepo && !s.ECR {
 					err := git.Pull(name)
 					if err != nil {
-						log.WithFields(log.Fields{"error": err.Error(), "repo": name}).Fatal("Failed pulling git repo.")
+						util.FatalErr(fmt.Sprintf("Failed pulling git repo %s", s.ImageURI), err)
 					}
 				}
 			}
@@ -298,7 +301,7 @@ Examples:
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		err = util.Exec("lazydocker")
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed running lazydocker")
+			util.FatalErr("Failed running lazydocker", err)
 		}
 	},
 }

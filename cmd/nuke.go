@@ -36,33 +36,34 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeRepos &&
 			!nukeOpts.shouldNukeConfig &&
 			!nukeOpts.shouldNukeAll {
-			log.Fatalln("Error: Must specify what to nuke")
+			util.Fatal("Error: Must specify what to nuke")
 		}
 
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to resolve dependencies.")
+			util.FatalErr("Could not resolve dependencies", err)
 		}
 
 		for _, repo := range git.RepoNames(config.Services()) {
 			path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 
 			if !util.FileOrDirExists(path) {
-				log.Fatalf("Repo %s is missing. Please ensure all repos exist before running nuke.\n", repo)
+				message := fmt.Sprintf("Repo %s is missing. Please ensure all repos exist before running nuke.\n", repo)
+				util.Fatal(message)
 			}
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopContainersAndServices()
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed stopping docker containers and services.")
+			util.FatalErr("Failed stopping docker containers and services.", err)
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing containers...")
 			err = docker.RmContainers()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker containers")
+				util.FatalErr("Failed removing docker containers", err)
 			}
 			log.Infoln("...done")
 		}
@@ -71,7 +72,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing images...")
 			err = docker.RmImages()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker images")
+				util.FatalErr("Failed removing docker images.", err)
 			}
 			log.Infoln("...done")
 		}
@@ -80,7 +81,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing networks...")
 			err = docker.RmNetworks()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker networks")
+				util.FatalErr("Failed removing docker networks.", err)
 			}
 			log.Infoln("...done")
 		}
@@ -89,7 +90,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing volumes...")
 			err = docker.RmVolumes()
 			if err != nil {
-				log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed removing docker volumes")
+				util.FatalErr("Failed removing docker volumes.", err)
 			}
 			log.Infoln("...done")
 		}
@@ -101,7 +102,7 @@ var nukeCmd = &cobra.Command{
 				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 				err = os.RemoveAll(repoPath)
 				if err != nil {
-					log.WithFields(log.Fields{"error": err.Error(), "repo": repo}).Fatal("Failed removing git repo")
+					util.FatalErr("Failed removing repos.", err)
 				}
 			}
 			log.Infoln("...done")
@@ -109,7 +110,10 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeConfig || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing config files...")
-			config.RmFiles()
+			err := config.RmFiles()
+			if err != nil {
+				util.FatalErr("Failed removing config files.", err)
+			}
 			log.Infoln("...done")
 		}
 	},

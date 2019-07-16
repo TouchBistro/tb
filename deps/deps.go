@@ -4,6 +4,7 @@ import (
 	"runtime"
 
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,7 +43,7 @@ var deps = map[string]Dependency{
 		Name: "pgcli",
 		BeforeInstall: func() error {
 			err := util.Exec("brew", "tap", "dbcli/tap")
-			return err
+			return errors.Wrap(err, "failed to tap dbcli/tap")
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
 	},
@@ -54,7 +55,7 @@ var deps = map[string]Dependency{
 		Name: "lazydocker",
 		BeforeInstall: func() error {
 			err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
-			return err
+			return errors.Wrap(err, "failed to tap jesseduffield/lazydocker")
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
 	},
@@ -105,14 +106,15 @@ func Resolve(depNames ...string) error {
 	log.Info("> Checking dependencies")
 
 	if runtime.GOOS != "darwin" {
-		log.Fatal("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.")
+		// TODO: Should we make a FatalErr and a Fatal instead of passing nil?
+		util.Fatal("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
 	}
 
 	for _, depName := range depNames {
 		dep, ok := deps[depName]
 
 		if !ok {
-			log.Fatalf("%s is not a valid dependency.", depName)
+			return errors.Errorf("%s is not a valid dependency.", depName)
 		}
 
 		if util.IsCommandAvailable(dep.Name) {
@@ -127,7 +129,7 @@ func Resolve(depNames ...string) error {
 		if dep.BeforeInstall != nil {
 			err := dep.BeforeInstall()
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "before install failed for %s", dep.Name)
 			}
 		}
 
@@ -136,13 +138,13 @@ func Resolve(depNames ...string) error {
 
 		err := util.Exec(installCmd, installArgs...)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "install failed for %s", dep.Name)
 		}
 
 		if dep.AfterInstall != nil {
 			err := dep.AfterInstall()
 			if err != nil {
-				return err
+				return errors.Wrapf(err, "after install failed for %s", dep.Name)
 			}
 		}
 

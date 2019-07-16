@@ -5,6 +5,7 @@ import (
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 )
 
 func repoURL(repoName string) string {
@@ -15,13 +16,15 @@ func Clone(repoName, destDir string) error {
 	repoURL := repoURL(repoName)
 	destPath := fmt.Sprintf("%s/%s", destDir, repoName)
 	err := util.Exec("git", "clone", repoURL, destPath)
-	return err
+
+	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
 }
 
 func Pull(repoName string) error {
 	repoURL := repoURL(repoName)
 	err := util.Exec("git", "-C", repoURL, "pull")
-	return err
+
+	return errors.Wrapf(err, "exec failed to pull %s", repoName)
 }
 
 func RepoNames(services map[string]config.Service) []string {
