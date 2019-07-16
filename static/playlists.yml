@@ -37,7 +37,7 @@ partners:
     - legacy-bridge-cloud-service
     - localstack
     - legacy-database
-venueadmin-deps:
+vaf-deps:
   services:
     - localstack
     - postgres
@@ -48,7 +48,7 @@ venueadmin-deps:
     - cloud-server-frontend
     - legacy-bridge-cloud-service
     - partners-config-service
-venueadmin:
+vaf:
   extends: venueadmin-deps
   services:
-    - venue-admin-frontend  
+    - venue-admin-frontend
