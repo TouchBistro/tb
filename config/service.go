@@ -14,7 +14,7 @@ type ServiceOverride struct {
 	ECRTag string `yaml:"ecrTag"`
 }
 
-type ServiceMap = map[string]*Service
+type ServiceMap = map[string]Service
 
 func ResolveEcrURI(service, tag string) string {
 	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
@@ -31,6 +31,8 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) e
 		if override.ECRTag != "" {
 			s.ECRTag = override.ECRTag
 		}
+
+		services[name] = s
 	}
 
 	return nil
