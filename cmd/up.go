@@ -47,7 +47,7 @@ func cloneMissingRepos() {
 		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
 			message := fmt.Sprintf("failed cloning repo %s", name)
-			util.FatalErr(message, err)
+			util.FatalErr(err, message)
 		}
 	}
 	log.Info("...done")
@@ -57,7 +57,7 @@ func initECRLogin() {
 	log.Info("Logging into ECR...")
 	err := docker.ECRLogin()
 	if err != nil {
-		util.FatalErr("Failled logging into ECR", err)
+		util.FatalErr(err, "Failled logging into ECR")
 	}
 	log.Info("...done")
 }
@@ -68,13 +68,13 @@ func initDockerStop() {
 	log.Info("stopping any running containers or services...")
 	err = docker.StopContainersAndServices()
 	if err != nil {
-		util.FatalErr("failed stopping containers and services", err)
+		util.FatalErr(err, "failed stopping containers and services")
 	}
 
 	log.Info("removing stopped containers...")
 	err = docker.RmContainers()
 	if err != nil {
-		util.FatalErr("failed removing containers", err)
+		util.FatalErr(err, "failed removing containers")
 	}
 	log.Info("...done")
 }
@@ -85,7 +85,7 @@ func pullTBBaseImages() {
 		err := docker.Pull(b)
 		if err != nil {
 			message := fmt.Sprintf("Failed pulling docker image: %s", b)
-			util.FatalErr(message, err)
+			util.FatalErr(err, message)
 		}
 	}
 	log.Info("...done")
@@ -105,14 +105,14 @@ func execDBPrepare(name string, isECR bool) {
 	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		util.FatalErr("Failed running yarn db:prepare:test", err)
+		util.FatalErr(err, "Failed running yarn db:prepare:test")
 	}
 
 	log.Debugf("Resetting development database...")
 	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		util.FatalErr("Failed running yarn db:prepare", err)
+		util.FatalErr(err, "Failed running yarn db:prepare")
 	}
 }
 
@@ -129,7 +129,7 @@ func dockerComposeBuild(serviceNames []string) {
 	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str.String())
 	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
-		util.FatalErr("Could not build docker-compose services", err)
+		util.FatalErr(err, "Could not build docker-compose services")
 	}
 }
 
@@ -140,7 +140,7 @@ func dockerComposeUp(serviceNames []string) {
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
 	err = util.Exec("docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
-		util.FatalErr("Could not docker-compose up", err)
+		util.FatalErr(err, "Could not docker-compose up")
 	}
 }
 
@@ -233,7 +233,7 @@ Examples:
 			deps.Docker,
 		)
 		if err != nil {
-			util.FatalErr("Could not resolve dependencies", err)
+			util.FatalErr(err, "Could not resolve dependencies")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -255,7 +255,7 @@ Examples:
 					if s.ECR {
 						err := docker.Pull(s.ImageURI)
 						if err != nil {
-							util.FatalErr(fmt.Sprintf("Failed pulling docker image %s", s.ImageURI), err)
+							util.FatalErr(err, fmt.Sprintf("Failed pulling docker image %s", s.ImageURI))
 						}
 					}
 				}
@@ -272,7 +272,7 @@ Examples:
 				if s.IsGithubRepo && !s.ECR {
 					err := git.Pull(name)
 					if err != nil {
-						util.FatalErr(fmt.Sprintf("Failed pulling git repo %s", s.ImageURI), err)
+						util.FatalErr(err, fmt.Sprintf("Failed pulling git repo %s", s.ImageURI))
 					}
 				}
 			}
@@ -301,7 +301,7 @@ Examples:
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		err = util.Exec("lazydocker")
 		if err != nil {
-			util.FatalErr("Failed running lazydocker", err)
+			util.FatalErr(err, "Failed running lazydocker")
 		}
 	},
 }

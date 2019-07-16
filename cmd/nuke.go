@@ -41,7 +41,7 @@ var nukeCmd = &cobra.Command{
 
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			util.FatalErr("Could not resolve dependencies", err)
+			util.FatalErr(err, "Could not resolve dependencies")
 		}
 
 		for _, repo := range git.RepoNames(config.Services()) {
@@ -56,14 +56,14 @@ var nukeCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopContainersAndServices()
 		if err != nil {
-			util.FatalErr("Failed stopping docker containers and services.", err)
+			util.FatalErr(err, "Failed stopping docker containers and services.")
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing containers...")
 			err = docker.RmContainers()
 			if err != nil {
-				util.FatalErr("Failed removing docker containers", err)
+				util.FatalErr(err, "Failed removing docker containers")
 			}
 			log.Infoln("...done")
 		}
@@ -72,7 +72,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing images...")
 			err = docker.RmImages()
 			if err != nil {
-				util.FatalErr("Failed removing docker images.", err)
+				util.FatalErr(err, "Failed removing docker images.")
 			}
 			log.Infoln("...done")
 		}
@@ -81,7 +81,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing networks...")
 			err = docker.RmNetworks()
 			if err != nil {
-				util.FatalErr("Failed removing docker networks.", err)
+				util.FatalErr(err, "Failed removing docker networks.")
 			}
 			log.Infoln("...done")
 		}
@@ -90,7 +90,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing volumes...")
 			err = docker.RmVolumes()
 			if err != nil {
-				util.FatalErr("Failed removing docker volumes.", err)
+				util.FatalErr(err, "Failed removing docker volumes.")
 			}
 			log.Infoln("...done")
 		}
@@ -102,7 +102,7 @@ var nukeCmd = &cobra.Command{
 				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 				err = os.RemoveAll(repoPath)
 				if err != nil {
-					util.FatalErr("Failed removing repos.", err)
+					util.FatalErr(err, "Failed removing repos.")
 				}
 			}
 			log.Infoln("...done")
@@ -112,7 +112,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing config files...")
 			err := config.RmFiles()
 			if err != nil {
-				util.FatalErr("Failed removing config files.", err)
+				util.FatalErr(err, "Failed removing config files.")
 			}
 			log.Infoln("...done")
 		}

@@ -15,20 +15,20 @@ func main() {
 	if !util.FileOrDirExists(dir) {
 		err := os.Mkdir(dir, 0755)
 		if err != nil {
-			util.FatalErr("Failed to create dist directory", err)
+			util.FatalErr(err, "Failed to create dist directory")
 		}
 	}
 
 	zshCompPath := fmt.Sprintf("%s/_tb", dir)
 	err := rootCmd.GenZshCompletionFile(zshCompPath)
 	if err != nil {
-		util.FatalErr("Failed to create zsh completions", err)
+		util.FatalErr(err, "Failed to create zsh completions")
 	}
 
 	bashCompPath := fmt.Sprintf("%s/tb.bash", dir)
 	err = rootCmd.GenBashCompletionFile(bashCompPath)
 	if err != nil {
-		util.FatalErr("Failed to create bash completions", err)
+		util.FatalErr(err, "Failed to create bash completions")
 	}
 
 	header := &doc.GenManHeader{
@@ -40,11 +40,11 @@ func main() {
 	if !util.FileOrDirExists(manDir) {
 		err := os.Mkdir(manDir, 0755)
 		if err != nil {
-			util.FatalErr("Failed to create directory for man pages.", err)
+			util.FatalErr(err, "Failed to create directory for man pages.")
 		}
 	}
 	err = doc.GenManTree(rootCmd, header, manDir)
 	if err != nil {
-		util.FatalErr("Failed to generate man pages.", err)
+		util.FatalErr(err, "Failed to generate man pages.")
 	}
 }

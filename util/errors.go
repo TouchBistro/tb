@@ -6,13 +6,11 @@ import (
 	"os"
 )
 
-func FatalErr(message string, err error) {
+func FatalErr(err error, message string) {
 	fmt.Fprintf(os.Stderr, message+"\n")
 
-	if err != nil {
-		// TODO: Make this user-configurable in tbrc - they may not always want the stack trace
-		fmt.Fprintf(os.Stderr, "Error: %+v\n", err)
-	}
+	// TODO: Make this user-configurable in tbrc - they may not always want the stack trace
+	fmt.Fprintf(os.Stderr, "Error: %+v\n", err)
 
 	os.Exit(1)
 }

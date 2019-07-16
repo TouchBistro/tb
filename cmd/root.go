@@ -16,7 +16,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		util.FatalErr("Failed executing command.", err)
+		util.FatalErr(err, "Failed executing command.")
 	}
 }
 
@@ -27,12 +27,12 @@ func init() {
 func initConfig() {
 	err := config.InitRC()
 	if err != nil {
-		util.FatalErr("Failed to initialise .tbrc file.", err)
+		util.FatalErr(err, "Failed to initialise .tbrc file.")
 	}
 
 	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
 	if err != nil {
-		util.FatalErr("Failed to initialise logger level.", err)
+		util.FatalErr(err, "Failed to initialise logger level.")
 	}
 
 	log.SetLevel(logLevel)
@@ -42,7 +42,7 @@ func initConfig() {
 
 	err = config.Init()
 	if err != nil {
-		util.FatalErr("Failed to initialise config files.", err)
+		util.FatalErr(err, "Failed to initialise config files.")
 	}
 }
 

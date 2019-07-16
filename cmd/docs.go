@@ -16,7 +16,7 @@ var docsCmd = &cobra.Command{
 		log.Info("Generating markdown documentation...")
 		err := doc.GenMarkdownTree(rootCmd, "./docs")
 		if err != nil {
-			util.FatalErr("Failed to generate documentation.", err)
+			util.FatalErr(err, "Failed to generate documentation.")
 		}
 		log.Info("done...")
 	},

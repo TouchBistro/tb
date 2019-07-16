@@ -37,7 +37,7 @@ Examples:
 		// Make sure it's a valid service
 		if _, ok := config.Services()[service]; !ok {
 			message := fmt.Sprintf("%s is not a valid service\n. Try running `tb list` to see available services\n", service)
-			util.FatalErr(message, nil)
+			util.Fatal(message)
 		}
 
 		cmds := strings.Join(args[1:], " ")
@@ -50,7 +50,7 @@ Examples:
 
 		err := execCmd.Run()
 		if err != nil {
-			util.FatalErr("Could not execute command against this service.", err)
+			util.FatalErr(err, "Could not execute command against this service.")
 		}
 	},
 }
