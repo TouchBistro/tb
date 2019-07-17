@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var services map[string]Service
+var services ServiceMap
 var playlists map[string]Playlist
 var tbRoot string
 
@@ -22,14 +22,8 @@ const (
 	playlistPath             = "playlists.yml"
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
+	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
-
-type Service struct {
-	IsGithubRepo bool   `yaml:"repo"`
-	Migrations   bool   `yaml:"migrations"`
-	ECR          bool   `yaml:"ecr"`
-	ImageURI     string `yaml:"imageURI"`
-}
 
 func setupEnv() error {
 	// Set $TB_ROOT so it works in the docker-compose file
@@ -105,10 +99,33 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
+	err = applyOverrides(services, tbrc.Overrides)
+	if err != nil {
+		return errors.Wrap(err, "failed to apply overrides from tbrc")
+	}
+
+	// Setup ECR image URIs for docker-compose
+	for name, s := range services {
+		serviceName := name
+		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
+		if s.ECR {
+			serviceName += "-ecr"
+		}
+		os.Setenv(serviceNameVar, serviceName)
+
+		if s.ECRTag == "" {
+			continue
+		}
+
+		uri := ResolveEcrURI(name, s.ECRTag)
+		uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
+		os.Setenv(uriVar, uri)
+	}
+
 	return nil
 }
 
-func Services() map[string]Service {
+func Services() ServiceMap {
 	return services
 }
 
