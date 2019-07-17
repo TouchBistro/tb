@@ -112,7 +112,6 @@ func Init() error {
 			serviceName += "-ecr"
 		}
 		os.Setenv(serviceNameVar, serviceName)
-		fmt.Printf("$%s=%s\n", serviceNameVar, serviceName)
 
 		if s.ECRTag == "" {
 			continue
