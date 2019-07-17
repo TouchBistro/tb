@@ -10,7 +10,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:     "tb",
-	Version: "0.0.7", // TODO: Fix this hardcoded bullshit
+	Version: "0.0.8", // TODO: Fix this hardcoded bullshit
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 }
 
