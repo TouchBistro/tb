@@ -4,6 +4,18 @@ tb is a CLI for running TouchBistro services on a development machine.
 
 It is aimed at making local development easy in a complicated microservices architecture by provisioning your machine with the dependencies you need and making it easy for you to run them on your machine in an environment that is close to how they run in production.
 
+### **Table of Contents**
+- [Requirements](#requirements)
+    + [Installed Software](#installed-software)
+    + [AWS ECR](#aws-ecr)
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Commands](#commands)
+- [Configuration](#configuration)
+- [Contributing](#contributing)
+- [Having trouble?](#having-trouble?)
+- [Gotchas / Tips](#Gotchas-/-Tips)
+
 ## Requirements
 
 ### Installed Software
@@ -58,13 +70,7 @@ Run `tb up -s postgres` to setup your system and start a `postgresql` service ru
 
 ## Contributing
 
-If you want to work on `tb` rather than just use it, you will need to install `go`.
-
-The easiest way to do so is with homebrew. `brew install go`.
-
-After that, you just need to clone the repo.
-
-TODO: Tell people what to do if they just want to add serivces.
+See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`.
 
 ## Having trouble?
 
