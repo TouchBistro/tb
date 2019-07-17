@@ -168,7 +168,7 @@ x-venue-core-service-boilerplate:
   environment:
     << : *node-service
     DB_HOST: postgres
-    PROVISIONING_JWKS_URI: http://${VENUE_PROVISIONING_SERVICE}:8080/external/jwks
+    PROVISIONING_JWKS_URI: http://${VENUE_PROVISIONING_SERVICE_NAME}:8080/external/jwks
     AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_ENDPOINT: http://localstack:4572
