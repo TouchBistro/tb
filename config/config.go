@@ -118,7 +118,7 @@ func Init() error {
 		}
 
 		uri := ResolveEcrURI(name, s.ECRTag)
-		uriVar := util.StringToUpperAndSnake(uri) + "_IMAGE_URI"
+		uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
 		os.Setenv(uriVar, uri)
 	}
 
