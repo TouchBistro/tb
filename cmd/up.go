@@ -100,32 +100,40 @@ func execDBPrepare(name string, isECR bool) {
 		composeName = name
 	}
 
-	log.Debugf("Resetting test database...")
+	log.Infof("Resetting test database for %s.\n", name)
 	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "Failed running yarn db:prepare:test")
 	}
+	log.Infoln("done")
 
-	log.Debugf("Resetting development database...")
+	log.Infof("Resetting development database for %s.\n", name)
 	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "Failed running yarn db:prepare")
 	}
+	log.Infoln("done")
 }
 
 func dockerComposeBuild(serviceNames []string) {
-	var str strings.Builder
+	var builder strings.Builder
 	for _, s := range serviceNames {
 		if strings.HasSuffix(s, "-ecr") {
 			continue
 		}
-		str.WriteString(s)
-		str.WriteString(" ")
+		builder.WriteString(s)
+		builder.WriteString(" ")
 	}
 
-	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str.String())
+	str := builder.String()
+	if str == "" {
+		log.Println("No services to build")
+		return
+	}
+
+	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str)
 	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "Could not build docker-compose services")
@@ -154,7 +162,7 @@ func validatePlaylistName(playlistName string) {
 }
 
 func toComposeNames(configs map[string]config.Service) []string {
-	names := make([]string, len(configs))
+	names := make([]string, 0)
 	for name, s := range configs {
 		var composeName string
 		if s.ECR {
@@ -164,6 +172,7 @@ func toComposeNames(configs map[string]config.Service) []string {
 		}
 		names = append(names, composeName)
 	}
+
 	return names
 }
 
@@ -278,7 +287,9 @@ Examples:
 		}
 
 		composeServiceNames := toComposeNames(selectedServices)
+		log.Info("Building docker compose images...")
 		dockerComposeBuild(composeServiceNames)
+		log.Info("...done")
 
 		if !opts.shouldSkipDBPrepare {
 			log.Info("Performing database migrations and seeds...")
@@ -287,13 +298,11 @@ Examples:
 				if !s.Migrations {
 					continue
 				}
-				// TODO: merge compose files into one again
 				execDBPrepare(name, s.ECR)
 			}
 			log.Info("...done")
 		}
 
-		// TODO: merge compose files into one again
 		dockerComposeUp(composeServiceNames)
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
