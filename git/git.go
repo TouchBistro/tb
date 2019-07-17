@@ -20,14 +20,14 @@ func Clone(repoName, destDir string) error {
 	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
 }
 
-func Pull(repoName string) error {
-	repoURL := repoURL(repoName)
-	err := util.Exec("git", "-C", repoURL, "pull")
+func Pull(repoName, repoDir string) error {
+	repoPath := fmt.Sprintf("%s/%s", repoDir, repoName)
+	err := util.Exec("git", "-C", repoPath, "pull")
 
 	return errors.Wrapf(err, "exec failed to pull %s", repoName)
 }
 
-func RepoNames(services map[string]config.Service) []string {
+func RepoNames(services config.ServiceMap) []string {
 	var repos []string
 
 	for name, s := range services {

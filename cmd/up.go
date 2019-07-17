@@ -26,7 +26,7 @@ type options struct {
 
 var (
 	composeFile      string
-	selectedServices map[string]config.Service
+	selectedServices config.ServiceMap
 	opts             options
 )
 
@@ -161,7 +161,7 @@ func validatePlaylistName(playlistName string) {
 	}
 }
 
-func toComposeNames(configs map[string]config.Service) []string {
+func toComposeNames(configs config.ServiceMap) []string {
 	names := make([]string, 0)
 	for name, s := range configs {
 		var composeName string
@@ -176,8 +176,8 @@ func toComposeNames(configs map[string]config.Service) []string {
 	return names
 }
 
-func filterByNames(configs map[string]config.Service, names []string) map[string]config.Service {
-	selected := make(map[string]config.Service)
+func filterByNames(configs config.ServiceMap, names []string) config.ServiceMap {
+	selected := make(config.ServiceMap)
 	for _, name := range names {
 		if _, ok := configs[name]; ok {
 			selected[name] = configs[name]
@@ -257,12 +257,13 @@ Examples:
 
 		if !opts.shouldSkipDockerPull {
 			log.Info("Pulling the latest ecr images for selected services...")
-			for _, s := range selectedServices {
+			for name, s := range selectedServices {
 				if opts.shouldSkipDockerPull {
 					if s.ECR {
-						err := docker.Pull(s.ImageURI)
+						uri := config.ResolveEcrURI(name, s.ECRTag)
+						err := docker.Pull(uri)
 						if err != nil {
-							fatal.ExitErrf(err, "Failed pulling docker image %s", s.ImageURI)
+							fatal.ExitErrf(err, "Failed pulling docker image %s", uri)
 						}
 					}
 				}
@@ -277,9 +278,9 @@ Examples:
 			// TODO: Parallelize this shit
 			for name, s := range selectedServices {
 				if s.IsGithubRepo && !s.ECR {
-					err := git.Pull(name)
+					err := git.Pull(config.TBRootPath(), name)
 					if err != nil {
-						fatal.ExitErrf(err, "Failed pulling git repo %s", s.ImageURI)
+						fatal.ExitErrf(err, "Failed pulling git repo %s", name)
 					}
 				}
 			}

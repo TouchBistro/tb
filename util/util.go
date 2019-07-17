@@ -2,6 +2,7 @@ package util
 
 import (
 	"os/exec"
+	"strings"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -37,4 +38,8 @@ func Exec(name string, arg ...string) error {
 	}
 
 	return nil
+}
+
+func StringToUpperAndSnake(str string) string {
+	return strings.ReplaceAll(strings.ToUpper(str), "-", "_")
 }
