@@ -102,7 +102,7 @@ func Init() error {
 
 	err = applyOverrides(services, tbrc.Overrides)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
 	// Setup ECR image URIs for docker-compose

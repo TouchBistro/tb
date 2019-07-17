@@ -422,8 +422,8 @@ x-partners-orchestration-service-boilerplate:
     - postgres
     - localstack
 
-x-venue-admin-frontend:
-  &venue-admin-frontend
+x-venue-admin-frontend-boilerplate:
+  &venue-admin-frontend-boilerplate
   env_file:
     - $TB_ROOT/venue-admin-frontend/.env.example
   environment:
@@ -849,7 +849,7 @@ services:
       - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
   venue-admin-frontend:
-    << : *venue-admin-frontend
+    << : *venue-admin-frontend-boilerplate
     build:
       target: release
       context: $TB_ROOT/venue-admin-frontend
@@ -859,15 +859,15 @@ services:
         # ^ This is to reduce the hard dependency on cloud-server[-frontend]
         # until "mokta" is available.
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
-    container_name: venue-admin-frontend
+    container_name: venue-admin-frontend_container
     # depends_on:
     #   - venue-core-service-ecr
     #   - 
 
   venue-admin-frontend-ecr:
-    << : *venue-admin-frontend
+    << : *venue-admin-frontend-boilerplate
     image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
-    container_name: venue-admin-frontend-ecr${VAF_TAG:-master}
+    container_name: venue-admin-frontend-ecr_container
     << : *command-serve
 
 ###### VOLUMES ######
