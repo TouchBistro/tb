@@ -53,7 +53,7 @@ func init() {
 	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
 }
 
-func getServiceNames(services map[string]config.Service) []string {
+func getServiceNames(services config.ServiceMap) []string {
 	names := make([]string, len(services))
 	i := 0
 	for name := range services {
