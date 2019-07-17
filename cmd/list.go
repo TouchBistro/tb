@@ -12,6 +12,7 @@ var (
 	shouldListServices        bool
 	shouldListPlaylists       bool
 	shouldListCustomPlaylists bool
+	isTreeMode                bool
 )
 
 var listCmd = &cobra.Command{
@@ -31,17 +32,17 @@ var listCmd = &cobra.Command{
 
 		if shouldListServices {
 			fmt.Println("Services:")
-			listNames(getServiceNames(config.Services()))
+			listServices(config.Services())
 		}
 
 		if shouldListPlaylists {
 			fmt.Println("Playlists:")
-			listNames(getPlaylistNames(config.Playlists()))
+			listPlaylists(config.Playlists(), isTreeMode)
 		}
 
 		if shouldListCustomPlaylists {
 			fmt.Println("Custom Playlists:")
-			listNames(getPlaylistNames(config.TBRC().Playlists))
+			listPlaylists(config.TBRC().Playlists, isTreeMode)
 		}
 	},
 }
@@ -51,9 +52,10 @@ func init() {
 	listCmd.Flags().BoolVarP(&shouldListServices, "services", "s", false, "list services")
 	listCmd.Flags().BoolVarP(&shouldListPlaylists, "playlists", "p", false, "list playlists")
 	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
+	listCmd.Flags().BoolVarP(&isTreeMode, "tree", "t", false, "tree mode, show playlist services")
 }
 
-func getServiceNames(services config.ServiceMap) []string {
+func listServices(services config.ServiceMap) {
 	names := make([]string, len(services))
 	i := 0
 	for name := range services {
@@ -61,10 +63,13 @@ func getServiceNames(services config.ServiceMap) []string {
 		i++
 	}
 
-	return names
+	sort.Strings(names)
+	for _, name := range names {
+		fmt.Printf("  - %s\n", name)
+	}
 }
 
-func getPlaylistNames(playlists map[string]config.Playlist) []string {
+func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 	names := make([]string, len(playlists))
 	i := 0
 	for name := range playlists {
@@ -72,12 +77,15 @@ func getPlaylistNames(playlists map[string]config.Playlist) []string {
 		i++
 	}
 
-	return names
-}
-
-func listNames(names []string) {
 	sort.Strings(names)
 	for _, name := range names {
 		fmt.Printf("  - %s\n", name)
+		if !tree {
+			continue
+		}
+
+		for _, s := range playlists[name].Services {
+			fmt.Printf("    - %s\n", s)
+		}
 	}
 }
