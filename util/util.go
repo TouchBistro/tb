@@ -3,6 +3,7 @@ package util
 import (
 	"os/exec"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -18,12 +19,13 @@ func IsCommandAvailable(command string) bool {
 func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
+	// TODO: Tag each logger with the command its trying to exec and whether its the stderr or stdout logger
 	stdoutLogger := log.New()
 	stdoutWriter := stdoutLogger.WriterLevel(log.DebugLevel)
 	defer stdoutWriter.Close()
 
 	stderrLogger := log.New()
-	stderrWriter := stderrLogger.WriterLevel(log.InfoLevel)
+	stderrWriter := stderrLogger.WriterLevel(log.DebugLevel)
 	defer stderrWriter.Close()
 
 	cmd.Stdout = stdoutWriter
@@ -31,8 +33,7 @@ func Exec(name string, arg ...string) error {
 
 	err := cmd.Run()
 	if err != nil {
-		log.Warnf("cmd.Run() failed with %s while running %s %s\n", err, name, arg)
-		return err
+		return errors.Wrapf(err, "Exec failed to run %s %s", name, arg)
 	}
 
 	return nil

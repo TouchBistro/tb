@@ -8,6 +8,7 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
@@ -15,12 +16,12 @@ import (
 func ECRLogin() error {
 	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "aws ecr get-login failed")
 	}
 
 	dockerLoginArgs := strings.Fields(string(out))
 	err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
-	return err
+	return errors.Wrap(err, "docker login failed")
 }
 
 func Pull(imageURI string) error {
@@ -32,17 +33,17 @@ func StopAllContainers() error {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docker client")
 	}
 
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true, Quiet: true})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list containers")
 	}
 
 	for _, container := range containers {
 		if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to stop container %s", container.ID)
 		}
 	}
 	return nil
@@ -52,18 +53,17 @@ func RmContainers() error {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docker client")
 	}
 
 	containers, err := cli.ContainerList(ctx, types.ContainerListOptions{All: true, Quiet: true})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list containers")
 	}
 
 	for _, container := range containers {
 		if err := cli.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "containerID": container.ID}).Debug("Failed to remove container")
-			return err
+			return errors.Wrapf(err, "failed to remove container %s", container.ID)
 		}
 	}
 	return nil
@@ -74,18 +74,17 @@ func RmImages() error {
 	cli, err := client.NewEnvClient()
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docker client")
 	}
 
 	images, err := cli.ImageList(ctx, types.ImageListOptions{All: true})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list images")
 	}
 
 	for _, image := range images {
 		if _, err := cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{}); err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "ImageID": image.ID}).Debug("Failed to remove image")
-			return err
+			return errors.Wrapf(err, "failed to remove image %s", image.ID)
 		}
 	}
 
@@ -95,14 +94,13 @@ func RmImages() error {
 func RmNetworks() error {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
-
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docker client")
 	}
 
 	networks, err := cli.NetworkList(ctx, types.NetworkListOptions{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list networks")
 	}
 
 	for _, network := range networks {
@@ -111,8 +109,7 @@ func RmNetworks() error {
 		}
 
 		if err := cli.NetworkRemove(ctx, network.ID); err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "NetworkID": network.ID}).Debug("Failed to remove network.")
-			return err
+			return errors.Wrapf(err, "failed to remove network %s", network.ID)
 		}
 	}
 
@@ -122,20 +119,18 @@ func RmNetworks() error {
 func RmVolumes() error {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
-
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to create docker client")
 	}
 
 	volumes, err := cli.VolumeList(ctx, filters.Args{})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to list volumes")
 	}
 
 	for _, volume := range volumes.Volumes {
 		if err := cli.VolumeRemove(ctx, volume.Name, true); err != nil {
-			log.WithFields(log.Fields{"error": err.Error(), "VolumeID": volume.Name}).Debug("Failed to remove volume.")
-			return err
+			return errors.Wrapf(err, "failed to remove volume %s", volume.Name)
 		}
 	}
 
@@ -148,14 +143,14 @@ func StopContainersAndServices() error {
 	log.Debug("stopping running containers...")
 	err = StopAllContainers()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed stopping all containers")
 	}
 	log.Debug("...done")
 
 	log.Debug("stopping compose services...")
 	err = ComposeStop()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed stopping compose services")
 	}
 	log.Debug("...done")
 

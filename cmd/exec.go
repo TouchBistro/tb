@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
-
 	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
-	log "github.com/sirupsen/logrus"
+	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
 )
 
@@ -29,7 +28,7 @@ Examples:
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Docker)
 		if err != nil {
-			log.Fatal(err)
+			fatal.ExitErr(err, "Could not resolve dependencies.")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -37,7 +36,7 @@ Examples:
 
 		// Make sure it's a valid service
 		if _, ok := config.Services()[service]; !ok {
-			log.Fatalf("%s is not a valid service\n", service)
+			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", service)
 		}
 
 		cmds := strings.Join(args[1:], " ")
@@ -50,7 +49,7 @@ Examples:
 
 		err := execCmd.Run()
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to run exec command.")
+			fatal.ExitErr(err, "Could not execute command against this service.")
 		}
 	},
 }

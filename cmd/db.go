@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/tb/deps"
+	"github.com/TouchBistro/tb/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +23,7 @@ var dbCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Pgcli)
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to resolve dependencies.")
+			fatal.ExitErr(err, "Could not resolve dependencies.")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
@@ -39,7 +40,7 @@ var dbCmd = &cobra.Command{
 		err := execCmd.Run()
 
 		if err != nil {
-			log.WithFields(log.Fields{"error": err.Error()}).Fatal("Failed to start database client.")
+			fatal.ExitErr(err, "Could not start database client.")
 		}
 
 	},
