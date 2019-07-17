@@ -133,6 +133,10 @@ func BaseImages() []string {
 	return []string{
 		"touchbistro/alpine-node:10-build",
 		"touchbistro/alpine-node:10-runtime",
+		"touchbistro/alpine-node:12-build",
+		"touchbistro/alpine-node:12-runtime",
+		"ubuntu16-ruby:2.5.5-build",
+		"ubuntu16-ruby:2.4.6-build",
 	}
 }
 
