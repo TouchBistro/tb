@@ -97,7 +97,7 @@ x-cloud-server-frontend-boilerplate:
   ports:
     - "8080:80"
   depends_on:
-    - cloud-server-ecr
+    - $CLOUD_SERVER_NAME
 
 x-legacy-database-boilerplate:
   &legacy-database-boilerplate
@@ -136,7 +136,7 @@ x-cloud-server-boilerplate:
       - "3000:3000"
     depends_on:
       - redis
-      - legacy-database-ecr
+      - $LEGACY_DATABASE_NAME
 
 x-venue-provisioning-service-boilerplate:
   &venue-provisioning-service-boilerplate
@@ -168,7 +168,7 @@ x-venue-core-service-boilerplate:
   environment:
     << : *node-service
     DB_HOST: postgres
-    PROVISIONING_JWKS_URI: http://venue-provisioning-service-ecr:8080/external/jwks
+    PROVISIONING_JWKS_URI: http://${VENUE_PROVISIONING_SERVICE}:8080/external/jwks
     AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
     AWS_S3_ENDPOINT: http://localstack:4572
@@ -198,7 +198,7 @@ x-legacy-bridge-manage-service-boilerplate:
   ports:
     - "8999:8080"
   depends_on:
-    - legacy-database-ecr
+    - $LEGACY_DATABASE_NAME
 
 x-legacy-bridge-cloud-service-boilerplate:
   &legacy-bridge-cloud-service-boilerplate
@@ -212,7 +212,7 @@ x-legacy-bridge-cloud-service-boilerplate:
   ports:
     - "8101:8080"
   depends_on:
-    - legacy-database-ecr
+    - $LEGACY_DATABASE_NAME
 
 x-ordering-ooa-service-boilerplate:
   &ordering-ooa-service-boilerplate
@@ -268,7 +268,7 @@ x-ordering-ooa-service-boilerplate:
           "sleepTimeSeconds": 5
         }
       }
-    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://legacy-bridge-cloud-service-ecr:8080
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
   ports:
     - "8005:8080"
   depends_on:
@@ -283,10 +283,10 @@ x-ordering-demo-frontend-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    DELIVEROO_BASE_URL: http://ordering-deliveroo-service-ecr:8080
+    DELIVEROO_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
     DELIVEROO_DISABLED: 'false'
-    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
-    URL_CALLBACK_URL: http://ordering-demo-frontend-ecr:8080/callback
+    ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
+    URL_CALLBACK_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/callback
   ports:
     - "8010:8080"
   depends_on:
@@ -300,7 +300,7 @@ x-ordering-demo-frontend-venue-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+    INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     MODE: venue
   ports:
     - "8020:8080"
@@ -313,8 +313,8 @@ x-ordering-gateways-frontend-boilerplate:
     - $TB_ROOT/ordering-gateways-frontend/.env.example
   environment:
     << : *node-service
-    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
-    ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service-ecr:8080/internal 
+    ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
+    ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal 
   ports:
     - "8030:8080"
 
@@ -326,9 +326,9 @@ x-ordering-deliveroo-service-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    DELIVEROO_BASE_URL: http://ordering-demo-frontend-ecr:8080/deliveroo
-    ORDERING_BASE_URL: http://ordering-ooa-service-ecr:8080/external
-    URL_BASE_URL: http://ordering-deliveroo-service-ecr:8080
+    DELIVEROO_BASE_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/deliveroo
+    ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
+    URL_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
   ports:
     - "8015:8080"
   depends_on:
@@ -344,7 +344,7 @@ x-partners-etl-service-boilerplate:
     << : *postgres-connect
     AWS_S3_ENDPOINT: http://localstack:4572
     AWS_S3_STUB: "false"
-    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
+    PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -356,7 +356,7 @@ x-partners-etl-service-boilerplate:
           "sleepTimeSeconds": 5
         }
       }
-    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://cloud-server-ecr:3000/api/v2_5
+    TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${CLOUD_SERVER_NAME}:3000/api/v2_5
   ports:
     - "8888:8080"
   depends_on:
@@ -396,8 +396,8 @@ x-partners-orchestration-service-boilerplate:
   environment:
     << : *postgres-connect
     << : *node-service
-    LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service-ecr:8080
-    PARTNER_CONFIG_SERVICE_URL: http://partners-config-service-ecr:8080
+    LEGACY_CLOUD_SERVICE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
+    PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -427,9 +427,9 @@ x-venue-admin-frontend-boilerplate:
   env_file:
     - $TB_ROOT/venue-admin-frontend/.env.example
   environment:
-    - CORE_BACKEND_URL_BASE=http://venue-core-service-ecr:8080
-    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://partners-config-service-ecr:8080
-    - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://legacy-bridge-cloud-service-ecr:8080
+    - CORE_BACKEND_URL_BASE=http://${VENUE_CORE_SERVICE_NAME}:8080
+    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
+    - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
     - NODE_ENV=production
   ports:
@@ -438,10 +438,10 @@ x-venue-admin-frontend-boilerplate:
   entrypoint: [ "bash", "../docker-entrypoint.sh" ]  
   << : *command-serve
   depends_on:
-    - venue-core-service-ecr
-    - cloud-server-ecr    
-    - legacy-bridge-cloud-service-ecr
-    - partners-config-service-ecr
+    - $VENUE_CORE_SERVICE_NAME
+    - $CLOUD_SERVER_NAME   
+    - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
+    - $PARTNERS_CONFIG_SERVICE_NAME
 
 ###### SERVICES ######
 
@@ -648,7 +648,7 @@ services:
     entrypoint:
       [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
     depends_on:
-      - legacy-database-ecr
+      - $LEGACY_DATABASE_NAME
 
   dotnet-api:
     image: hpgy/mono-xsp4
@@ -662,7 +662,7 @@ services:
     entrypoint:
       [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
     depends_on:
-      - legacy-database-ecr
+      - $LEGACY_DATABASE_NAME
 
   legacy-bridge-manage-service:
     << : *legacy-bridge-manage-service-boilerplate
@@ -748,7 +748,7 @@ services:
     environment:
       << : *postgres-connect
       << : *node-service
-      INVENUE_BASE_URL: http://ordering-ooa-service-ecr:8080/external
+      INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
       MODE: venue
     volumes:
       - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
@@ -860,9 +860,6 @@ services:
         # until "mokta" is available.
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
     container_name: venue-admin-frontend_container
-    # depends_on:
-    #   - venue-core-service-ecr
-    #   - 
 
   venue-admin-frontend-ecr:
     << : *venue-admin-frontend-boilerplate

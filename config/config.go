@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -107,12 +106,20 @@ func Init() error {
 
 	// Setup ECR image URIs for docker-compose
 	for name, s := range services {
+		serviceName := name
+		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
+		if s.ECR {
+			serviceName += "-ecr"
+		}
+		os.Setenv(serviceNameVar, serviceName)
+		fmt.Printf("$%s=%s\n", serviceNameVar, serviceName)
+
 		if s.ECRTag == "" {
 			continue
 		}
 
 		uri := ResolveEcrURI(name, s.ECRTag)
-		uriVar := strings.ReplaceAll(strings.ToUpper(name), "-", "_") + "_IMAGE_URI"
+		uriVar := util.StringToUpperAndSnake(uri) + "_IMAGE_URI"
 		os.Setenv(uriVar, uri)
 	}
 
