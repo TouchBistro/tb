@@ -27,3 +27,4 @@ dist
 # packr generated files
 *-packr.go
 packrd/
+bin
