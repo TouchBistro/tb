@@ -1,5 +1,4 @@
 .DEFAULT_GOAL = build
-COMPOSE_FILE = static/docker-compose.yml
 
 # Get all dependencies
 setup:
