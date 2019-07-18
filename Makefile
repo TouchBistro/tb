@@ -4,6 +4,7 @@ COMPOSE_FILE = static/docker-compose.yml
 # Get all dependencies
 setup:
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh
+	go get github.com/gobuffalo/packr/v2/packr2
 	go mod download
 .PHONY: setup
 
