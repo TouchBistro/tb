@@ -25,6 +25,9 @@ jobs:
       - run:
           name: Build tb
           command: make build
+      - run:
+          name: Verify tb runs
+          command: ./tb
 
 workflows:
   version: 2
