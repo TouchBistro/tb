@@ -258,13 +258,11 @@ Examples:
 		if !opts.shouldSkipDockerPull {
 			log.Info("Pulling the latest ecr images for selected services...")
 			for name, s := range selectedServices {
-				if opts.shouldSkipDockerPull {
-					if s.ECR {
-						uri := config.ResolveEcrURI(name, s.ECRTag)
-						err := docker.Pull(uri)
-						if err != nil {
-							fatal.ExitErrf(err, "Failed pulling docker image %s", uri)
-						}
+				if s.ECR {
+					uri := config.ResolveEcrURI(name, s.ECRTag)
+					err := docker.Pull(uri)
+					if err != nil {
+						fatal.ExitErrf(err, "Failed pulling docker image %s", uri)
 					}
 				}
 
