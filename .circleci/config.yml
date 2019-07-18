@@ -25,3 +25,9 @@ jobs:
       - run:
           name: Build tb
           command: make build
+
+workflows:
+  version: 2
+  lint-build:
+    jobs:
+      - lint-build
