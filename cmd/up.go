@@ -289,10 +289,13 @@ Examples:
 			for name, s := range selectedServices {
 				if s.ECR {
 					uri := config.ResolveEcrURI(name, s.ECRTag)
+
+					log.Infof("\t☐ pulling image %s\n", uri)
 					err := docker.Pull(uri)
 					if err != nil {
 						fatal.ExitErrf(err, "failed pulling docker image %s", uri)
 					}
+					log.Infof("\t☐ finished pulling image %s\n", uri)
 				}
 
 			}
@@ -305,11 +308,13 @@ Examples:
 			log.Info("☐ pulling the latest default git branch for selected services")
 			// TODO: Parallelize this shit
 			for name, s := range selectedServices {
-				if s.IsGithubRepo && !s.ECR {
+				if s.IsGithubRepo {
+					log.Infof("\t☐ pulling %s\n", name)
 					err := git.Pull(config.TBRootPath(), name)
 					if err != nil {
 						fatal.ExitErrf(err, "failed pulling git repo %s", name)
 					}
+					log.Infof("\t☐ finished pulling %s\n", name)
 				}
 			}
 			log.Info("☑ finished pulling latest default git branch for selected services")
