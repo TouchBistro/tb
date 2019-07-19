@@ -2,17 +2,39 @@ package git
 
 import (
 	"fmt"
+
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 )
 
-func Clone(repoName string) error {
-	repoURL := fmt.Sprintf("git@github.com:TouchBistro/%s.git", repoName)
-	err := util.Exec("git", "clone", repoURL)
-	return err
+func repoURL(repoName string) string {
+	return fmt.Sprintf("git@github.com:TouchBistro/%s.git", repoName)
 }
 
-func Pull(repoName string) error {
-	repoURL := fmt.Sprintf("git@github.com:TouchBistro/%s.git", repoName)
-	err := util.Exec("git", "-C", repoURL, "pull")
-	return err
+func Clone(repoName, destDir string) error {
+	repoURL := repoURL(repoName)
+	destPath := fmt.Sprintf("%s/%s", destDir, repoName)
+	err := util.Exec("git", "clone", repoURL, destPath)
+
+	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
+}
+
+func Pull(repoName, repoDir string) error {
+	repoPath := fmt.Sprintf("%s/%s", repoDir, repoName)
+	err := util.Exec("git", "-C", repoPath, "pull")
+
+	return errors.Wrapf(err, "exec failed to pull %s", repoName)
+}
+
+func RepoNames(services config.ServiceMap) []string {
+	var repos []string
+
+	for name, s := range services {
+		if s.IsGithubRepo {
+			repos = append(repos, name)
+		}
+	}
+
+	return repos
 }

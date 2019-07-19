@@ -14,29 +14,17 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 #
-core-backend
-core-database
-touchbistro-ordering-service
-legacy-bridge-manage
-touchbistro-manage-database
-provisioning-service
-health-clinic
-cloud-server
-cloud-server-frontend
-touchbistro-ordering-service
-touchbistro-ordering-gateway-sample
-touchbistro-ordering-frontend
-ordering-deliveroo
-touchbistro-partner-config
-touchbistro-etl
-touchbistro-node-legacy-cloud
-touchbistro-orchestration-partner
 
 # vim
 *.swp
 *.swo
 *.swn
 .DS_Store
-dotnet-depot/.DS_Store
 services.txt
 tb
+
+dist
+# packr generated files
+*-packr.go
+packrd/
+bin

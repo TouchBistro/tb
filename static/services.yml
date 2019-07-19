@@ -1,0 +1,116 @@
+legacy-bridge-manage-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+legacy-database:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master-db-migrate-with-seeds
+venue-core-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+venue-provisioning-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+health-clinic:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+postgres:
+  repo: false
+  migrations: false
+  ecr: false
+redis:
+  repo: false
+  migrations: false
+  ecr: false
+localstack:
+  repo: false
+  migrations: false
+  ecr: false
+cloud-server:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+cloud-server-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+ordering-ooa-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+ordering-gateways-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+ordering-deliveroo-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+ordering-demo-frontend:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+partners-etl-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+partners-orchestration-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+partners-config-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+legacy-bridge-cloud-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+venue-admin-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+identity-user-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+mokta:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+dotnet-depot:
+  repo: true
+  migrations: false
+  ecr: false
+venue-upload-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+partners-reservations-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master

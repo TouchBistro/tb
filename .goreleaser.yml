@@ -1,0 +1,82 @@
+project_name: tb
+
+before:
+  hooks:
+    - go mod download
+    # you may remove this if you don't need go generate
+    - go generate ./...
+    - packr2 clean
+
+builds:
+  -
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X github.com/TouchBistro/tb/cmd.version={{.Version}}
+    goos:
+      - darwin
+    hooks:
+      pre: packr2
+      post: go run build/build.go
+    ignore:
+      - goos: darwin
+        goarch: 386
+
+archives:
+  -
+    replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+    files:
+      - README.md
+      - dist/tb.bash
+      - dist/_tb
+      - dist/man1/*
+      - Makefile
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+    - '^docs:'
+    - '^test:'
+
+brews:
+  -
+    github:
+      owner: TouchBistro
+      name: homebrew-tap
+    download_strategy: GitHubPrivateRepositoryReleaseDownloadStrategy
+    # The PrivateRepositoryReleaseDownloadStrategy was removed by homebrew
+    # Resorting to this hack for now: https://github.com/goreleaser/goreleaser/issues/967
+    custom_require: "../custom_download_strategy"
+    commit_author:
+      name: ohsabry
+      email: osabry@touchbistro.com
+    folder: Formula
+    description: "a CLI for running TouchBistro services on a development machine"
+
+    test: |
+      system "#{bin}/tb --version"
+
+    install: |
+      bin.install "tb"
+      bash_completion.install "dist/tb.bash"
+      zsh_completion.install "dist/_tb"
+      man1.install Dir["dist/man1/*.1"]
+      system "make rm-files"
+
+release:
+  github:
+    owner: TouchBistro
+    name: tb
+  name_template: "{{.ProjectName}}-v{{.Version}}"
