@@ -503,6 +503,19 @@ x-venue-admin-frontend-boilerplate:
     - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
     - $PARTNERS_CONFIG_SERVICE_NAME
 
+x-infrastructure-auth-service-boilerplate:
+  &infrastructure-auth-service-boilerplate
+  env_file:
+    - $TB_ROOT/infrastructure-auth-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *node-service
+    << : *postgres-connect
+  ports:
+    - "8073:8080"
+  depends_on:
+    - postgres
+
 ###### SERVICES ######
 
 services:
@@ -944,6 +957,12 @@ services:
       - $TB_ROOT/venue-upload-service:/home/node/app:delegated
       - venue-upload-service-node_modules:/home/node/app/node_modules
 
+  venue-admin-frontend-ecr:
+    << : *venue-admin-frontend-boilerplate
+    image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
+    container_name: venue-admin-frontend-ecr_container
+    << : *command-serve
+
   venue-admin-frontend:
     << : *venue-admin-frontend-boilerplate
     build:
@@ -957,11 +976,22 @@ services:
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
     container_name: venue-admin-frontend_container
 
-  venue-admin-frontend-ecr:
-    << : *venue-admin-frontend-boilerplate
-    image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
-    container_name: venue-admin-frontend-ecr_container
+  infrastructure-auth-service-ecr:
+    << : *infrastructure-auth-service-boilerplate
+    image: $INFRASTRUCTURE_AUTH_SERVICE_IMAGE_URI
+    container_name: infrastructure-devtools_infrastructure-auth-service-ecr_container
     << : *command-serve
+
+  infrastructure-auth-service:
+    << : *infrastructure-auth-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/infrastructure-auth-service
+    image: infrastructure-devtools_infrastructure-auth-service
+    container_name: infrastructure-devtools_infrastructure-auth-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/infrastructure-auth-service:/home/node/app:delegated
 
 ###### VOLUMES ######
 
@@ -980,3 +1010,4 @@ volumes:
   partners-orchestration-service-node_modules:
   partners-reservations-service-node_modules:
   venue-upload-service-node_modules:
+  infrastructure-auth-service-node_modules:
