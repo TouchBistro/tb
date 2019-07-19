@@ -36,6 +36,10 @@ func initConfig() {
 	}
 
 	log.SetLevel(logLevel)
+	log.SetFormatter(&log.TextFormatter{
+		// TODO: Remove the log level its quite ugly
+		DisableTimestamp: true,
+	})
 
 	// TODO: Make this its own setting or make the format less intense.
 	log.SetReportCaller(logLevel == log.DebugLevel)

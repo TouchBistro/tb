@@ -104,7 +104,7 @@ var deps = map[string]Dependency{
 }
 
 func Resolve(depNames ...string) error {
-	log.Info("> Checking dependencies")
+	log.Info("☐ checking dependencies")
 
 	if runtime.GOOS != "darwin" {
 		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
@@ -151,6 +151,6 @@ func Resolve(depNames ...string) error {
 		log.Debugf("finished installing %s.\n", dep.Name)
 	}
 
-	log.Info("< finished checking dependencies")
+	log.Info("☑ finished checking dependencies")
 	return nil
 }
