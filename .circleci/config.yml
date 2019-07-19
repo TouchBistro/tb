@@ -1,0 +1,36 @@
+version: 2
+
+jobs:
+  lint-build:
+    docker:
+      - image: circleci/golang:1.12
+    working_directory: ~/tb
+    steps:
+      - checkout
+      - restore_cache:
+          name: Restore dependency cache
+          keys:
+            - tb-deps-{{ checksum "go.sum" }}
+      - run:
+          name: Install dependencies
+          command: make setup
+      - save_cache:
+          name: Cache dependencies
+          key: tb-deps-{{ checksum "go.sum" }}
+          paths:
+            - /go/pkg
+      - run:
+          name: Run linter
+          command: make lint
+      - run:
+          name: Build tb
+          command: make build
+      - run:
+          name: Verify tb runs
+          command: ./tb
+
+workflows:
+  version: 2
+  lint-build:
+    jobs:
+      - lint-build

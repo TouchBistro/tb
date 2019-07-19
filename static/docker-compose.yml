@@ -422,6 +422,66 @@ x-partners-orchestration-service-boilerplate:
     - postgres
     - localstack
 
+x-partners-reservations-service-boilerplate:
+  &partners-reservations-service-boilerplate
+  env_file:
+    - $TB_ROOT/partners-reservations-service/.env.example
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    AWS_S3_ENDPOINT: http://localstack:4572
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "venue-upload.task.venueUpload": {
+          "queueURL": "http://localstack:4576/queue/venueUpload",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8602:8080"
+  depends_on:
+    - postgres
+    - localstack
+    - $VENUE_UPLOAD_SERVICE_NAME
+    - $PARTNERS_CONFIG_SERVICE_NAME
+    - $PARTNERS_ORCHESTRATION_SERVICE_NAME
+    - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
+
+x-venue-upload-service-boilerplate:
+  &venue-upload-service-boilerplate
+  env_file:
+    - $TB_ROOT/partners-orchestration-service/.env.example
+  environment:
+    << : *node-service
+    AWS_S3_ENDPOINT: http://localstack:4572
+    TASK_PROVIDER: awssqs
+    TASK_AWS_SQS_CONFIG_JSON: >
+      {
+        "venue-upload.task.venueUpload": {
+          "queueURL": "http://localstack:4576/queue/venueUpload",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5,
+          "sendOnly": true
+        },
+        "venue-upload.task.validateOrder": {
+          "queueURL": "http://localstack:4576/queue/validateOrder",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        }
+      }
+  ports:
+    - "8601:8080"
+  depends_on:
+    - localstack
+
 x-venue-admin-frontend-boilerplate:
   &venue-admin-frontend-boilerplate
   env_file:
@@ -848,6 +908,42 @@ services:
       - $TB_ROOT/partners-orchestration-service:/home/node/app:delegated
       - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
+  partners-reservations-service-ecr:
+    << : *partners-reservations-service-boilerplate
+    image: $PARTNERS_RESERVATIONS_SERVICE_IMAGE_URI
+    container_name: partners-devtools_partners-reservations-service-ecr_container
+    << : *command-serve
+
+  partners-reservations-service:
+    << : *partners-reservations-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/partners-reservations-service
+    image: partners-devtools_partners-reservations-service
+    container_name: partners-devtools_partners-reservations-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/partners-reservations-service:/home/node/app:delegated
+      - partners-reservations-service-node_modules:/home/node/app/node_modules
+
+  venue-upload-service-ecr:
+    << : *venue-upload-service-boilerplate
+    image: $VENUE_UPLOAD_SERVICE_IMAGE_URI
+    container_name: venue-devtools_venue-upload-service-ecr_container
+    << : *command-serve
+
+  venue-upload-service:
+    << : *venue-upload-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/venue-upload-service
+    image: venue-devtools_venue-upload-service
+    container_name: venue-devtools_venue-upload-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/venue-upload-service:/home/node/app:delegated
+      - venue-upload-service-node_modules:/home/node/app/node_modules
+
   venue-admin-frontend:
     << : *venue-admin-frontend-boilerplate
     build:
@@ -882,3 +978,5 @@ volumes:
   partners-etl-service-node_modules:
   partners-config-service-node_modules:
   partners-orchestration-service-node_modules:
+  partners-reservations-service-node_modules:
+  venue-upload-service-node_modules:

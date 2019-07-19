@@ -20,17 +20,20 @@ func IsCommandAvailable(command string) bool {
 func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
-	// TODO: Tag each logger with the command its trying to exec and whether its the stderr or stdout logger
-	stdoutLogger := log.New()
-	stdoutWriter := stdoutLogger.WriterLevel(log.DebugLevel)
-	defer stdoutWriter.Close()
+	stdout := log.WithFields(log.Fields{
+		"pipe":    "stdout",
+		"command": name,
+	}).WriterLevel(log.DebugLevel)
+	defer stdout.Close()
 
-	stderrLogger := log.New()
-	stderrWriter := stderrLogger.WriterLevel(log.DebugLevel)
-	defer stderrWriter.Close()
+	stderr := log.WithFields(log.Fields{
+		"pipe":    "stderr",
+		"command": name,
+	}).WriterLevel(log.DebugLevel)
+	defer stderr.Close()
 
-	cmd.Stdout = stdoutWriter
-	cmd.Stderr = stderrWriter
+	cmd.Stdout = stdout
+	cmd.Stderr = stderr
 
 	err := cmd.Run()
 	if err != nil {

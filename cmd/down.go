@@ -14,21 +14,21 @@ var downCmd = &cobra.Command{
 	Short: "Stops any running services and removes all containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if err := deps.Resolve(deps.Docker); err != nil {
-			fatal.ExitErr(err, "Could not resolve dependencies")
+			fatal.ExitErr(err, "could not resolve dependencies")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopContainersAndServices()
 		if err != nil {
-			fatal.ExitErr(err, "Could not stop containers and services")
+			fatal.ExitErr(err, "could not stop containers and services")
 		}
 
 		log.Println("removing stopped containers...")
 		err = docker.RmContainers()
 		if err != nil {
-			fatal.ExitErr(err, "Could not remove stopped containers")
+			fatal.ExitErr(err, "could not remove stopped containers")
 		}
-		log.Println("...done")
+		log.Println("done")
 	},
 }
 

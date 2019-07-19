@@ -3,6 +3,7 @@ package docker
 import (
 	"os/exec"
 	"strings"
+	"time"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/docker/docker/api/types"
@@ -11,6 +12,10 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+)
+
+var (
+	defaultStopTimeout = 1 * time.Second
 )
 
 func ECRLogin() error {
@@ -42,7 +47,7 @@ func StopAllContainers() error {
 	}
 
 	for _, container := range containers {
-		if err := cli.ContainerStop(ctx, container.ID, nil); err != nil {
+		if err := cli.ContainerStop(ctx, container.ID, &defaultStopTimeout); err != nil {
 			return errors.Wrapf(err, "failed to stop container %s", container.ID)
 		}
 	}

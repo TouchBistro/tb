@@ -23,11 +23,11 @@ var dbCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Pgcli)
 		if err != nil {
-			fatal.ExitErr(err, "Could not resolve dependencies.")
+			fatal.ExitErr(err, "could not resolve dependencies.")
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		log.Info("Starting pgcli client.")
+		log.Info("starting pgcli client.")
 
 		dbName := args[0]
 		cmdStr := fmt.Sprintf("-h %s -p %d -U %s %s", host, port, user, dbName)
@@ -40,7 +40,7 @@ var dbCmd = &cobra.Command{
 		err := execCmd.Run()
 
 		if err != nil {
-			fatal.ExitErr(err, "Could not start database client.")
+			fatal.ExitErr(err, "could not start database client.")
 		}
 
 	},

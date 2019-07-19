@@ -37,6 +37,14 @@ partners:
     - legacy-bridge-cloud-service
     - localstack
     - legacy-database
+reservations:
+  services:
+    - postgres
+    - localstack
+    - venue-upload-service
+    - partners-config-service
+    - partners-orchestration-service
+    - legacy-bridge-cloud-service
 vaf-deps:
   services:
     - localstack

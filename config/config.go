@@ -129,6 +129,10 @@ func Services() ServiceMap {
 	return services
 }
 
+func Playlists() map[string]Playlist {
+	return playlists
+}
+
 func BaseImages() []string {
 	return []string{
 		"touchbistro/alpine-node:10-build",
