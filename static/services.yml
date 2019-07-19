@@ -114,3 +114,8 @@ partners-reservations-service:
   migrations: true
   ecr: true
   ecrTag: master
+infrastructure-auth-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
