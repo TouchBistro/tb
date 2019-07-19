@@ -1,4 +1,5 @@
 .DEFAULT_GOAL = build
+TB_ROOT = $(HOME)/.tb
 
 # Get all dependencies
 setup:
@@ -29,3 +30,8 @@ lint:
 go-uninstall:
 	rm $(shell go env GOPATH)/bin/tb
 .PHONY: go-uninstall
+
+rm-files:
+	rm -f $(TB_ROOT)/docker-compose.yml
+	rm -f $(TB_ROOT)/localstack-entrypoint.sh
+.PHONY: rm-files
