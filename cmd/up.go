@@ -31,9 +31,10 @@ var (
 )
 
 func cloneMissingRepos() {
+	log.Info("☐ checking ~/.tb directory for missing git repos")
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
 	services := config.Services()
-	log.Info("Checking repos...")
+
 	for name, s := range services {
 		if !s.IsGithubRepo {
 			continue
@@ -44,50 +45,61 @@ func cloneMissingRepos() {
 			continue
 		}
 
-		log.Infof("%s is missing. cloning...\n", name)
+		log.Infof("\t☐ %s is missing. cloning git repo\n", name)
 		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
-			fatal.ExitErrf(err, "failed cloning repo %s", name)
+			fatal.ExitErrf(err, "failed cloning git repo %s", name)
 		}
+		log.Infof("\t☑ finished cloning %s\n", name)
 	}
-	log.Info("...done")
+
+	log.Info("☑ finished checking git repos")
 }
 
-func initECRLogin() {
-	log.Info("Logging into ECR...")
+func attemptECRLogin() {
+	log.Info("☐ logging into ECR")
+
 	err := docker.ECRLogin()
 	if err != nil {
-		fatal.ExitErr(err, "Failled logging into ECR")
+		fatal.ExitErr(err, "failed logging into ECR")
 	}
-	log.Info("...done")
+
+	log.Info("☑ finished logging into ECR")
 }
 
-func initDockerStop() {
-	var err error
+func cleanupPrevDocker() {
+	log.Info("☐ removing previous docker resources. this may take a long time")
 
-	log.Info("stopping any running containers or services...")
-	err = docker.StopContainersAndServices()
+	log.Info("\t☐ stopping any running containers or services")
+	err := docker.StopContainersAndServices()
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
+	log.Info("\t☑ finished stopping running containers and services")
 
-	log.Info("removing stopped containers...")
+	log.Info("\t☐ removing stopped containers")
 	err = docker.RmContainers()
 	if err != nil {
 		fatal.ExitErr(err, "failed removing containers")
 	}
-	log.Info("...done")
+	log.Info("\t☑ finished removing stopped containers")
+
+	log.Info("☑ finished cleaning docker resources")
 }
 
 func pullTBBaseImages() {
-	log.Info("Pulling the latest touchbistro base images...")
+	log.Info("☐ pulling latest touchbistro base images")
+
 	for _, b := range config.BaseImages() {
+		log.Infof("\t☐ pulling %s\n", b)
 		err := docker.Pull(b)
 		if err != nil {
-			fatal.ExitErrf(err, "Failed pulling docker image: %s", b)
+			fatal.ExitErrf(err, "failed pulling docker image: %s", b)
 		}
+		log.Infof("\t☑ finished pulling %s\n", b)
 	}
-	log.Info("...done")
+
+	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
 func execDBPrepare(name string, isECR bool) {
@@ -100,24 +112,27 @@ func execDBPrepare(name string, isECR bool) {
 		composeName = name
 	}
 
-	log.Infof("Resetting test database for %s.\n", name)
-	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
-	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
-	if err != nil {
-		fatal.ExitErr(err, "Failed running yarn db:prepare:test")
-	}
-	log.Infoln("done")
+	// TODO: Make a flag to turn this back on for people who need it - I don't think most people use this.
+	// log.Infof("\t☐ resetting test database for %s.\n", name)
+	// composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
+	// err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
+	// if err != nil {
+	// 	fatal.ExitErr(err, "failed running yarn db:prepare:test")
+	// }
+	// log.Infof("\t☑ finished resetting test database for %s.\n", name)
 
-	log.Infof("Resetting development database for %s.\n", name)
-	composeArgs = fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
+	log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
+	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
-		fatal.ExitErr(err, "Failed running yarn db:prepare")
+		fatal.ExitErr(err, "failed running yarn db:prepare")
 	}
-	log.Infoln("done")
+	log.Infof("\t☑ finished resetting development database for %s.\n", name)
 }
 
 func dockerComposeBuild(serviceNames []string) {
+	log.Info("☐ building images for non-ecr / remote services")
+
 	var builder strings.Builder
 	for _, s := range serviceNames {
 		if strings.HasSuffix(s, "-ecr") {
@@ -129,35 +144,41 @@ func dockerComposeBuild(serviceNames []string) {
 
 	str := builder.String()
 	if str == "" {
-		log.Println("No services to build")
+		log.Info("☑ no services to build")
 		return
 	}
 
 	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str)
 	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
-		fatal.ExitErr(err, "Could not build docker-compose services")
+		fatal.ExitErr(err, "could not build docker-compose services")
 	}
+
+	log.Info("☑ finished docker compose build.")
+	fmt.Println()
 }
 
 func dockerComposeUp(serviceNames []string) {
-	var err error
-	log.Info("Starting docker-compose up in detached mode...")
+	log.Info("☐ starting docker-compose up in detached mode")
 
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
-	err = util.Exec("docker-compose", strings.Fields(upArgs)...)
+	err := util.Exec("docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
-		fatal.ExitErr(err, "Could not docker-compose up")
+		fatal.ExitErr(err, "could not run docker-compose up")
 	}
+
+	log.Info("☑ finished starting docker-compose up in detached mode")
+	fmt.Println()
 }
 
 func validatePlaylistName(playlistName string) {
 	if len(playlistName) == 0 {
-		fatal.Exit("Playlist name cannot be blank")
+		// TODO: Color the commands bro
+		fatal.Exit("playlist name cannot be blank. try running tb up --help")
 	}
 	names := config.GetPlaylist(playlistName)
 	if len(names) == 0 {
-		fatal.Exitf("You must specify at least one service in playlist %s\n", playlistName)
+		fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb up --tree to see all the available playlists.\n", playlistName)
 	}
 }
 
@@ -187,9 +208,9 @@ func filterByNames(configs config.ServiceMap, names []string) config.ServiceMap 
 	return selected
 }
 
-func initSelectedServices() {
+func selectServices() {
 	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
-		fatal.Exit("can only specify one of --playlist or --services")
+		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
 	}
 
 	var names []string
@@ -200,14 +221,15 @@ func initSelectedServices() {
 		// TODO: be more strict about failing if any cliServicesName is invalid.
 		names = opts.cliServiceNames
 	} else {
-		fatal.Exit("You must specify either --playlist or --services")
+		fatal.Exit("you must specify either --playlist or --services.\nTry tb up --help for some examples.")
 	}
 
 	selectedServices = filterByNames(config.Services(), names)
 	if len(selectedServices) == 0 {
-		fatal.Exit("You must specify at least one service from TouchBistro/tb/config.json")
+		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
 	}
 
+	// TODO: Tell the user what services they are about to run.
 }
 
 var upCmd = &cobra.Command{
@@ -220,7 +242,7 @@ Examples:
 	tb up --playlist core
 
 - run only postgres and localstack
-	tb up -s postgres,localstack`,
+	tb up --services postgres,localstack`,
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if opts.shouldSkipServerStart {
@@ -229,7 +251,7 @@ Examples:
 			os.Setenv("START_SERVER", "true")
 		}
 
-		initSelectedServices()
+		selectServices()
 
 		err := deps.Resolve(
 			deps.Brew,
@@ -240,58 +262,66 @@ Examples:
 			deps.Docker,
 		)
 		if err != nil {
-			fatal.ExitErr(err, "Could not resolve dependencies")
+			fatal.ExitErr(err, "could not resolve dependencies")
 		}
+		fmt.Println()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
 		composeFile = docker.ComposeFile()
 
 		cloneMissingRepos()
-		initECRLogin()
-		initDockerStop()
+		fmt.Println()
+
+		attemptECRLogin()
+		fmt.Println()
+
+		cleanupPrevDocker()
+		fmt.Println()
 
 		if !opts.shouldSkipDockerPull {
 			pullTBBaseImages()
+			fmt.Println()
 		}
 
 		if !opts.shouldSkipDockerPull {
-			log.Info("Pulling the latest ecr images for selected services...")
+			log.Info("☐ pulling the latest ecr images for selected services")
 			for name, s := range selectedServices {
 				if s.ECR {
 					uri := config.ResolveEcrURI(name, s.ECRTag)
 					err := docker.Pull(uri)
 					if err != nil {
-						fatal.ExitErrf(err, "Failed pulling docker image %s", uri)
+						fatal.ExitErrf(err, "failed pulling docker image %s", uri)
 					}
 				}
 
 			}
-			log.Info("...done")
+			log.Info("☑ finished pulling ecr images for selected services")
+			fmt.Println()
 		}
 
 		if !opts.shouldSkipGitPull {
 			// Pull latest github repos
-			log.Info("Pulling the latest git branch for selected services...")
+			log.Info("☐ pulling the latest default git branch for selected services")
 			// TODO: Parallelize this shit
 			for name, s := range selectedServices {
 				if s.IsGithubRepo && !s.ECR {
 					err := git.Pull(config.TBRootPath(), name)
 					if err != nil {
-						fatal.ExitErrf(err, "Failed pulling git repo %s", name)
+						fatal.ExitErrf(err, "failed pulling git repo %s", name)
 					}
 				}
 			}
-			log.Info("...done")
+			log.Info("☑ finished pulling latest default git branch for selected services")
+			fmt.Println()
 		}
 
 		composeServiceNames := toComposeNames(selectedServices)
-		log.Info("Building docker compose images...")
+
 		dockerComposeBuild(composeServiceNames)
-		log.Info("...done")
 
 		if !opts.shouldSkipDBPrepare {
-			log.Info("Performing database migrations and seeds...")
+			log.Info("☐ performing database migrations and seeds")
 			// TODO: Parallelize this shit
 			for name, s := range selectedServices {
 				if !s.Migrations {
@@ -299,16 +329,23 @@ Examples:
 				}
 				execDBPrepare(name, s.ECR)
 			}
-			log.Info("...done")
+			log.Info("☑ finished performing all migrations and seeds")
+			fmt.Println()
 		}
 
 		dockerComposeUp(composeServiceNames)
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
+		log.Info("☐ Starting lazydocker")
 		err = util.Exec("lazydocker")
 		if err != nil {
-			fatal.ExitErr(err, "Failed running lazydocker")
+			fatal.ExitErr(err, "failed running lazydocker")
 		}
+
+		log.Info("☑ finished with lazydocker.")
+
+		fmt.Println()
+		log.Info("🔈 the containers are still running in the background. If you want to terminate them, run tb down")
 	},
 }
 
