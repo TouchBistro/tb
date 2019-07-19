@@ -3,14 +3,15 @@ package cmd
 import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
-	_ "github.com/TouchBistro/tb/release"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
+var version string
+
 var rootCmd = &cobra.Command{
 	Use:     "tb",
-	Version: "0.0.8", // TODO: Fix this hardcoded bullshit
+	Version: version,
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 }
 
