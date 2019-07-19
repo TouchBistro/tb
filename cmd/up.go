@@ -310,7 +310,7 @@ Examples:
 			for name, s := range selectedServices {
 				if s.IsGithubRepo {
 					log.Infof("\t☐ pulling %s\n", name)
-					err := git.Pull(config.TBRootPath(), name)
+					err := git.Pull(name, config.TBRootPath())
 					if err != nil {
 						fatal.ExitErrf(err, "failed pulling git repo %s", name)
 					}
