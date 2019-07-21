@@ -35,7 +35,6 @@ archives:
       - dist/tb.bash
       - dist/_tb
       - dist/man1/*
-      - Makefile
 
 checksum:
   name_template: 'checksums.txt'
@@ -73,7 +72,6 @@ brews:
       bash_completion.install "dist/tb.bash"
       zsh_completion.install "dist/_tb"
       man1.install Dir["dist/man1/*.1"]
-      system "make rm-files"
 
 release:
   github:
