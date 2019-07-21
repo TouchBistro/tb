@@ -50,12 +50,13 @@ The following instructions assume you have an ssh key connected to your GitHub a
 
 2. Create a GitHub Access Token
     - Create the token with the `repo` box checked in the list of premissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
-    - Make sure you copy the token when you create it!
+        - Make sure you copy the token when you create it!
     - After the token has been created, enable SSO for it.
     - Add the following to your `.bash_profile` or `.zshrc`:
     ```sh
     export HOMEBREW_GITHUB_API_TOKEN=<YOUR_TOKEN>
     ```
+    - Run `source ~/.zshrc` or `source ~/.bash_profile`.
 
 3. Install `tb` with brew
     ```sh
