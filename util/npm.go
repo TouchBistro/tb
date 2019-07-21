@@ -15,11 +15,11 @@ const npmToken = "NPM_TOKEN"
 func NPMLogin() error {
 	log.Debugln("Checking private npm repository token...")
 	if os.Getenv(npmToken) != "" {
-		log.Debugln("Required env var %s is set\n", npmToken)
+		log.Debugf("Required env var %s is set\n", npmToken)
 		return nil
 	}
 
-	log.Debugln("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
+	log.Debugf("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
 
 	npmrcPath := os.Getenv("HOME") + "/.npmrc"
 	if !FileOrDirExists(npmrcPath) {
