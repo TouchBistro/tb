@@ -56,6 +56,17 @@ func cloneMissingRepos() {
 	log.Info("☑ finished checking git repos")
 }
 
+func attemptNPMLogin() {
+	log.Info("☐ logging into NPM")
+
+	err := util.NPMLogin()
+	if err != nil {
+		fatal.ExitErr(err, "☒ failed logging into NPM")
+	}
+
+	log.Info("☑ finished logging into NPM")
+}
+
 func attemptECRLogin() {
 	log.Info("☐ logging into ECR")
 
@@ -271,6 +282,9 @@ Examples:
 		composeFile = docker.ComposeFile()
 
 		cloneMissingRepos()
+		fmt.Println()
+
+		attemptNPMLogin()
 		fmt.Println()
 
 		attemptECRLogin()
