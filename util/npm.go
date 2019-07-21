@@ -2,7 +2,9 @@ package util
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -10,14 +12,14 @@ import (
 
 const npmToken = "NPM_TOKEN"
 
-func NpmLogin() error {
-	log.Infoln("Checking private npm repository token...")
+func NPMLogin() error {
+	log.Debugln("Checking private npm repository token...")
 	if os.Getenv(npmToken) != "" {
-		log.Infof("Required env var %s is set\n", npmToken)
+		log.Debugln("Required env var %s is set\n", npmToken)
 		return nil
 	}
 
-	log.Infof("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
+	log.Debugln("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
 
 	npmrcPath := os.Getenv("HOME") + "/.npmrc"
 	if !FileOrDirExists(npmrcPath) {
@@ -28,18 +30,27 @@ func NpmLogin() error {
 		return errors.New("error not logged into npm registry")
 	}
 
-	log.Infoln("Looking for token in ~/.npmrc...")
+	log.Debugln("Looking for token in ~/.npmrc...")
 
-	// figure this thing out
-	token := "" // =$(tail -n1 ~/.npmrc | grep -o '//registry.npmjs.org/:_authToken=.*' | cut -f2 -d=)
+	// Do lazy way for now, npmrc usually is pretty small anyway
+	data, err := ioutil.ReadFile(npmrcPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to read ~/.npmrc")
+	}
 
+	r, err := regexp.Compile("//registry.npmjs.org/:_authToken=(.*)")
+	if err != nil {
+		return errors.Wrap(err, "unable to compile regex")
+	}
+
+	token := r.FindStringSubmatch(string(data))[1]
 	if token == "" {
 		log.Warnln("could not parse authToken out of ~/.npmrc")
 		return errors.New("error no npm token")
 	}
 
-	log.Infoln("Found authToken. adding to dotfiles and exporting")
-	log.Infoln("...exporting NPM_TOKEN=$token")
+	log.Debugln("Found authToken. adding to dotfiles and exporting")
+	log.Debugln("...exporting NPM_TOKEN=$token")
 
 	rcFiles := [...]string{".zshrc", ".bash_profile"}
 
@@ -53,6 +64,6 @@ func NpmLogin() error {
 		log.Debugln("...done")
 	}
 
-	log.Infoln("run 'source ~/.zshrc' or 'source ~/.bash_profile'")
+	log.Debugln("run 'source ~/.zshrc' or 'source ~/.bash_profile'")
 	return errors.New("error source rc file")
 }
