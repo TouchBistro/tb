@@ -63,6 +63,9 @@ brews:
       email: osabry@touchbistro.com
     folder: Formula
     description: "a CLI for running TouchBistro services on a development machine"
+    caveats: |-
+      📣🚨 Please run the following command to remove cached config files: 🚨📣
+        tb nuke --config
 
     test: |
       system "#{bin}/tb --version"
