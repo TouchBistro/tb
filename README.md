@@ -10,6 +10,7 @@ It is aimed at making local development easy in a complicated microservices arch
     + [AWS ECR](#aws-ecr)
     + [SSH Key](#ssh-key)
 - [Installation](#installation)
+    + [Updating tb](#updating-tb)
 - [Quickstart](#quickstart)
 - [Commands](#commands)
 - [Configuration](#configuration)
@@ -61,6 +62,22 @@ The following instructions assume you have an ssh key connected to your GitHub a
 3. Install `tb` with brew
     ```sh
     brew install tb
+    ```
+
+### Updating tb
+To update to the latest version of `tb` do the following:
+
+1. Update homebrew:
+    ```sh
+    brew update
+    ```
+2. Upgrade `tb`:
+    ```sh
+    brew upgrade tb
+    ```
+3. Remove cached files:
+    ```sh
+    tb nuke --config
     ```
 
 ## Quickstart
