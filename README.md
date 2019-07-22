@@ -33,9 +33,18 @@ This project will install and manage all other dependencies that you need.
 
 You will need access to AWS ECR (Amazon's docker registry) to pull artifacts instead of having `tb` build them on the host.
 
-Once you have been provided access to our AWS account by DevOps Support, create a personal access key and make note of your secret key.
+<details>
+<summary>Setup Instructions</summary>
 
-Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for region).
+1. Install the AWS CLI:
+    ```sh
+    brew install awscli
+    ```
+2. Get access to our AWS account by asking DevOps support.
+3. Go to your security settings and create a personal access token, making note of your secret key.
+4. Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for the region).
+
+</details>
 
 ### SSH Key
 The following instructions assume you have an ssh key connected to your GitHub account. If you do not have one, please create on by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh).
@@ -44,13 +53,15 @@ The following instructions assume you have an ssh key connected to your GitHub a
 
 `tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
 
-1. Add Touchbistro's tap to get access to all the available tools:
+1. If you haven't setup the AWS CLI before see the [setup instructions](#aws-ecr).
+
+2. Add Touchbistro's tap to get access to all the available tools:
     ```sh
     brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
     ```
 
-2. Create a GitHub Access Token
-    - Create the token with the `repo` box checked in the list of premissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
+3. Create a GitHub Access Token
+    - Create the token with the `repo` box checked in the list of permissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
         - Make sure you copy the token when you create it!
     - After the token has been created, enable SSO for it.
     - Add the following to your `.bash_profile` or `.zshrc`:
@@ -59,7 +70,7 @@ The following instructions assume you have an ssh key connected to your GitHub a
     ```
     - Run `source ~/.zshrc` or `source ~/.bash_profile`.
 
-3. Install `tb` with brew
+4. Install `tb` with brew
     ```sh
     brew install tb
     ```
@@ -89,7 +100,8 @@ The `-s` or `--services` flag starts a list of services. You can also run a play
 Let's try this out now:
 1. Exit lazydocker by hitting `q`. This does not stop the docker containers however, which are running in the background.
 2. Run `tb down`, this will stop any running docker containers and remove them.
-3. Run `tb up -p core`. This will start all services defined in the `core` playlist.
+3. Run `tb list --playlists` to list all the available playlists.
+4. Run `tb up -p core`. This will start all services defined in the `core` playlist.
 
 Try running `tb --help` or `tb up --help` to see what else you can do.
 

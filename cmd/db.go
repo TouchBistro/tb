@@ -22,7 +22,7 @@ var dbCmd = &cobra.Command{
 
 Examples:
 - Connect to the partners-config-service database.
-	tb db tb_partnerconfig_dev`,
+	tb db core_db_dev`,
 	Args: cobra.ExactArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := deps.Resolve(deps.Pgcli)
