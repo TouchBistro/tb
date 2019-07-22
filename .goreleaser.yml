@@ -35,7 +35,6 @@ archives:
       - dist/tb.bash
       - dist/_tb
       - dist/man1/*
-      - Makefile
 
 checksum:
   name_template: 'checksums.txt'
@@ -64,6 +63,9 @@ brews:
       email: osabry@touchbistro.com
     folder: Formula
     description: "a CLI for running TouchBistro services on a development machine"
+    caveats: |-
+      📣🚨 Please run the following command to remove cached config files after upgrading: 🚨📣
+        tb nuke --config
 
     test: |
       system "#{bin}/tb --version"
@@ -73,7 +75,6 @@ brews:
       bash_completion.install "dist/tb.bash"
       zsh_completion.install "dist/_tb"
       man1.install Dir["dist/man1/*.1"]
-      system "make rm-files"
 
 release:
   github:
