@@ -1,4 +1,4 @@
-package util
+package npm
 
 import (
 	"fmt"
@@ -6,13 +6,14 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 const npmToken = "NPM_TOKEN"
 
-func NPMLogin() error {
+func Login() error {
 	log.Debugln("Checking private npm repository token...")
 	if os.Getenv(npmToken) != "" {
 		log.Debugf("Required env var %s is set\n", npmToken)
@@ -22,7 +23,7 @@ func NPMLogin() error {
 	log.Debugf("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
 
 	npmrcPath := os.Getenv("HOME") + "/.npmrc"
-	if !FileOrDirExists(npmrcPath) {
+	if !util.FileOrDirExists(npmrcPath) {
 		log.Warnln("No ~/.npmrc found.")
 		log.Warnln("Log in to the touchbistro npm registry with command: 'npm login' and try again.")
 		log.Warnln("If this does not work...Create a https://www.npmjs.com/ account called: touchbistro-youremailname, then message DevOps to add you to the @touchbistro account")
@@ -57,7 +58,7 @@ func NPMLogin() error {
 	for _, file := range rcFiles {
 		rcPath := fmt.Sprintf("%s/%s", os.Getenv("HOME"), file)
 		log.Debugf("...adding export to %s.\n", rcPath)
-		err := AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
+		err := util.AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export to file %s", file)
 		}

@@ -10,6 +10,7 @@ import (
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/npm"
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -59,7 +60,7 @@ func cloneMissingRepos() {
 func attemptNPMLogin() {
 	log.Info("☐ logging into NPM")
 
-	err := util.NPMLogin()
+	err := npm.Login()
 	if err != nil {
 		fatal.ExitErr(err, "☒ failed logging into NPM")
 	}
