@@ -44,6 +44,7 @@ reservations:
     - venue-upload-service
     - partners-config-service
     - partners-orchestration-service
+    - partners-reservations-service
     - legacy-bridge-cloud-service
 vaf-deps:
   services:
