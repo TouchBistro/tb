@@ -36,11 +36,11 @@ var deps = map[string]Dependency{
 	// 	Name:       "xcode-select -p",
 	// 	InstallCmd: []string{"xcode-select", "--install"},
 	// },
-	Brew: Dependency{
+	Brew: {
 		Name:       "brew",
 		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
 	},
-	Pgcli: Dependency{
+	Pgcli: {
 		Name: "pgcli",
 		BeforeInstall: func() error {
 			err := util.Exec("brew", "tap", "dbcli/tap")
@@ -48,11 +48,11 @@ var deps = map[string]Dependency{
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
 	},
-	Aws: Dependency{
+	Aws: {
 		Name:       "aws",
 		InstallCmd: []string{"brew", "install", "awscli"},
 	},
-	Lazydocker: Dependency{
+	Lazydocker: {
 		Name: "lazydocker",
 		BeforeInstall: func() error {
 			err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
@@ -85,15 +85,15 @@ var deps = map[string]Dependency{
 	// },
 
 	// TODO: Check that `which node` resolves to something like /Users/<user>/.nvm/version/node/<version>/bin/node
-	Node: Dependency{
+	Node: {
 		Name:       "node",
 		InstallCmd: []string{"nvm", "install", "stable"},
 	},
-	Yarn: Dependency{
+	Yarn: {
 		Name:       "yarn",
 		InstallCmd: []string{"brew", "install", "yarn"},
 	},
-	Docker: Dependency{
+	Docker: {
 		Name: "docker",
 		BeforeInstall: func() error {
 			err := util.Exec("brew", "tap", "caskroom/versions")

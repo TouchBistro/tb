@@ -20,6 +20,21 @@ func ResolveEcrURI(service, tag string) string {
 	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
 }
 
+func ToComposeNames(configs ServiceMap) []string {
+	names := make([]string, 0)
+	for name, s := range configs {
+		var composeName string
+		if s.ECR {
+			composeName = name + "-ecr"
+		} else {
+			composeName = name
+		}
+		names = append(names, composeName)
+	}
+
+	return names
+}
+
 func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) error {
 	for name, override := range overrides {
 		s, ok := services[name]
