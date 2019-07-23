@@ -27,7 +27,9 @@ func InitRC() error {
 	// Create default tbrc if it doesn't exist
 	if !util.FileOrDirExists(rcPath) {
 		err := util.CreateFile(rcPath, rcTemplate)
-		return errors.Wrapf(err, "couldnt create default tbrc at %s", rcPath)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't create default tbrc at %s", rcPath)
+		}
 	}
 
 	err := util.ReadYaml(rcPath, &tbrc)
