@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
@@ -32,25 +33,21 @@ var (
 
 func cloneMissingRepos() {
 	log.Info("☐ checking ~/.tb directory for missing git repos")
+
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	services := config.Services()
+	for _, repo := range config.RepoNames(config.Services()) {
+		path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 
-	for name, s := range services {
-		if !s.IsGithubRepo {
-			continue
-		}
-
-		path := fmt.Sprintf("%s/%s", config.TBRootPath(), name)
 		if util.FileOrDirExists(path) {
 			continue
 		}
 
-		log.Infof("\t☐ %s is missing. cloning git repo\n", name)
+		log.Infof("\t☐ %s is missing. cloning git repo\n", repo)
 		err := git.Clone(name, config.TBRootPath())
 		if err != nil {
-			fatal.ExitErrf(err, "failed cloning git repo %s", name)
+			fatal.ExitErrf(err, "failed cloning git repo %s", repo)
 		}
-		log.Infof("\t☑ finished cloning %s\n", name)
+		log.Infof("\t☑ finished cloning %s\n", repo)
 	}
 
 	log.Info("☑ finished checking git repos")
@@ -87,18 +84,28 @@ func cleanupPrevDocker() {
 	log.Info("☑ finished cleaning docker resources")
 }
 
+// TODO: Figure out why this is slow af when parallelised
 func pullTBBaseImages() {
 	log.Info("☐ pulling latest touchbistro base images")
 
+	var wg sync.WaitGroup
+
 	for _, b := range config.BaseImages() {
-		log.Infof("\t☐ pulling %s\n", b)
-		err := docker.Pull(b)
-		if err != nil {
-			fatal.ExitErrf(err, "failed pulling docker image: %s", b)
-		}
-		log.Infof("\t☑ finished pulling %s\n", b)
+		wg.Add(1)
+		go func(img string) {
+			defer wg.Done()
+			log.Infof("\t☐ pulling docker image: %s", img)
+
+			err := docker.Pull(img)
+			if err != nil {
+				fatal.ExitErrf(err, "failed pulling docker image: %s", img)
+			}
+
+			log.Infof("\t☐ finished pulling docker image: %s", img)
+		}(b)
 	}
 
+	wg.Wait()
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
@@ -112,21 +119,14 @@ func execDBPrepare(name string, isECR bool) {
 		composeName = name
 	}
 
-	// TODO: Make a flag to turn this back on for people who need it - I don't think most people use this.
-	// log.Infof("\t☐ resetting test database for %s.\n", name)
-	// composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare:test", composeFile, composeName)
-	// err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
-	// if err != nil {
-	// 	fatal.ExitErr(err, "failed running yarn db:prepare:test")
-	// }
-	// log.Infof("\t☑ finished resetting test database for %s.\n", name)
-
 	log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
+
 	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
 	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "failed running yarn db:prepare")
 	}
+
 	log.Infof("\t☑ finished resetting development database for %s.\n", name)
 }
 
@@ -168,44 +168,6 @@ func dockerComposeUp(serviceNames []string) {
 	}
 
 	log.Info("☑ finished starting docker-compose up in detached mode")
-	fmt.Println()
-}
-
-func validatePlaylistName(playlistName string) {
-	if len(playlistName) == 0 {
-		// TODO: Color the commands bro
-		fatal.Exit("playlist name cannot be blank. try running tb up --help")
-	}
-	names := config.GetPlaylist(playlistName)
-	if len(names) == 0 {
-		fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb up --tree to see all the available playlists.\n", playlistName)
-	}
-}
-
-func toComposeNames(configs config.ServiceMap) []string {
-	names := make([]string, 0)
-	for name, s := range configs {
-		var composeName string
-		if s.ECR {
-			composeName = name + "-ecr"
-		} else {
-			composeName = name
-		}
-		names = append(names, composeName)
-	}
-
-	return names
-}
-
-func filterByNames(configs config.ServiceMap, names []string) config.ServiceMap {
-	selected := make(config.ServiceMap)
-	for _, name := range names {
-		if _, ok := configs[name]; ok {
-			selected[name] = configs[name]
-		}
-	}
-
-	return selected
 }
 
 func selectServices() {
@@ -214,22 +176,38 @@ func selectServices() {
 	}
 
 	var names []string
+
+	// parsing --playlist
 	if opts.playlistName != "" {
-		validatePlaylistName(opts.playlistName)
-		names = config.GetPlaylist(opts.playlistName)
+		name := opts.playlistName
+		if len(name) == 0 {
+			fatal.Exit("playlist name cannot be blank. try running tb up --help")
+		}
+
+		names = config.GetPlaylist(name)
+		if len(names) == 0 {
+			fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb up --tree to see all the available playlists.\n", name)
+		}
+
+		// parsing --services
 	} else if len(opts.cliServiceNames) > 0 {
-		// TODO: be more strict about failing if any cliServicesName is invalid.
 		names = opts.cliServiceNames
 	} else {
-		fatal.Exit("you must specify either --playlist or --services.\nTry tb up --help for some examples.")
+		fatal.Exit("you must specify either --playlist or --services.\ntry tb up --help for some examples.")
 	}
 
-	selectedServices = filterByNames(config.Services(), names)
+	services := config.Services()
+	selectedServices = make(config.ServiceMap, len(names))
+	for _, name := range names {
+		if _, ok := services[name]; !ok {
+			fatal.Exit("%s is not a tb service name.\n Try tb list to see all available servies.")
+		}
+		selectedServices[name] = services[name]
+	}
+
 	if len(selectedServices) == 0 {
 		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
 	}
-
-	// TODO: Tell the user what services they are about to run.
 }
 
 var upCmd = &cobra.Command{
@@ -252,6 +230,9 @@ Examples:
 		}
 
 		selectServices()
+
+		config.ComposeNames(selectedServices)
+		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
 		err := deps.Resolve(
 			deps.Brew,
@@ -321,9 +302,10 @@ Examples:
 			fmt.Println()
 		}
 
-		composeServiceNames := toComposeNames(selectedServices)
+		composeServiceNames := config.ToComposeNames(selectedServices)
 
 		dockerComposeBuild(composeServiceNames)
+		fmt.Println()
 
 		if !opts.shouldSkipDBPrepare {
 			log.Info("☐ performing database migrations and seeds")
@@ -339,6 +321,7 @@ Examples:
 		}
 
 		dockerComposeUp(composeServiceNames)
+		fmt.Println()
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")

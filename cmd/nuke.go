@@ -45,7 +45,7 @@ var nukeCmd = &cobra.Command{
 			fatal.ExitErr(err, "Could not resolve dependencies")
 		}
 
-		for _, repo := range git.RepoNames(config.Services()) {
+		for _, repo := range config.RepoNames(config.Services()) {
 			path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 
 			if !util.FileOrDirExists(path) {
