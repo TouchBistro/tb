@@ -454,7 +454,7 @@ x-partners-reservations-service-boilerplate:
 x-venue-upload-service-boilerplate:
   &venue-upload-service-boilerplate
   env_file:
-    - $TB_ROOT/partners-orchestration-service/.env.example
+    - $TB_ROOT/venue-upload-service/.env.example
   environment:
     << : *node-service
     AWS_S3_ENDPOINT: http://localstack:4572
