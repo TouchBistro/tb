@@ -41,19 +41,19 @@ You will need access to AWS ECR (Amazon's docker registry) to pull artifacts ins
     brew install awscli
     ```
 2. Get access to our AWS account by asking DevOps support.
-3. Go to your security settings and create a personal access token, making note of your secret key.
+3. Go to your security settings and create a personal access token, making note of your secret key. Details on how to do this are available in the [AWS docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey).
 4. Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for the region).
 
 </details>
 
 ### SSH Key
-The following instructions assume you have an ssh key connected to your GitHub account. If you do not have one, please create on by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh).
+The following instructions assume you have an ssh key connected to your GitHub account. If you do not have one, please create on by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh). Also make sure your SSH key is enabled for SSO.
 
 ## Installation
 
 `tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
 
-1. If you haven't setup the AWS CLI before see the [setup instructions](#aws-ecr).
+1. If you haven't set up the AWS CLI before, see the [setup instructions](#aws-ecr).
 
 2. Add Touchbistro's tap to get access to all the available tools:
     ```sh
