@@ -43,7 +43,7 @@ func cloneMissingRepos() {
 		}
 
 		log.Infof("\t☐ %s is missing. cloning git repo\n", repo)
-		err := git.Clone(name, config.TBRootPath())
+		err := git.Clone(repo, config.TBRootPath())
 		if err != nil {
 			fatal.ExitErrf(err, "failed cloning git repo %s", repo)
 		}
@@ -231,7 +231,7 @@ Examples:
 
 		selectServices()
 
-		config.ComposeNames(selectedServices)
+		composeNames := config.ComposeNames(selectedServices)
 		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
 		err := deps.Resolve(
@@ -302,7 +302,7 @@ Examples:
 			fmt.Println()
 		}
 
-		composeServiceNames := config.ToComposeNames(selectedServices)
+		composeServiceNames := config.ComposeNames(selectedServices)
 
 		dockerComposeBuild(composeServiceNames)
 		fmt.Println()
