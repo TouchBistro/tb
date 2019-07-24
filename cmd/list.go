@@ -84,7 +84,7 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 			continue
 		}
 
-		for _, s := range playlists[name].Services {
+		for _, s := range config.GetPlaylist(name) {
 			fmt.Printf("    - %s\n", s)
 		}
 	}
