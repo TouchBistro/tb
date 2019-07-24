@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"sync"
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
@@ -84,28 +83,18 @@ func cleanupPrevDocker() {
 	log.Info("☑ finished cleaning docker resources")
 }
 
-// TODO: Figure out why this is slow af when parallelised
 func pullTBBaseImages() {
 	log.Info("☐ pulling latest touchbistro base images")
 
-	var wg sync.WaitGroup
-
 	for _, b := range config.BaseImages() {
-		wg.Add(1)
-		go func(img string) {
-			defer wg.Done()
-			log.Infof("\t☐ pulling docker image: %s", img)
-
-			err := docker.Pull(img)
-			if err != nil {
-				fatal.ExitErrf(err, "failed pulling docker image: %s", img)
-			}
-
-			log.Infof("\t☐ finished pulling docker image: %s", img)
-		}(b)
+		log.Infof("\t☐ pulling %s\n", b)
+		err := docker.Pull(b)
+		if err != nil {
+			fatal.ExitErrf(err, "failed pulling docker image: %s", b)
+		}
+		log.Infof("\t☑ finished pulling %s\n", b)
 	}
 
-	wg.Wait()
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
