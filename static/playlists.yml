@@ -20,6 +20,14 @@ core:
     - localstack
     - infrastructure-auth-service
     - venue-provisioning-service
+pos-core:
+  extends: core
+  services:
+    - legacy-database
+    - dotnet-manage
+    - dotnet-api
+    - cloud-server
+    - redis
 ordering:
   services:
     - postgres

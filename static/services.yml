@@ -15,7 +15,7 @@ venue-core-service:
   ecrTag: master
 venue-provisioning-service:
   repo: true
-  migrations: false
+  migrations: true
   ecr: true
   ecrTag: master
 health-clinic:
