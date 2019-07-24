@@ -31,19 +31,22 @@ func initConfig() {
 		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
 	}
 
-	logLevel, err := log.ParseLevel(config.TBRC().LogLevel)
+	configLevel := config.TBRC().LogLevel
+
+	logLevel, err := log.ParseLevel(configLevel)
 	if err != nil {
 		fatal.ExitErr(err, "Failed to initialise logger level.")
 	}
 
 	log.SetLevel(logLevel)
 	log.SetFormatter(&log.TextFormatter{
-		// TODO: Remove the log level its quite ugly
+		// TODO: Remove the log level - its quite ugly
 		DisableTimestamp: true,
 	})
 
-	// TODO: Make this its own setting or make the format less intense.
-	log.SetReportCaller(logLevel == log.DebugLevel)
+	if configLevel != "debug" {
+		fatal.ShowStackTraces = false
+	}
 
 	err = config.Init()
 	if err != nil {
