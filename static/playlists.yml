@@ -48,17 +48,14 @@ reservations:
     - partners-reservations-service
     - legacy-bridge-cloud-service
 vaf-deps:
+  extends: core
   services:
-    - localstack
-    - postgres
-    - venue-core-service
     - legacy-database
     - redis
     - cloud-server
     - cloud-server-frontend
     - legacy-bridge-cloud-service
     - partners-config-service
-    - infrastructure-auth-service
 vaf:
   extends: vaf-deps
   services:
