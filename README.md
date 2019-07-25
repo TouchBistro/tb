@@ -86,10 +86,6 @@ To update to the latest version of `tb` do the following:
     ```sh
     brew upgrade tb
     ```
-3. Remove cached files:
-    ```sh
-    tb nuke --config
-    ```
 
 ## Quickstart
 

@@ -1,6 +1,7 @@
 package util
 
 import (
+	"crypto/md5"
 	"os/exec"
 	"strings"
 
@@ -45,4 +46,14 @@ func Exec(name string, arg ...string) error {
 
 func StringToUpperAndSnake(str string) string {
 	return strings.ReplaceAll(strings.ToUpper(str), "-", "_")
+}
+
+func MD5Checksum(buf []byte) ([]byte, error) {
+	hash := md5.New()
+	_, err := hash.Write(buf)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to write to hash")
+	}
+
+	return hash.Sum(nil), nil
 }
