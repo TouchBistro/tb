@@ -42,17 +42,44 @@ func setupEnv() error {
 
 func dumpFile(name string, box *packr.Box) error {
 	path := fmt.Sprintf("%s/%s", tbRoot, name)
-
-	if util.FileOrDirExists(path) {
-		log.Debugf("%s exists", path)
-		return nil
-	}
-
-	log.Debugf("%s does not exist, creating file...", path)
 	buf, err := box.Find(name)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", name)
 	}
+
+	var reason string
+	// If file exists compare the checksum to the packr version
+	if util.FileOrDirExists(path) {
+		log.Debugf("%s exists", path)
+		log.Debugf("comparing checksums for %s", name)
+
+		fileBuf, err := ioutil.ReadFile(path)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read contents of %s", path)
+		}
+
+		memChecksum, err := util.MD5Checksum(buf)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get checksum of %s in packr box", name)
+		}
+
+		fileChecksum, err := util.MD5Checksum(fileBuf)
+		if err != nil {
+			return errors.Wrapf(err, "failed to get checksum of %s", path)
+		}
+
+		// checksums are the same, leave as is
+		if bytes.Equal(memChecksum, fileChecksum) {
+			log.Debugf("checksums match, leaving %s as is", name)
+			return nil
+		}
+
+		reason = "is outdated, recreating file..."
+	} else {
+		reason = "does not exist, creating file..."
+	}
+
+	log.Debugf("%s %s", path, reason)
 
 	err = ioutil.WriteFile(path, buf, 0644)
 	return errors.Wrapf(err, "failed to write contents of %s to %s", name, path)
