@@ -108,6 +108,14 @@ dotnet-depot:
   repo: true
   migrations: false
   ecr: false
+dotnet-manage:
+  repo: false
+  migrations: false
+  ecr: false
+dotnet-api:
+  repo: false
+  migrations: false
+  ecr: false
 venue-upload-service:
   repo: true
   migrations: false
