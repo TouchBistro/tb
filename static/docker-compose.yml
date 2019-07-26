@@ -516,6 +516,7 @@ x-infrastructure-auth-service-boilerplate:
   environment:
     << : *node-service
     << : *postgres-connect
+    ISSUER_URI: urn:touchbistro:oauth:iss:services:local
   ports:
     - "8073:8080"
   depends_on:
