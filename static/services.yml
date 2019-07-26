@@ -65,6 +65,10 @@ ordering-demo-frontend:
   migrations: true
   ecr: true
   ecrTag: master
+ordering-demo-frontend-venue:
+  repo: false
+  migrations: false
+  ecr: false
 partners-etl-service:
   repo: true
   migrations: true
