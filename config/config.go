@@ -167,7 +167,6 @@ func BaseImages() []string {
 		"touchbistro/alpine-node:12-build",
 		"touchbistro/alpine-node:12-runtime",
 		"touchbistro/ubuntu16-ruby:2.5.5-build",
-		"touchbistro/ubuntu16-ruby:2.4.6-build",
 	}
 }
 
