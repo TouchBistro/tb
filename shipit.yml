@@ -1,0 +1,23 @@
+deploy:
+  override:
+    - scripts/shipit.deploy
+
+  post:
+    - scripts/shipit.post
+
+  variables:
+    -
+      name: RELEASE_TYPE
+      title: specify whether release is a major, minor or patch change
+      select:
+        - major
+        - minor
+        - patch
+
+ci:
+  require:
+    - 'ci/circleci: lint-build'
+
+review:
+  checklist:
+    - Do you know what you are doing?

@@ -1,0 +1,13 @@
+#!/bin/bash
+
+export DEPLOY_MESSAGE="Deploy Successful!"
+export CARD_IMAGE="https://emojipedia-us.s3.dualstack.us-west-1.amazonaws.com/thumbs/240/microsoft/153/heavy-check-mark_2714.png"
+
+. scripts/notif.sh
+
+if [ -f .gchat_notification_url ]; then
+	curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_post_data)" "$(cat .gchat_notification_url)"
+fi
+curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_post_data)" $WEBHOOK_URL
+
+echo $SHIPIT_FANFARE | base64 -d
