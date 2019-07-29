@@ -59,8 +59,8 @@ brews:
     # Resorting to this hack for now: https://github.com/goreleaser/goreleaser/issues/967
     custom_require: "../custom_download_strategy"
     commit_author:
-      name: ohsabry
-      email: osabry@touchbistro.com
+      name: tb-releases
+      email: devops+githubrelease@touchbistro.com
     folder: Formula
     description: "a CLI for running TouchBistro services on a development machine"
 
