@@ -46,5 +46,4 @@ git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
 rm -rf /root/.ssh/
 
-# TODO: Add GITHUB_TOKEN
-/usr/local/lib/goreleaser || fail_notif
+/usr/local/lib/goreleaser release || fail_notif
