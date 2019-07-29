@@ -110,27 +110,6 @@ func pullTBBaseImages() {
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
-func execDBPrepare(name string, isECR bool) {
-	var composeName string
-	var err error
-
-	if isECR {
-		composeName = name + "-ecr"
-	} else {
-		composeName = name
-	}
-
-	log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
-
-	composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
-	err = util.Exec("docker-compose", strings.Fields(composeArgs)...)
-	if err != nil {
-		fatal.ExitErr(err, "failed running yarn db:prepare")
-	}
-
-	log.Infof("\t☑ finished resetting development database for %s.\n", name)
-}
-
 func dockerComposeBuild(serviceNames []string) {
 	log.Info("☐ building images for non-ecr / remote services")
 
@@ -318,7 +297,22 @@ Examples:
 				if !s.Migrations {
 					continue
 				}
-				execDBPrepare(name, s.ECR)
+
+				var composeName string
+				if s.ECR {
+					composeName = name + "-ecr"
+				} else {
+					composeName = name
+				}
+
+				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
+				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
+				err := util.Exec("docker-compose", strings.Fields(composeArgs)...)
+				if err != nil {
+					fatal.ExitErrf(err, "failed running yarn db:prepare for service %s", name)
+				}
+
+				log.Infof("\t☑ finished resetting development database for %s.\n", name)
 			}
 			log.Info("☑ finished performing all migrations and seeds")
 			fmt.Println()
