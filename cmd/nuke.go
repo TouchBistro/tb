@@ -37,7 +37,7 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeRepos &&
 			!nukeOpts.shouldNukeConfig &&
 			!nukeOpts.shouldNukeAll {
-			fatal.Exit("Error: Must specify what to nuke")
+			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the ootions.")
 		}
 
 		err := deps.Resolve(deps.Docker)
