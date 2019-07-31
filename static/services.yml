@@ -27,14 +27,17 @@ postgres:
   repo: false
   migrations: false
   ecr: false
+  imageURI: postgres:10.6-alpine
 redis:
   repo: false
   migrations: false
   ecr: false
+  imageURI: redis:4-alpine
 localstack:
   repo: false
   migrations: false
   ecr: false
+  imageURI: localstack/localstack
 cloud-server:
   repo: true
   migrations: false

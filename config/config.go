@@ -131,7 +131,7 @@ func Init() error {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	// Setup ECR image URIs for docker-compose
+	// Setup service names image URI env vars for docker-compose
 	for name, s := range services {
 		serviceName := name
 		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
@@ -140,13 +140,19 @@ func Init() error {
 		}
 		os.Setenv(serviceNameVar, serviceName)
 
-		if s.ECRTag == "" {
-			continue
+		// Set imageURIs for ECR and Dockerhub hosted images.
+		// non-ecr images. eg: postgres, redis, localstack
+		if !s.ECR && s.ImageURI != "" {
+			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
+			os.Setenv(uriVar, s.ImageURI)
 		}
 
-		uri := ResolveEcrURI(name, s.ECRTag)
-		uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-		os.Setenv(uriVar, uri)
+		// ecr images. eg: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master-e09270363e044e37c430c7997359d55697e6b165
+		if s.ECR && s.ECRTag != "" {
+			uri := ResolveEcrURI(name, s.ECRTag)
+			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
+			os.Setenv(uriVar, uri)
+		}
 	}
 
 	return nil

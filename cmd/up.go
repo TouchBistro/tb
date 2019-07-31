@@ -249,21 +249,27 @@ Examples:
 		}
 
 		if !opts.shouldSkipDockerPull {
-			log.Info("☐ pulling the latest ecr images for selected services")
+			log.Info("☐ pulling the latest docker images for selected services")
 			for name, s := range selectedServices {
-				if s.ECR {
-					uri := config.ResolveEcrURI(name, s.ECRTag)
-
-					log.Infof("\t☐ pulling image %s\n", uri)
-					err := docker.Pull(uri)
-					if err != nil {
-						fatal.ExitErrf(err, "failed pulling docker image %s", uri)
-					}
-					log.Infof("\t☐ finished pulling image %s\n", uri)
+				if s.IsGithubRepo && !s.ECR {
+					continue
 				}
 
+				var uri string
+				if s.ECR {
+					uri = config.ResolveEcrURI(name, s.ECRTag)
+				} else {
+					uri = s.ImageURI
+				}
+
+				log.Infof("\t☐ pulling image %s\n", uri)
+				err := docker.Pull(uri)
+				if err != nil {
+					fatal.ExitErrf(err, "failed pulling docker image %s", uri)
+				}
+				log.Infof("\t☐ finished pulling image %s\n", uri)
 			}
-			log.Info("☑ finished pulling ecr images for selected services")
+			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
 		}
 

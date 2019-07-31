@@ -167,7 +167,7 @@ x-dotnet-boilerplate:
   entrypoint:
     [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
   depends_on:
-    - $LEGACY_DATABASE_NAME 
+    - $LEGACY_DATABASE_NAME
 
 x-venue-core-service-boilerplate:
   &venue-core-service-boilerplate
@@ -328,7 +328,7 @@ x-ordering-gateways-frontend-boilerplate:
   environment:
     << : *node-service
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
-    ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal 
+    ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal
   ports:
     - "8030:8080"
 
@@ -509,12 +509,12 @@ x-venue-admin-frontend-boilerplate:
     - NODE_ENV=production
   ports:
     - "9002:9002"
-  # Note the `../`, since the Dockerfile executes from $HOME/app/dist 
-  entrypoint: [ "bash", "../docker-entrypoint.sh" ]  
+  # Note the `../`, since the Dockerfile executes from $HOME/app/dist
+  entrypoint: [ "bash", "../docker-entrypoint.sh" ]
   << : *command-serve
   depends_on:
     - $VENUE_CORE_SERVICE_NAME
-    - $CLOUD_SERVER_NAME   
+    - $CLOUD_SERVER_NAME
     - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
     - $PARTNERS_CONFIG_SERVICE_NAME
 
@@ -535,7 +535,7 @@ x-infrastructure-auth-service-boilerplate:
 
 services:
   postgres:
-    image: postgres:10.6-alpine
+    image: $POSTGRES_IMAGE_URI
     container_name: tb_postgres_container
     environment:
       - POSTGRES_USER=core
@@ -546,13 +546,13 @@ services:
       - "5432:5432"
 
   redis:
-    image: redis
+    image: $REDIS_IMAGE_URI
     container_name: cloud-server-redis_container
     ports:
       - "6379:6379"
 
   localstack:
-    image: localstack/localstack
+    image: $LOCALSTACK_IMAGE_URI
     container_name: tb_localstack_container
     ports:
       - "9888:8080" # web interface
