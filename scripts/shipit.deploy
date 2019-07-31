@@ -32,7 +32,7 @@ if [[ $RELEASE_TYPE = "patch" ]]; then
   NEW_GIT_TAG="$CURR_MAJOR.$CURR_MINOR.$((CURR_PATCH+1))"
 fi
 
-mkdir /root/.ssh
+mkdir -p /root/.ssh
 git config --global user.email "devops+githubrelease@touchbistro.com"
 git config --global user.name "tb-releases"
 echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > /root/.ssh/tb-releases.key
