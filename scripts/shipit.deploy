@@ -44,6 +44,6 @@ ssh-add  /root/.ssh/tb-releases.key
 git config --global url."git@github.com:".insteadOf "https://github.com/"
 git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
-rm -rf /root/.ssh/
+rm /root/.ssh/tb-releases.key
 
 /usr/local/lib/goreleaser/goreleaser release || fail_notif
