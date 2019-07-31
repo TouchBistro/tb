@@ -7,6 +7,7 @@ type Service struct {
 	Migrations   bool   `yaml:"migrations"`
 	ECR          bool   `yaml:"ecr"`
 	ECRTag       string `yaml:"ecrTag"`
+	ImageURI     string `yaml:"imageURI"`
 }
 
 type ServiceOverride struct {
