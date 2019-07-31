@@ -14,7 +14,7 @@ fail_notif() {
 	exit 1
 }
 
-CURR_GIT_TAG=$(git describe --exact-match --abbrev=0)
+CURR_GIT_TAG=$(git describe --tags --abbrev=0)
 
 CURR_MAJOR=$(echo "$CURR_GIT_TAG" | awk -F'.' '{print $1}')
 CURR_MINOR=$(echo "$CURR_GIT_TAG" | awk -F'.' '{print $2}')
@@ -42,8 +42,10 @@ eval `ssh-agent -s`
 ssh-add -D
 ssh-add  /root/.ssh/tb-releases.key
 git config --global url."git@github.com:".insteadOf "https://github.com/"
+echo "Pushing new tag: $NEW_GIT_TAG"
 git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
+echo "Successfully pushed tag: $NEW_GIT_TAG"
 rm /root/.ssh/tb-releases.key
 
 /usr/local/lib/goreleaser/goreleaser release || fail_notif
