@@ -32,20 +32,20 @@ if [[ $RELEASE_TYPE = "patch" ]]; then
   NEW_GIT_TAG="$CURR_MAJOR.$CURR_MINOR.$((CURR_PATCH+1))"
 fi
 
-mkdir -p /root/.ssh
-git config --global user.email "devops+githubrelease@touchbistro.com"
-git config --global user.name "tb-releases"
-echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > /root/.ssh/tb-releases.key
-chmod 600 /root/.ssh/tb-releases.key
-echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> /root/.ssh/known_hosts
-eval `ssh-agent -s`
-ssh-add -D
-ssh-add  /root/.ssh/tb-releases.key
-git config --global url."git@github.com:".insteadOf "https://github.com/"
+#mkdir -p /root/.ssh
+#git config --global user.email "devops+githubrelease@touchbistro.com"
+#git config --global user.name "tb-releases"
+#echo "$SSH_PRIVATE_KEY_BASE64" | base64 -d > /root/.ssh/tb-releases.key
+#chmod 600 /root/.ssh/tb-releases.key
+#echo 'github.com ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAq2A7hRGmdnm9tUDbO9IDSwBK6TbQa+PXYPCPy6rbTrTtw7PHkccKrpp0yVhp5HdEIcKr6pLlVDBfOLX9QUsyCOV0wzfjIJNlGEYsdlLJizHhbn2mUjvSAHQqZETYP81eFzLQNnPHt4EVVUh7VfDESU84KezmD5QlWpXLmvU31/yMf+Se8xhHTvKSCZIFImWwoG6mbUoWf9nzpIoaSjB+weqqUUmpaaasXVal72J+UX2B+2RPW3RcT0eOzQgqlJL3RKrTJvdsjE3JEAvGq3lGHSZXy28G3skua2SmVi/w4yCE6gbODqnTWlg7+wC604ydGXA8VJiS5ap43JXiUFFAaQ==' >> /root/.ssh/known_hosts
+#eval `ssh-agent -s`
+#ssh-add -D
+#ssh-add  /root/.ssh/tb-releases.key
+#git config --global url."git@github.com:".insteadOf "https://github.com/"
 echo "Pushing new tag: $NEW_GIT_TAG"
 git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
 echo "Successfully pushed tag: $NEW_GIT_TAG"
-rm /root/.ssh/tb-releases.key
+#rm /root/.ssh/tb-releases.key
 
 /usr/local/lib/goreleaser/goreleaser release || fail_notif
