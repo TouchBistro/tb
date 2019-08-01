@@ -212,7 +212,7 @@ Examples:
 		var err error
 		composeFile = docker.ComposeFile()
 
-		err = config.Clone(config.Services())
+		err = config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
 		}

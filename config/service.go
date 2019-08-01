@@ -27,7 +27,7 @@ func ResolveEcrURI(service, tag string) string {
 	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
 }
 
-func Clone(services ServiceMap) error {
+func CloneMissingRepos(services ServiceMap) error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
 	repos := RepoNames(services)

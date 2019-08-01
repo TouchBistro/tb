@@ -43,7 +43,7 @@ var nukeCmd = &cobra.Command{
 			fatal.ExitErr(err, "Could not resolve dependencies")
 		}
 
-		err = config.Clone(config.Services())
+		err = config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
