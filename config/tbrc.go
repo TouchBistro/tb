@@ -41,7 +41,7 @@ func TBRC() *UserConfig {
 }
 
 const rcTemplate = `# Only print logs equal to or higher than this level
-log-level: "info"
+log-level: "debug"
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
