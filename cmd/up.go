@@ -31,28 +31,6 @@ var (
 	opts             options
 )
 
-func cloneMissingRepos() {
-	log.Info("☐ checking ~/.tb directory for missing git repos")
-
-	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	for _, repo := range config.RepoNames(config.Services()) {
-		path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
-
-		if util.FileOrDirExists(path) {
-			continue
-		}
-
-		log.Infof("\t☐ %s is missing. cloning git repo\n", repo)
-		err := git.Clone(repo, config.TBRootPath())
-		if err != nil {
-			fatal.ExitErrf(err, "failed cloning git repo %s", repo)
-		}
-		log.Infof("\t☑ finished cloning %s\n", repo)
-	}
-
-	log.Info("☑ finished checking git repos")
-}
-
 func attemptNPMLogin() {
 	log.Info("☐ logging into NPM")
 
@@ -231,7 +209,11 @@ Examples:
 		var err error
 		composeFile = docker.ComposeFile()
 
-		cloneMissingRepos()
+		err = config.Clone(config.Services())
+		if err != nil {
+			fatal.ExitErr(err, "failed cloning git repos")
+		}
+
 		fmt.Println()
 
 		attemptNPMLogin()

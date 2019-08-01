@@ -30,6 +30,11 @@ Examples:
 		if err != nil {
 			fatal.ExitErr(err, "Could not resolve dependencies.")
 		}
+
+		err = config.Clone(config.Services())
+		if err != nil {
+			fatal.ExitErr(err, "failed cloning git repos.")
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		service := args[0]

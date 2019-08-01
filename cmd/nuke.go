@@ -8,8 +8,6 @@ import (
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
-	"github.com/TouchBistro/tb/git"
-	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -45,13 +43,11 @@ var nukeCmd = &cobra.Command{
 			fatal.ExitErr(err, "Could not resolve dependencies")
 		}
 
-		for _, repo := range config.RepoNames(config.Services()) {
-			path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
-
-			if !util.FileOrDirExists(path) {
-				fatal.Exitf("Repo %s is missing. Please ensure all repos exist before running nuke.\n", repo)
-			}
+		err = config.Clone(config.Services())
+		if err != nil {
+			fatal.ExitErr(err, "failed cloning git repos.")
 		}
+
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		err := docker.StopContainersAndServices()
@@ -97,7 +93,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing repos...")
-			for _, repo := range git.RepoNames(config.Services()) {
+			for _, repo := range config.RepoNames(config.Services()) {
 				log.Debugf("Removing repo %s...", repo)
 				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
 				err = os.RemoveAll(repoPath)
