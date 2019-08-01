@@ -142,9 +142,9 @@ func Init() error {
 
 		// Set imageURIs for ECR and Dockerhub hosted images.
 		// non-ecr images. eg: postgres, redis, localstack
-		if !s.ECR && s.ImageURI != "" {
+		if !s.ECR && s.DockerhubImage != "" {
 			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, s.ImageURI)
+			os.Setenv(uriVar, s.DockerhubImage)
 		}
 
 		// ecr images. eg: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master-e09270363e044e37c430c7997359d55697e6b165

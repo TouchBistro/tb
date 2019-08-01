@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// Dependency is an os dependency needed to run core-devtools
+// Dependency is an os dependency needed to run tb
 type Dependency struct {
 	Name          string
 	InstallCmd    []string

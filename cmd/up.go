@@ -31,28 +31,6 @@ var (
 	opts             options
 )
 
-func cloneMissingRepos() {
-	log.Info("☐ checking ~/.tb directory for missing git repos")
-
-	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	for _, repo := range config.RepoNames(config.Services()) {
-		path := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
-
-		if util.FileOrDirExists(path) {
-			continue
-		}
-
-		log.Infof("\t☐ %s is missing. cloning git repo\n", repo)
-		err := git.Clone(repo, config.TBRootPath())
-		if err != nil {
-			fatal.ExitErrf(err, "failed cloning git repo %s", repo)
-		}
-		log.Infof("\t☑ finished cloning %s\n", repo)
-	}
-
-	log.Info("☑ finished checking git repos")
-}
-
 func attemptNPMLogin() {
 	log.Info("☐ logging into NPM")
 
@@ -110,16 +88,15 @@ func pullTBBaseImages() {
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
-func dockerComposeBuild(serviceNames []string) {
+func dockerComposeBuild() {
 	log.Info("☐ building images for non-ecr / remote services")
 
 	var builder strings.Builder
-	for _, s := range serviceNames {
-		if strings.HasSuffix(s, "-ecr") {
-			continue
+	for name, s := range selectedServices {
+		if !s.ECR && s.DockerhubImage == "" {
+			builder.WriteString(name)
+			builder.WriteString(" ")
 		}
-		builder.WriteString(s)
-		builder.WriteString(" ")
 	}
 
 	str := builder.String()
@@ -138,7 +115,9 @@ func dockerComposeBuild(serviceNames []string) {
 	fmt.Println()
 }
 
-func dockerComposeUp(serviceNames []string) {
+func dockerComposeUp() {
+	serviceNames := config.ComposeNames(selectedServices)
+
 	log.Info("☐ starting docker-compose up in detached mode")
 
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
@@ -231,7 +210,11 @@ Examples:
 		var err error
 		composeFile = docker.ComposeFile()
 
-		cloneMissingRepos()
+		err = config.CloneMissingRepos(config.Services())
+		if err != nil {
+			fatal.ExitErr(err, "failed cloning git repos")
+		}
+
 		fmt.Println()
 
 		attemptNPMLogin()
@@ -251,23 +234,21 @@ Examples:
 		if !opts.shouldSkipDockerPull {
 			log.Info("☐ pulling the latest docker images for selected services")
 			for name, s := range selectedServices {
-				if s.IsGithubRepo && !s.ECR {
-					continue
-				}
+				if s.ECR || s.DockerhubImage != "" {
+					var uri string
+					if s.ECR {
+						uri = config.ResolveEcrURI(name, s.ECRTag)
+					} else {
+						uri = s.DockerhubImage
+					}
 
-				var uri string
-				if s.ECR {
-					uri = config.ResolveEcrURI(name, s.ECRTag)
-				} else {
-					uri = s.ImageURI
+					log.Infof("\t☐ pulling image %s\n", uri)
+					err := docker.Pull(uri)
+					if err != nil {
+						fatal.ExitErrf(err, "failed pulling docker image %s", uri)
+					}
+					log.Infof("\t☐ finished pulling image %s\n", uri)
 				}
-
-				log.Infof("\t☐ pulling image %s\n", uri)
-				err := docker.Pull(uri)
-				if err != nil {
-					fatal.ExitErrf(err, "failed pulling docker image %s", uri)
-				}
-				log.Infof("\t☐ finished pulling image %s\n", uri)
 			}
 			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
@@ -291,9 +272,7 @@ Examples:
 			fmt.Println()
 		}
 
-		composeServiceNames := config.ComposeNames(selectedServices)
-
-		dockerComposeBuild(composeServiceNames)
+		dockerComposeBuild()
 		fmt.Println()
 
 		if !opts.shouldSkipDBPrepare {
@@ -324,7 +303,7 @@ Examples:
 			fmt.Println()
 		}
 
-		dockerComposeUp(composeServiceNames)
+		dockerComposeUp()
 		fmt.Println()
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?

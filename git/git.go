@@ -3,7 +3,6 @@ package git
 import (
 	"fmt"
 
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
@@ -25,16 +24,4 @@ func Pull(repoName, repoDir string) error {
 	err := util.Exec("git", "-C", repoPath, "pull")
 
 	return errors.Wrapf(err, "exec failed to pull %s", repoName)
-}
-
-func RepoNames(services config.ServiceMap) []string {
-	var repos []string
-
-	for name, s := range services {
-		if s.IsGithubRepo {
-			repos = append(repos, name)
-		}
-	}
-
-	return repos
 }
