@@ -93,12 +93,10 @@ func dockerComposeBuild() {
 
 	var builder strings.Builder
 	for name, s := range selectedServices {
-		if s.ECR || s.ImageURI != "" {
-			continue
+		if !s.ECR && s.DockerhubImage == "" {
+			builder.WriteString(name)
+			builder.WriteString(" ")
 		}
-
-		builder.WriteString(name)
-		builder.WriteString(" ")
 	}
 
 	str := builder.String()
@@ -236,12 +234,12 @@ Examples:
 		if !opts.shouldSkipDockerPull {
 			log.Info("☐ pulling the latest docker images for selected services")
 			for name, s := range selectedServices {
-				if s.ECR || s.ImageURI != "" {
+				if s.ECR || s.DockerhubImage != "" {
 					var uri string
 					if s.ECR {
 						uri = config.ResolveEcrURI(name, s.ECRTag)
 					} else {
-						uri = s.ImageURI
+						uri = s.DockerhubImage
 					}
 
 					log.Infof("\t☐ pulling image %s\n", uri)

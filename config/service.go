@@ -9,11 +9,11 @@ import (
 )
 
 type Service struct {
-	IsGithubRepo bool   `yaml:"repo"`
-	Migrations   bool   `yaml:"migrations"`
-	ECR          bool   `yaml:"ecr"`
-	ECRTag       string `yaml:"ecrTag"`
-	ImageURI     string `yaml:"imageURI"`
+	IsGithubRepo   bool   `yaml:"repo"`
+	Migrations     bool   `yaml:"migrations"`
+	ECR            bool   `yaml:"ecr"`
+	ECRTag         string `yaml:"ecrTag"`
+	DockerhubImage string `yaml:"dockerhubImage"`
 }
 
 type ServiceOverride struct {
