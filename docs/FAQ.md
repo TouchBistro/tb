@@ -10,7 +10,7 @@ Please make PRs to this document as new issues pop up, or as these issues become
 
 This is rare, but if a local, non-ECR service uses volumes, and a recent commit has made extensive changes to its `node_modules`, you may encounter issues when attempting to build that container again. For example, if you are seeing "module not found" errors after pulling extensive changes to a project, making the container fail to boot.
 
-To improve performace, core-devtools persists your service's `node_modules` to a Docker volume. This statefulness isn't always what we want, sometimes we just need a clean slate. Any node developer will reach for `rm -rf node_modules` eventually. Here is the core-devtools equivalent.
+To improve performace, tb persists your service's `node_modules` to a Docker volume. This statefulness isn't always what we want, sometimes we just need a clean slate. Any node developer will reach for `rm -rf node_modules` eventually. Here is the tb equivalent.
 
 To clear out _all_ volumes without deleting any Docker images, you can run:
 
@@ -21,8 +21,8 @@ docker-compose $(bin/compose_files) down --volumes
 To remove individual volumes, use the `docker volume ls`, `docker volume rm` commands. Keep in mind you will also have to `docker container rm` the container using that volume, even if that container is not booted. Example:
 
 ```
-$ docker volume rm core-devtools_partners-etl-service-node_modules
-Error response from daemon: remove core-devtools_partners-etl-service-node_modules: volume is in use - [4f5b19eb4167334b999694b88818cfbe03397ae32f80747059fab97756400ec8]
+$ docker volume rm tb_partners-etl-service-node_modules
+Error response from daemon: remove tb_partners-etl-service-node_modules: volume is in use - [4f5b19eb4167334b999694b88818cfbe03397ae32f80747059fab97756400ec8]
 
 $ docker container ls -a |grep etl
 4f5b19eb4167        partners-devtools_partners-etl-service                                              "bash -c 'if [ \"true…"   18 minutes ago      Up 18 minutes       9229-9230/tcp, 0.0.0.0:8888->8080/tcp                                                            partners-devtools_partners-etl-service_container
@@ -36,8 +36,8 @@ partners-devtools_partners-etl-service_container
 $ docker container rm partners-devtools_partners-etl-service_container
 partners-devtools_partners-etl-service_container
 
-$ docker volume rm core-devtools_partners-etl-service-node_modules
-core-devtools_partners-etl-service-node_modules
+$ docker volume rm tb_partners-etl-service-node_modules
+tb_partners-etl-service-node_modules
 ```
 
 ## Misleading error messages

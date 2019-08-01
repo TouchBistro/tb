@@ -616,15 +616,15 @@ services:
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: core-devtools_legacy-database
-    container_name: core-devtools_legacy-database_container
+    image: tb_legacy-database
+    container_name: tb_legacy-database_container
     volumes:
       - legacy-database:/var/opt/mssql/data
 
   legacy-database-ecr:
     << : *legacy-database-boilerplate
     image: $LEGACY_DATABASE_IMAGE_URI
-    container_name: core-devtools_legacy-database-ecr_container
+    container_name: tb_legacy-database-ecr_container
     volumes:
       - legacy-database:/var/opt/mssql/data
 
@@ -677,8 +677,8 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
-    image: core-devtools_venue-core-service
-    container_name: core-devtools_venue-core-service_container
+    image: tb_venue-core-service
+    container_name: tb_venue-core-service_container
     command: >
       bash -c '
         echo '...done'
@@ -706,27 +706,27 @@ services:
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: core-devtools_venue-provisioning-service
-    container_name: core-devtools_venue-provisioning-service_container
+    image: tb_venue-provisioning-service
+    container_name: tb_venue-provisioning-service_container
     << : *command-start
 
   health-clinic-ecr:
     << : *health-clinic-boilerplate
     image: $HEALTH_CLINIC_IMAGE_URI
-    container_name: core-devtools_health-clinic-ecr_container
+    container_name: tb_health-clinic-ecr_container
 
   health-clinic:
     << : *health-clinic-boilerplate
     build:
       context: $TB_ROOT/health-clinic
-    image: core-devtools_health-clinic
-    container_name: core-devtools_health-clinic_container
+    image: tb_health-clinic
+    container_name: tb_health-clinic_container
     volumes:
       - $TB_ROOT/health-clinic:/home/python/app
 
   dotnet-manage:
     << : *dotnet-boilerplate
-    container_name: core-devtools_dotnet-manage_container
+    container_name: tb_dotnet-manage_container
     ports:
       - "9000:80"
     volumes:
@@ -734,7 +734,7 @@ services:
 
   dotnet-api:
     << : *dotnet-boilerplate
-    container_name: core-devtools_dotnet-api_container
+    container_name: tb_dotnet-api_container
     ports:
       - "9001:80"
     volumes:
@@ -748,14 +748,14 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
-    image: core-devtools_legacy-bridge-manage-service
-    container_name: core-devtools_legacy-bridge-manage-service_container
+    image: tb_legacy-bridge-manage-service
+    container_name: tb_legacy-bridge-manage-service_container
     << : *command-start
 
   legacy-bridge-manage-service-ecr:
     << : *legacy-bridge-manage-service-boilerplate
     image: $LEGACY_BRIDGE_MANAGE_SERVICE_IMAGE_URI
-    container_name: core-devtools_legacy-bridge-manage-service-ecr_container
+    container_name: tb_legacy-bridge-manage-service-ecr_container
     << : *command-serve
 
   legacy-bridge-cloud-service:
@@ -763,9 +763,9 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/legacy-bridge-cloud-service
-    image: core-devtools_legacy-bridge-cloud-service
+    image: tb_legacy-bridge-cloud-service
     << : *command-start
-    container_name: core-devtools_legacy-bridge-cloud-service_container
+    container_name: tb_legacy-bridge-cloud-service_container
     volumes:
       - $TB_ROOT/legacy-bridge-cloud-service:/home/node/app:delegated
       - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
@@ -773,7 +773,7 @@ services:
   legacy-bridge-cloud-service-ecr:
     << : *legacy-bridge-cloud-service-boilerplate
     image: $LEGACY_BRIDGE_CLOUD_SERVICE_IMAGE_URI
-    container_name: core-devtools_legacy-bridge-cloud-service-ecr_container
+    container_name: tb_legacy-bridge-cloud-service-ecr_container
     << : *command-serve
 
   ordering-ooa-service-ecr:
