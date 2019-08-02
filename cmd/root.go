@@ -31,11 +31,11 @@ func initConfig() {
 		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
 	}
 
-	configLevel := config.TBRC().LogLevel
-
-	logLevel, err := log.ParseLevel(configLevel)
-	if err != nil {
-		fatal.ExitErr(err, "Failed to initialise logger level.")
+	var logLevel log.Level
+	if config.TBRC().DebugEnabled {
+		logLevel = log.DebugLevel
+	} else {
+		logLevel = log.InfoLevel
 	}
 
 	log.SetLevel(logLevel)
@@ -44,7 +44,7 @@ func initConfig() {
 		DisableTimestamp: true,
 	})
 
-	if configLevel != "debug" {
+	if logLevel != log.DebugLevel {
 		fatal.ShowStackTraces = false
 	}
 
