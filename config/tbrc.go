@@ -16,9 +16,9 @@ type Playlist struct {
 }
 
 type UserConfig struct {
-	LogLevel  string                     `yaml:"log-level"`
-	Playlists map[string]Playlist        `yaml:"playlists"`
-	Overrides map[string]ServiceOverride `yaml:"overrides"`
+	DebugEnabled bool                       `yaml:"debug"`
+	Playlists    map[string]Playlist        `yaml:"playlists"`
+	Overrides    map[string]ServiceOverride `yaml:"overrides"`
 }
 
 func InitRC() error {
@@ -40,8 +40,8 @@ func TBRC() *UserConfig {
 	return &tbrc
 }
 
-const rcTemplate = `# Only print logs equal to or higher than this level
-log-level: "debug"
+const rcTemplate = `# Toggle debug mode for more verbose logging
+debug: true
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
