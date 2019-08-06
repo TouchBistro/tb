@@ -11,12 +11,15 @@ func repoURL(repoName string) string {
 	return fmt.Sprintf("git@github.com:TouchBistro/%s.git", repoName)
 }
 
-func Clone(repoName, destDir string) error {
+func RClone(success chan string, failed chan error, repoName, destDir string) {
 	repoURL := repoURL(repoName)
 	destPath := fmt.Sprintf("%s/%s", destDir, repoName)
-	err := util.Exec("git", "clone", repoURL, destPath)
-
-	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
+	err := util.Exec("git", "clone", "--depth", "1", repoURL, destPath)
+	if err != nil {
+		failed <- err
+	} else {
+		success <- repoName
+	}
 }
 
 func Pull(repoName, repoDir string) error {

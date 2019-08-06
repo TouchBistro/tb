@@ -32,6 +32,10 @@ func CloneMissingRepos(services ServiceMap) error {
 
 	repos := RepoNames(services)
 
+	success := make(chan string)
+	failed := make(chan error)
+
+	count := 0
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
 	for _, repo := range repos {
 		path := fmt.Sprintf("%s/%s", TBRootPath(), repo)
@@ -41,11 +45,17 @@ func CloneMissingRepos(services ServiceMap) error {
 		}
 
 		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
-		err := git.Clone(repo, TBRootPath())
-		if err != nil {
-			return errors.Wrapf(err, "failed cloning git repo %s", repo)
+		go git.RClone(success, failed, repo, TBRootPath())
+		count += 1
+	}
+
+	for i := count; i > 0; i-- {
+		select {
+		case name := <-success:
+			log.Debugf("\t☑ finished cloning %s\n", name)
+		case err := <-failed:
+			return errors.Wrapf(err, "failed cloning git repo")
 		}
-		log.Debugf("\t☑ finished cloning %s\n", repo)
 	}
 
 	log.Info("☑ finished checking git repos")

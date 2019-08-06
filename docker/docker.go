@@ -29,9 +29,13 @@ func ECRLogin() error {
 	return errors.Wrap(err, "docker login failed")
 }
 
-func Pull(imageURI string) error {
+func RPull(success chan string, failed chan error, imageURI string) {
 	err := util.Exec("docker", "pull", imageURI)
-	return err
+	if err != nil {
+		failed <- err
+	} else {
+		success <- imageURI
+	}
 }
 
 func StopAllContainers() error {

@@ -76,13 +76,22 @@ func cleanupPrevDocker() {
 func pullTBBaseImages() {
 	log.Info("☐ pulling latest touchbistro base images")
 
+	success := make(chan string)
+	failed := make(chan error)
+
 	for _, b := range config.BaseImages() {
 		log.Infof("\t☐ pulling %s\n", b)
-		err := docker.Pull(b)
-		if err != nil {
-			fatal.ExitErrf(err, "failed pulling docker image: %s", b)
+		go docker.RPull(success, failed, b)
+
+	}
+
+	for range config.BaseImages() {
+		select {
+		case name := <-success:
+			log.Infof("\t☑ finished pulling %s\n", name)
+		case err := <-failed:
+			fatal.ExitErrf(err, "failed pulling docker image")
 		}
-		log.Infof("\t☑ finished pulling %s\n", b)
 	}
 
 	log.Info("☑ finished pulling latest touchbistro base images")
@@ -233,6 +242,8 @@ Examples:
 
 		if !opts.shouldSkipDockerPull {
 			log.Info("☐ pulling the latest docker images for selected services")
+			success := make(chan string)
+			failed := make(chan error)
 			for name, s := range selectedServices {
 				if s.ECR || s.DockerhubImage != "" {
 					var uri string
@@ -243,11 +254,15 @@ Examples:
 					}
 
 					log.Infof("\t☐ pulling image %s\n", uri)
-					err := docker.Pull(uri)
-					if err != nil {
-						fatal.ExitErrf(err, "failed pulling docker image %s", uri)
-					}
-					log.Infof("\t☐ finished pulling image %s\n", uri)
+					go docker.RPull(success, failed, uri)
+				}
+			}
+			for range selectedServices {
+				select {
+				case uri := <-success:
+					log.Infof("\t☑ finished pulling %s\n", uri)
+				case err := <-failed:
+					fatal.ExitErrf(err, "failed pulling docker image")
 				}
 			}
 			log.Info("☑ finished pulling docker images for selected services")
