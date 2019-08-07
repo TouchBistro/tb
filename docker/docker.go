@@ -32,7 +32,7 @@ func ECRLogin() error {
 func RPull(success chan string, failed chan error, imageURI string) {
 	err := util.Exec("docker", "pull", imageURI)
 	if err != nil {
-		failed <- err
+		failed <- errors.Wrapf(err, "exec failed to pull %s", imageURI)
 	} else {
 		success <- imageURI
 	}

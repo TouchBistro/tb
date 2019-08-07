@@ -28,3 +28,13 @@ func Pull(repoName, repoDir string) error {
 
 	return errors.Wrapf(err, "exec failed to pull %s", repoName)
 }
+
+func RPull(success chan string, failed chan error, repoName, repoDir string) {
+	repoPath := fmt.Sprintf("%s/%s", repoDir, repoName)
+	err := util.Exec("git", "-C", repoPath, "pull")
+	if err != nil {
+		failed <- errors.Wrapf(err, "exec failed to pull %s", repoName)
+	} else {
+		success <- repoName
+	}
+}

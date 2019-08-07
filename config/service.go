@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -49,14 +48,7 @@ func CloneMissingRepos(services ServiceMap) error {
 		count += 1
 	}
 
-	for i := count; i > 0; i-- {
-		select {
-		case name := <-success:
-			log.Debugf("\t☑ finished cloning %s\n", name)
-		case err := <-failed:
-			return errors.Wrapf(err, "failed cloning git repo")
-		}
-	}
+	util.SpinnerWait(success, failed, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
 
 	log.Info("☑ finished checking git repos")
 	return nil
