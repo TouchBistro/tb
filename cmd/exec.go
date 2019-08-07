@@ -37,15 +37,23 @@ Examples:
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		service := args[0]
+		serviceName := args[0]
 
 		// Make sure it's a valid service
-		if _, ok := config.Services()[service]; !ok {
-			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", service)
+		service, ok := config.Services()[serviceName]
+		if !ok {
+			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		}
+
+		var composeName string
+		if service.ECR {
+			composeName = serviceName + "-ecr"
+		} else {
+			composeName = serviceName
 		}
 
 		cmds := strings.Join(args[1:], " ")
-		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), service, cmds)
+		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), composeName, cmds)
 
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout
