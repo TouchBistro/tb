@@ -126,7 +126,7 @@ func SpinnerWait(success chan string, failed chan error, successMsg string, fail
 		case err := <-failed:
 			fmt.Printf("\r\n")
 			fatal.ExitErrf(err, failedMsg)
-		case <-time.After(time.Second / 2):
+		case <-time.After(time.Second / 10):
 			spin(0)
 		}
 	}
