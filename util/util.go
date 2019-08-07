@@ -107,7 +107,7 @@ func spinnerBar(total int) func(int) {
 		bar.WriteString("]")
 		anim_state++
 		anim_state = anim_state % len(spinnerFrames)
-		fmt.Printf(bar.String())
+		fmt.Print(bar.String())
 		if progress == total {
 			clearLine(total + 4)
 		}
@@ -138,6 +138,6 @@ func clearLine(length int) {
 		b.WriteString(" ")
 	}
 	fmt.Printf("\r")
-	fmt.Printf(b.String())
+	fmt.Print(b.String())
 	fmt.Printf("\r")
 }
