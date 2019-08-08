@@ -52,13 +52,13 @@ func RExec(success chan string, failed chan error, id, name string, arg ...strin
 
 	stdout := log.WithFields(log.Fields{
 		"pipe":    "stdout",
-		"command": name,
+		"service": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stdout.Close()
 
 	stderr := log.WithFields(log.Fields{
 		"pipe":    "stderr",
-		"command": name,
+		"service": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stderr.Close()
 
