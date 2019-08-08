@@ -119,15 +119,21 @@ func SpinnerWait(success chan string, failed chan error, successMsg string, fail
 	for i := 0; i < count; {
 		select {
 		case name := <-success:
-			clearLine(count + 4)
+			if !log.IsLevelEnabled(log.DebugLevel) {
+				clearLine(count + 4)
+			}
 			log.Infof(successMsg, name)
 			i++
-			spin(1)
+			if !log.IsLevelEnabled(log.DebugLevel) {
+				spin(1)
+			}
 		case err := <-failed:
 			fmt.Printf("\r\n")
 			fatal.ExitErrf(err, failedMsg)
 		case <-time.After(time.Second / 10):
-			spin(0)
+			if !log.IsLevelEnabled(log.DebugLevel) {
+				spin(0)
+			}
 		}
 	}
 }
