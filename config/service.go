@@ -44,7 +44,14 @@ func CloneMissingRepos(services ServiceMap) error {
 		}
 
 		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
-		go git.RClone(success, failed, repo, TBRootPath())
+		go func(success chan string, failed chan error, repo, root string) {
+			err := git.Clone(repo, root)
+			if err != nil {
+				failed <- err
+			} else {
+				success <- repo
+			}
+		}(success, failed, repo, TBRootPath())
 		count += 1
 	}
 

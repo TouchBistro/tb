@@ -82,7 +82,14 @@ func pullTBBaseImages() {
 
 	for _, b := range config.BaseImages() {
 		log.Infof("\t☐ pulling %s\n", b)
-		go docker.RPull(success, failed, b)
+		go func(success chan string, failed chan error, b string) {
+			err := docker.Pull(b)
+			if err != nil {
+				failed <- err
+				return
+			}
+			success <- b
+		}(success, failed, b)
 	}
 
 	util.SpinnerWait(success, failed, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
@@ -249,7 +256,14 @@ Examples:
 					}
 
 					log.Infof("\t☐ pulling image %s\n", uri)
-					go docker.RPull(success, failed, uri)
+					go func() {
+						err := docker.Pull(uri)
+						if err != nil {
+							failed <- err
+							return
+						}
+						success <- uri
+					}()
 					count++
 				}
 			}
@@ -268,7 +282,14 @@ Examples:
 			for name, s := range selectedServices {
 				if s.IsGithubRepo {
 					log.Infof("\t☐ pulling %s\n", name)
-					go git.RPull(success, failed, name, config.TBRootPath())
+					go func(success chan string, failed chan error, name, root string) {
+						err := git.Pull(name, root)
+						if err != nil {
+							failed <- err
+							return
+						}
+						success <- name
+					}(success, failed, name, config.TBRootPath())
 					count += 1
 				}
 			}
@@ -301,7 +322,14 @@ Examples:
 
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
 				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
-				go util.RExec(success, failed, name, "docker-compose", strings.Fields(composeArgs)...)
+				go func(success chan string, failed chan error, name string, args ...string) {
+					err := util.Exec("docker-compose", args...)
+					if err != nil {
+						failed <- err
+						return
+					}
+					success <- name
+				}(success, failed, name, strings.Fields(composeArgs)...)
 				count += 1
 				//We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				//Any ideas better than a sleep hack are appreciated

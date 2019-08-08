@@ -46,33 +46,6 @@ func Exec(name string, arg ...string) error {
 	return nil
 }
 
-//Goroutine exec
-func RExec(success chan string, failed chan error, id, name string, arg ...string) {
-	cmd := exec.Command(name, arg...)
-
-	stdout := log.WithFields(log.Fields{
-		"pipe":    "stdout",
-		"service": id,
-	}).WriterLevel(log.DebugLevel)
-	defer stdout.Close()
-
-	stderr := log.WithFields(log.Fields{
-		"pipe":    "stderr",
-		"service": id,
-	}).WriterLevel(log.DebugLevel)
-	defer stderr.Close()
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-
-	err := cmd.Run()
-	if err != nil {
-		failed <- err
-	} else {
-		success <- id
-	}
-}
-
 func StringToUpperAndSnake(str string) string {
 	return strings.ReplaceAll(strings.ToUpper(str), "-", "_")
 }
