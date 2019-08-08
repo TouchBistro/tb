@@ -143,7 +143,7 @@ func selectServices() {
 			fatal.Exit("playlist name cannot be blank. try running tb up --help")
 		}
 
-		names = config.GetPlaylist(name)
+		names = config.GetPlaylist(name, make(map[string]bool))
 		if len(names) == 0 {
 			fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb list --playlists to see all the available playlists.\n", name)
 		}
@@ -159,9 +159,14 @@ func selectServices() {
 	selectedServices = make(config.ServiceMap, len(names))
 	for _, name := range names {
 		if _, ok := services[name]; !ok {
-			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
+			if opts.playlistName != "" {
+				log.Infof("%s is not a tb service name, ignoring and continuing playlist.\n", name)
+			} else {
+				fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
+			}
+		} else {
+			selectedServices[name] = services[name]
 		}
-		selectedServices[name] = services[name]
 	}
 
 	if len(selectedServices) == 0 {

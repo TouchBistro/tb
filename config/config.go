@@ -176,10 +176,10 @@ func BaseImages() []string {
 	}
 }
 
-func GetPlaylist(name string) []string {
-	// TODO: Make this less yolo if Init() wasn't called
+func GetPlaylist(name string, deps map[string]bool) []string {
+	// Initialize no playlists if we couldnt load yaml in Init()
 	if playlists == nil {
-		log.Panic("this is a bug. playlists is not initialised")
+		playlists = make(map[string]Playlist)
 	}
 	customList := tbrc.Playlists
 
@@ -189,14 +189,22 @@ func GetPlaylist(name string) []string {
 		// Make sure people don't do that
 		// Resolve parent playlist defined in extends
 		if playlist.Extends != "" {
-			parentPlaylist := GetPlaylist(playlist.Extends)
+			deps[name] = true
+			if deps[playlist.Extends] {
+				log.Fatalf("Circular dependency of services, %s and %s", playlist.Extends, name)
+			}
+			parentPlaylist := GetPlaylist(playlist.Extends, deps)
 			return append(parentPlaylist, playlist.Services...)
 		}
 
 		return playlist.Services
 	} else if playlist, ok := playlists[name]; ok {
 		if playlist.Extends != "" {
-			parentPlaylist := GetPlaylist(playlist.Extends)
+			deps[name] = true
+			if deps[playlist.Extends] {
+				log.Fatalf("Circular dependency of services, %s and %s", playlist.Extends, name)
+			}
+			parentPlaylist := GetPlaylist(playlist.Extends, deps)
 			return append(parentPlaylist, playlist.Services...)
 		}
 

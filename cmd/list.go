@@ -84,7 +84,7 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 			continue
 		}
 
-		for _, s := range config.GetPlaylist(name) {
+		for _, s := range config.GetPlaylist(name, make(map[string]bool)) {
 			fmt.Printf("    - %s\n", s)
 		}
 	}
