@@ -185,8 +185,6 @@ func GetPlaylist(name string, deps map[string]bool) []string {
 
 	// Check custom playlists first
 	if playlist, ok := customList[name]; ok {
-		// TODO: Circular extends can make this infinite loop
-		// Make sure people don't do that
 		// Resolve parent playlist defined in extends
 		if playlist.Extends != "" {
 			deps[name] = true
