@@ -45,15 +45,8 @@ Examples:
 			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
-		var composeName string
-		if service.ECR {
-			composeName = serviceName + "-ecr"
-		} else {
-			composeName = serviceName
-		}
-
 		cmds := strings.Join(args[1:], " ")
-		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), composeName, cmds)
+		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), config.ComposeName(serviceName, service), cmds)
 
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout
