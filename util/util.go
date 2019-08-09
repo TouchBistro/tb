@@ -63,12 +63,12 @@ func MD5Checksum(buf []byte) ([]byte, error) {
 func spinnerBar(total int) func(int) {
 	spinnerFrames := []string{"|", "/", "-", "\\"}
 	progress := 0
-	anim_state := 0
+	animState := 0
 	return func(inc int) {
 		progress += inc
 		var bar strings.Builder
 		bar.WriteString("\r")
-		bar.WriteString(spinnerFrames[anim_state])
+		bar.WriteString(spinnerFrames[animState])
 		bar.WriteString(" [")
 		for i := 0; i < total; i++ {
 			if progress > i {
@@ -78,8 +78,8 @@ func spinnerBar(total int) func(int) {
 			}
 		}
 		bar.WriteString("]")
-		anim_state++
-		anim_state = anim_state % len(spinnerFrames)
+		animState++
+		animState = animState % len(spinnerFrames)
 		fmt.Print(bar.String())
 		if progress == total {
 			clearLine(total + 4)
@@ -87,11 +87,11 @@ func spinnerBar(total int) func(int) {
 	}
 }
 
-func SpinnerWait(success chan string, failed chan error, successMsg string, failedMsg string, count int) {
+func SpinnerWait(successCh chan string, failedCh chan error, successMsg string, failedMsg string, count int) {
 	spin := spinnerBar(count)
 	for i := 0; i < count; {
 		select {
-		case name := <-success:
+		case name := <-successCh:
 			if !log.IsLevelEnabled(log.DebugLevel) {
 				clearLine(count + 4)
 			}
@@ -100,7 +100,7 @@ func SpinnerWait(success chan string, failed chan error, successMsg string, fail
 			if !log.IsLevelEnabled(log.DebugLevel) {
 				spin(1)
 			}
-		case err := <-failed:
+		case err := <-failedCh:
 			fmt.Printf("\r\n")
 			fatal.ExitErrf(err, failedMsg)
 		case <-time.After(time.Second / 10):

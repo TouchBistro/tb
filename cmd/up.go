@@ -77,22 +77,22 @@ func cleanupPrevDocker() {
 func pullTBBaseImages() {
 	log.Info("☐ pulling latest touchbistro base images")
 
-	success := make(chan string)
-	failed := make(chan error)
+	successCh := make(chan string)
+	failedCh := make(chan error)
 
 	for _, b := range config.BaseImages() {
 		log.Infof("\t☐ pulling %s\n", b)
-		go func(success chan string, failed chan error, b string) {
+		go func(successCh chan string, failedCh chan error, b string) {
 			err := docker.Pull(b)
 			if err != nil {
-				failed <- err
+				failedCh <- err
 				return
 			}
-			success <- b
-		}(success, failed, b)
+			successCh <- b
+		}(successCh, failedCh, b)
 	}
 
-	util.SpinnerWait(success, failed, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
+	util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
 
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
@@ -243,8 +243,8 @@ Examples:
 
 		if !opts.shouldSkipDockerPull {
 			log.Info("☐ pulling the latest docker images for selected services")
-			success := make(chan string)
-			failed := make(chan error)
+			successCh := make(chan string)
+			failedCh := make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if s.ECR || s.DockerhubImage != "" {
@@ -259,16 +259,16 @@ Examples:
 					go func() {
 						err := docker.Pull(uri)
 						if err != nil {
-							failed <- err
+							failedCh <- err
 							return
 						}
-						success <- uri
+						successCh <- uri
 					}()
 					count++
 				}
 			}
 
-			util.SpinnerWait(success, failed, "\t☐ finished pulling %s\n", "failed pulling docker image", count)
+			util.SpinnerWait(successCh, failedCh, "\t☐ finished pulling %s\n", "failed pulling docker image", count)
 			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
 		}
@@ -276,25 +276,25 @@ Examples:
 		if !opts.shouldSkipGitPull {
 			// Pull latest github repos
 			log.Info("☐ pulling the latest default git branch for selected services")
-			success := make(chan string)
-			failed := make(chan error)
+			successCh := make(chan string)
+			failedCh := make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if s.IsGithubRepo {
 					log.Infof("\t☐ pulling %s\n", name)
-					go func(success chan string, failed chan error, name, root string) {
+					go func(successCh chan string, failedCh chan error, name, root string) {
 						err := git.Pull(name, root)
 						if err != nil {
-							failed <- err
+							failedCh <- err
 							return
 						}
-						success <- name
-					}(success, failed, name, config.TBRootPath())
-					count += 1
+						successCh <- name
+					}(successCh, failedCh, name, config.TBRootPath())
+					count++
 				}
 			}
 
-			util.SpinnerWait(success, failed, "\t☐ finished pulling %s\n", "failed pulling git repo", count)
+			util.SpinnerWait(successCh, failedCh, "\t☐ finished pulling %s\n", "failed pulling git repo", count)
 
 			log.Info("☑ finished pulling latest default git branch for selected services")
 			fmt.Println()
@@ -305,8 +305,8 @@ Examples:
 
 		if !opts.shouldSkipDBPrepare {
 			log.Info("☐ performing database migrations and seeds")
-			success := make(chan string)
-			failed := make(chan error)
+			successCh := make(chan string)
+			failedCh := make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if !s.Migrations {
@@ -322,20 +322,20 @@ Examples:
 
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
 				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
-				go func(success chan string, failed chan error, name string, args ...string) {
+				go func(successCh chan string, failedCh chan error, name string, args ...string) {
 					err := util.Exec("docker-compose", args...)
 					if err != nil {
-						failed <- err
+						failedCh <- err
 						return
 					}
-					success <- name
-				}(success, failed, name, strings.Fields(composeArgs)...)
-				count += 1
-				//We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
-				//Any ideas better than a sleep hack are appreciated
+					successCh <- name
+				}(successCh, failedCh, name, strings.Fields(composeArgs)...)
+				count++
+				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
+				// Any ideas better than a sleep hack are appreciated
 				time.Sleep(3 * time.Second)
 			}
-			util.SpinnerWait(success, failed, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
 
 			log.Info("☑ finished performing all migrations and seeds")
 			fmt.Println()
