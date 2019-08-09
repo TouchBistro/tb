@@ -268,7 +268,7 @@ Examples:
 				}
 			}
 
-			util.SpinnerWait(successCh, failedCh, "\t☐ finished pulling %s\n", "failed pulling docker image", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
 			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
 		}
@@ -294,7 +294,7 @@ Examples:
 				}
 			}
 
-			util.SpinnerWait(successCh, failedCh, "\t☐ finished pulling %s\n", "failed pulling git repo", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling git repo", count)
 
 			log.Info("☑ finished pulling latest default git branch for selected services")
 			fmt.Println()
