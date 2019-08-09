@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 
+	"time"
+
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
@@ -14,7 +16,6 @@ import (
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 type options struct {
@@ -313,15 +314,8 @@ Examples:
 					continue
 				}
 
-				var composeName string
-				if s.ECR {
-					composeName = name + "-ecr"
-				} else {
-					composeName = name
-				}
-
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
-				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, composeName)
+				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
 				go func(successCh chan string, failedCh chan error, name string, args ...string) {
 					err := util.Exec("docker-compose", args...)
 					if err != nil {

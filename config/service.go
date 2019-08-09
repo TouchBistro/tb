@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
@@ -21,6 +22,14 @@ type ServiceOverride struct {
 }
 
 type ServiceMap = map[string]Service
+
+func ComposeName(name string, s Service) string {
+	if s.ECR {
+		return name + "-ecr"
+	}
+
+	return name
+}
 
 func ResolveEcrURI(service, tag string) string {
 	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
@@ -64,13 +73,7 @@ func CloneMissingRepos(services ServiceMap) error {
 func ComposeNames(configs ServiceMap) []string {
 	names := make([]string, 0)
 	for name, s := range configs {
-		var composeName string
-		if s.ECR {
-			composeName = name + "-ecr"
-		} else {
-			composeName = name
-		}
-		names = append(names, composeName)
+		names = append(names, ComposeName(name, s))
 	}
 
 	return names
