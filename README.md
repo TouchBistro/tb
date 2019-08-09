@@ -113,8 +113,8 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 
 `tb` can be configured through the `.tbrc.yml` file located in your home directory. `tb` will automatically create a basic `.tbrc.yml` for you if one doesn't exist.
 
-### Changing log level
-The default log level is `info` which will only print minimal logs with only brief descriptions of what is happening. If you would like more detailed logs, set the `log-level` property to `debug`.
+### Toggling debug mode
+To toggle debug mode set the `debug` property to `true` or `false`. Debug mode will print more verbose logs of what is happening.
 
 ### Adding custom playlists
 You can create custom playlists by adding a new object to the `playlists` property.
