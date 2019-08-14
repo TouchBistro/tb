@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
 	log "github.com/sirupsen/logrus"
@@ -38,12 +37,7 @@ var nukeCmd = &cobra.Command{
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the ootions.")
 		}
 
-		err := deps.Resolve(deps.Docker)
-		if err != nil {
-			fatal.ExitErr(err, "Could not resolve dependencies")
-		}
-
-		err = config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}

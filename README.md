@@ -25,7 +25,7 @@ It is aimed at making local development easy in a complicated microservices arch
 
 ### Installed Software
 
-Right now, the only requirement is that you have the xcode cli tools and `nvm`.
+Right now, the only requirement is that you have the xcode cli tools and [Docker for Mac](https://docs.docker.com/docker-for-mac/install/).
 
 This project will install and manage all other dependencies that you need.
 

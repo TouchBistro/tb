@@ -24,10 +24,8 @@ const (
 	Pgcli      = "pgcli"
 	Aws        = "aws"
 	Lazydocker = "lazydocker"
-	// Nvm = "nvm"
-	Node   = "node"
-	Yarn   = "yarn"
-	Docker = "docker"
+	Node       = "node"
+	Yarn       = "yarn"
 )
 
 var deps = map[string]Dependency{
@@ -60,30 +58,6 @@ var deps = map[string]Dependency{
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
 	},
-
-	// Nvm: Dependency{
-	// 	Name:       "nvm",
-	// 	InstallCmd: []string{"brew", "install", "nvm"},
-	// 	AfterInstall: func() error {
-	// 		home := os.Getenv("HOME") // TODO: Make portable for uzi?
-	// 		dirPath := fmt.Sprintf("%s/.nvm", home)
-	// 		if !util.FileOrDirExists(dirPath) {
-	// 			err := os.Mkdir(dirPath, os.ModeDir)
-	// 			return err
-	// 		}
-	// 		for _, rcFile := range []string{".zshrc", ".bashrc"} {
-	// 			rcPath := fmt.Sprintf("%s/%s", home, rcFile)
-	// 			fmt.Printf("...adding nvm export to %s\n", rcPath)
-	// 			err := util.AppendLineToFile(rcPath, "export NVM_DIR=\"$HOME/.nvm\"")
-	// 			err = util.AppendLineToFile(rcPath, ". \"/usr/local/opt/nvm/nvm.sh\"")
-	// 			if err != nil {
-	// 				return err
-	// 			}
-	// 		}
-	// 		return nil
-	// 	},
-	// },
-
 	// TODO: Check that `which node` resolves to something like /Users/<user>/.nvm/version/node/<version>/bin/node
 	Node: {
 		Name:       "node",
@@ -92,14 +66,6 @@ var deps = map[string]Dependency{
 	Yarn: {
 		Name:       "yarn",
 		InstallCmd: []string{"brew", "install", "yarn"},
-	},
-	Docker: {
-		Name: "docker",
-		BeforeInstall: func() error {
-			err := util.Exec("brew", "tap", "caskroom/versions")
-			return err
-		},
-		InstallCmd: []string{"brew", "cask", "install", "docker"},
 	},
 }
 
