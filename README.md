@@ -140,7 +140,7 @@ Example:
 ```yaml
 overrides:
   mokta:
-    erc: false
+    ecr: false
   venue-admin-frontend:
     ecr: true
     ecrTag: <branch or commit SHA>
