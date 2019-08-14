@@ -6,6 +6,7 @@ import (
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -23,20 +24,10 @@ func IsCommandAvailable(command string) bool {
 func Exec(name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
-	stdout := log.WithFields(log.Fields{
-		"pipe":    "stdout",
-		"command": name,
-	}).WriterLevel(log.DebugLevel)
-	defer stdout.Close()
-
-	stderr := log.WithFields(log.Fields{
-		"pipe":    "stderr",
-		"command": name,
-	}).WriterLevel(log.DebugLevel)
-	defer stderr.Close()
-
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
+	if log.IsLevelEnabled(log.DebugLevel) {
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+	}
 
 	err := cmd.Run()
 	if err != nil {
