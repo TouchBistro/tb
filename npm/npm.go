@@ -41,7 +41,7 @@ func Login() error {
 
 	r, err := regexp.Compile("//registry.npmjs.org/:_authToken=(.*)")
 	if err != nil {
-		return errors.Wrap(err, "unable to compile regex")
+		return errors.Wrap(err, "unable to compile token regex")
 	}
 
 	token := r.FindStringSubmatch(string(data))[1]
@@ -55,10 +55,31 @@ func Login() error {
 
 	rcFiles := [...]string{".zshrc", ".bash_profile"}
 
+	r, err = regexp.Compile("export NPM_TOKEN=.+")
+	if err != nil {
+		return errors.Wrap(err, "unable to compile export regex")
+	}
+
 	for _, file := range rcFiles {
 		rcPath := fmt.Sprintf("%s/%s", os.Getenv("HOME"), file)
+		if !util.FileOrDirExists(rcPath) {
+			log.Debugf("No %s, skipping", file)
+			continue
+		}
+
+		contents, err := ioutil.ReadFile(rcPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read ~/%s", file)
+		}
+
+		export := r.FindString(string(contents))
+		if export != "" {
+			log.Debugf("Export found in ~/%s", file)
+			continue
+		}
+
 		log.Debugf("...adding export to %s.\n", rcPath)
-		err := util.AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
+		err = util.AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
 		if err != nil {
 			return errors.Wrapf(err, "failed to export to file %s", file)
 		}
