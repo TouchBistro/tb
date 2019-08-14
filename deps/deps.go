@@ -58,10 +58,9 @@ var deps = map[string]Dependency{
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
 	},
-	// TODO: Check that `which node` resolves to something like /Users/<user>/.nvm/version/node/<version>/bin/node
 	Node: {
 		Name:       "node",
-		InstallCmd: []string{"nvm", "install", "stable"},
+		InstallCmd: []string{"brew", "install", "node"},
 	},
 	Yarn: {
 		Name:       "yarn",

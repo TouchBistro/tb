@@ -27,6 +27,8 @@ It is aimed at making local development easy in a complicated microservices arch
 
 Right now, the only requirement is that you have the xcode cli tools and [Docker for Mac](https://docs.docker.com/docker-for-mac/install/).
 
+You can install xcode tools by running `xcode-select --install`.
+
 This project will install and manage all other dependencies that you need.
 
 ### AWS ECR
