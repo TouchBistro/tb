@@ -99,6 +99,8 @@ Let's try this out now:
 3. Run `tb list --playlists` to list all the available playlists.
 4. Run `tb up -p core`. This will start all services defined in the `core` playlist.
 
+`tb up` will start [lazydocker](https://github.com/jesseduffield/lazydocker). For more information about how to interact with it, check out [its README](https://github.com/jesseduffield/lazydocker/blob/master/README.md). You can quit lazydocker, and containers will continue to run. You can always run `lazydocker` again without having to restart your services.
+
 Try running `tb --help` or `tb up --help` to see what else you can do.
 
 ## Commands
