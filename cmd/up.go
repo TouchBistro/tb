@@ -210,7 +210,6 @@ Examples:
 			deps.Lazydocker,
 			deps.Node,
 			deps.Yarn,
-			deps.Docker,
 		)
 		if err != nil {
 			fatal.ExitErr(err, "could not resolve dependencies")

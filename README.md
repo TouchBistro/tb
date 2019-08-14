@@ -25,7 +25,9 @@ It is aimed at making local development easy in a complicated microservices arch
 
 ### Installed Software
 
-Right now, the only requirement is that you have the xcode cli tools and `nvm`.
+Right now, the only requirement is that you have the xcode cli tools and [Docker for Mac](https://docs.docker.com/docker-for-mac/install/).
+
+You can install xcode tools by running `xcode-select --install`.
 
 This project will install and manage all other dependencies that you need.
 
@@ -59,8 +61,13 @@ The following instructions assume you have an ssh key connected to your GitHub a
     ```sh
     brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
     ```
+3. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.  
+    Go to `Preferences` > `Advanced` and set the following settings:
+    - CPUs: 3
+    - Memory: 10.0 GiB
+    - Swap: 1.0 GiB
 
-3. Create a GitHub Access Token
+4. Create a GitHub Access Token
     - Create the token with the `repo` box checked in the list of permissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
         - Make sure you copy the token when you create it!
     - After the token has been created, enable SSO for it.
@@ -70,7 +77,7 @@ The following instructions assume you have an ssh key connected to your GitHub a
     ```
     - Run `source ~/.zshrc` or `source ~/.bash_profile`.
 
-4. Install `tb` with brew
+5. Install `tb` with brew
     ```sh
     brew install tb
     ```

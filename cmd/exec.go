@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
@@ -26,12 +25,7 @@ Examples:
 	tb exec core-database bash`,
 	Args: cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := deps.Resolve(deps.Docker)
-		if err != nil {
-			fatal.ExitErr(err, "Could not resolve dependencies.")
-		}
-
-		err = config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
