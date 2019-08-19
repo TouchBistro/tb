@@ -20,18 +20,20 @@ func IsCommandAvailable(command string) bool {
 	return true
 }
 
-func Exec(name string, arg ...string) error {
+func Exec(id string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
 	stdout := log.WithFields(log.Fields{
-		"pipe":    "stdout",
-		"command": name,
+		//"pipe":    "stdout",
+		//"command": name,
+		"id": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stdout.Close()
 
 	stderr := log.WithFields(log.Fields{
-		"pipe":    "stderr",
-		"command": name,
+		//"pipe":    "stderr",
+		//"command": name,
+		"id": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stderr.Close()
 

@@ -25,12 +25,12 @@ func ECRLogin() error {
 	}
 
 	dockerLoginArgs := strings.Fields(string(out))
-	err = util.Exec(dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	err = util.Exec("ecr-login", dockerLoginArgs[0], dockerLoginArgs[1:]...)
 	return errors.Wrap(err, "docker login failed")
 }
 
 func Pull(imageURI string) error {
-	err := util.Exec("docker", "pull", imageURI)
+	err := util.Exec(imageURI, "docker", "pull", imageURI)
 	return err
 }
 

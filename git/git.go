@@ -14,14 +14,14 @@ func repoURL(repoName string) string {
 func Clone(repoName, destDir string) error {
 	repoURL := repoURL(repoName)
 	destPath := fmt.Sprintf("%s/%s", destDir, repoName)
-	err := util.Exec("git", "clone", repoURL, destPath)
+	err := util.Exec(repoName, "git", "clone", repoURL, destPath)
 
 	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
 }
 
 func Pull(repoName, repoDir string) error {
 	repoPath := fmt.Sprintf("%s/%s", repoDir, repoName)
-	err := util.Exec("git", "-C", repoPath, "pull")
+	err := util.Exec(repoName, "git", "-C", repoPath, "pull")
 
 	return errors.Wrapf(err, "exec failed to pull %s", repoName)
 }

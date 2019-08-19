@@ -41,7 +41,7 @@ var deps = map[string]Dependency{
 	Pgcli: {
 		Name: "pgcli",
 		BeforeInstall: func() error {
-			err := util.Exec("brew", "tap", "dbcli/tap")
+			err := util.Exec("pgcli-install", "brew", "tap", "dbcli/tap")
 			return errors.Wrap(err, "failed to tap dbcli/tap")
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
@@ -53,7 +53,7 @@ var deps = map[string]Dependency{
 	Lazydocker: {
 		Name: "lazydocker",
 		BeforeInstall: func() error {
-			err := util.Exec("brew", "tap", "jesseduffield/lazydocker")
+			err := util.Exec("lazydocker-install", "brew", "tap", "jesseduffield/lazydocker")
 			return errors.Wrap(err, "failed to tap jesseduffield/lazydocker")
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
@@ -101,7 +101,7 @@ func Resolve(depNames ...string) error {
 		installCmd := dep.InstallCmd[0]
 		installArgs := dep.InstallCmd[1:]
 
-		err := util.Exec(installCmd, installArgs...)
+		err := util.Exec(depName, installCmd, installArgs...)
 		if err != nil {
 			return errors.Wrapf(err, "install failed for %s", dep.Name)
 		}
