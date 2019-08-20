@@ -95,9 +95,7 @@ func SpinnerWait(successCh chan string, failedCh chan error, successMsg string, 
 			if !log.IsLevelEnabled(log.DebugLevel) {
 				clearLine(count + 4)
 			}
-			if successMsg != "" {
-				log.Infof(successMsg, name)
-			}
+			log.Infof(successMsg, name)
 			i++
 			if !log.IsLevelEnabled(log.DebugLevel) {
 				spin(1)
