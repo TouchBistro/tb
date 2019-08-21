@@ -34,45 +34,28 @@ var (
 )
 
 func attemptNPMLogin() {
-	log.Info("☐ logging into NPM")
-
 	err := npm.Login()
 	if err != nil {
 		fatal.ExitErr(err, "☒ failed logging into NPM")
 	}
-
-	log.Info("☑ finished logging into NPM")
 }
 
 func attemptECRLogin() {
-	log.Info("☐ logging into ECR")
-
 	err := docker.ECRLogin()
 	if err != nil {
 		fatal.ExitErr(err, "failed logging into ECR")
 	}
-
-	log.Info("☑ finished logging into ECR")
 }
 
 func cleanupPrevDocker() {
-	log.Info("☐ removing previous docker resources. this may take a long time")
-
-	log.Info("\t☐ stopping any running containers or services")
 	err := docker.StopContainersAndServices()
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
-	log.Info("\t☑ finished stopping running containers and services")
-
-	log.Info("\t☐ removing stopped containers")
 	err = docker.RmContainers()
 	if err != nil {
 		fatal.ExitErr(err, "failed removing containers")
 	}
-	log.Info("\t☑ finished removing stopped containers")
-
-	log.Info("☑ finished cleaning docker resources")
 }
 
 func pullTBBaseImages() {
@@ -227,13 +210,26 @@ Examples:
 
 		fmt.Println()
 
-		attemptNPMLogin()
-		fmt.Println()
+		successCh := make(chan string)
+		failedCh := make(chan error)
 
-		attemptECRLogin()
-		fmt.Println()
+		log.Infof("Logging into NPM, ECR, and cleaning up up previous Docker state.")
 
-		cleanupPrevDocker()
+		go func() {
+			attemptNPMLogin()
+			successCh <- "NPM Login"
+		}()
+		go func() {
+			attemptECRLogin()
+			successCh <- "ECR Login"
+		}()
+		go func() {
+			cleanupPrevDocker()
+			successCh <- "Docker Cleanup"
+		}()
+
+		util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while setting up", 3)
+		log.Info("☑ Finished setup tasks")
 		fmt.Println()
 
 		if !opts.shouldSkipDockerPull {
@@ -243,8 +239,8 @@ Examples:
 
 		if !opts.shouldSkipDockerPull {
 			log.Info("☐ pulling the latest docker images for selected services")
-			successCh := make(chan string)
-			failedCh := make(chan error)
+			successCh = make(chan string)
+			failedCh = make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if s.ECR || s.DockerhubImage != "" {
@@ -276,8 +272,8 @@ Examples:
 		if !opts.shouldSkipGitPull {
 			// Pull latest github repos
 			log.Info("☐ pulling the latest default git branch for selected services")
-			successCh := make(chan string)
-			failedCh := make(chan error)
+			successCh = make(chan string)
+			failedCh = make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if s.IsGithubRepo {
@@ -305,8 +301,8 @@ Examples:
 
 		if !opts.shouldSkipDBPrepare {
 			log.Info("☐ performing database migrations and seeds")
-			successCh := make(chan string)
-			failedCh := make(chan error)
+			successCh = make(chan string)
+			failedCh = make(chan error)
 			count := 0
 			for name, s := range selectedServices {
 				if !s.Migrations {
@@ -326,7 +322,7 @@ Examples:
 				count++
 				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				// Any ideas better than a sleep hack are appreciated
-				time.Sleep(3 * time.Second)
+				time.Sleep(time.Second / 3)
 			}
 			util.SpinnerWait(successCh, failedCh, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
 
