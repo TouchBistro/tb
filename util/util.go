@@ -24,15 +24,11 @@ func Exec(id string, name string, arg ...string) error {
 	cmd := exec.Command(name, arg...)
 
 	stdout := log.WithFields(log.Fields{
-		//"pipe":    "stdout",
-		//"command": name,
 		"id": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stdout.Close()
 
 	stderr := log.WithFields(log.Fields{
-		//"pipe":    "stderr",
-		//"command": name,
 		"id": id,
 	}).WriterLevel(log.DebugLevel)
 	defer stderr.Close()
