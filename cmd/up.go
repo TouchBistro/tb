@@ -100,7 +100,7 @@ func dockerComposeBuild() {
 	}
 
 	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str)
-	err := util.Exec("docker-compose", strings.Fields(buildArgs)...)
+	err := util.Exec("compose-build", "docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "could not build docker-compose services")
 	}
@@ -115,7 +115,7 @@ func dockerComposeUp() {
 	log.Info("☐ starting docker-compose up in detached mode")
 
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
-	err := util.Exec("docker-compose", strings.Fields(upArgs)...)
+	err := util.Exec("compose-up", "docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
 	}
@@ -312,7 +312,7 @@ Examples:
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
 				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
 				go func(successCh chan string, failedCh chan error, name string, args ...string) {
-					err := util.Exec("docker-compose", args...)
+					err := util.Exec(name, "docker-compose", args...)
 					if err != nil {
 						failedCh <- err
 						return
@@ -322,7 +322,7 @@ Examples:
 				count++
 				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				// Any ideas better than a sleep hack are appreciated
-				time.Sleep(time.Second / 3)
+				time.Sleep(time.Second)
 			}
 			util.SpinnerWait(successCh, failedCh, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
 
@@ -335,7 +335,7 @@ Examples:
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
-		err = util.Exec("lazydocker")
+		err = util.Exec("lazydocker", "lazydocker")
 		if err != nil {
 			fatal.ExitErr(err, "failed running lazydocker")
 		}

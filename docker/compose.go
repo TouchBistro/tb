@@ -19,7 +19,7 @@ func ComposeFile() string {
 
 func ComposeStop() error {
 	stopArgs := fmt.Sprintf("%s stop -t %d", ComposeFile(), stopTimeoutSecs)
-	err := util.Exec("docker-compose", strings.Fields(stopArgs)...)
+	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
 
 	return errors.Wrap(err, "could not exec docker-compose stop")
 }
