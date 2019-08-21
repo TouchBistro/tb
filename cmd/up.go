@@ -159,11 +159,9 @@ func selectServices() {
 	selectedServices = make(config.ServiceMap, len(names))
 	for _, name := range names {
 		if _, ok := services[name]; !ok {
-			if opts.playlistName != "" {
-				fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
-			}
-			selectedServices[name] = services[name]
+			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
 		}
+		selectedServices[name] = services[name]
 	}
 
 	if len(selectedServices) == 0 {
