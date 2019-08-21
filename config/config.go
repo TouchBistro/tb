@@ -177,9 +177,9 @@ func BaseImages() []string {
 }
 
 func GetPlaylist(name string, deps map[string]bool) []string {
-	// Initialize no playlists if we couldnt load yaml in Init()
+	// TODO: Make this less yolo if Init() wasn't called
 	if playlists == nil {
-		playlists = make(map[string]Playlist)
+		log.Panic("this is a bug. playlists is not initialised")
 	}
 	customList := tbrc.Playlists
 

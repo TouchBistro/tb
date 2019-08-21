@@ -160,11 +160,8 @@ func selectServices() {
 	for _, name := range names {
 		if _, ok := services[name]; !ok {
 			if opts.playlistName != "" {
-				log.Infof("%s is not a tb service name, ignoring and continuing playlist.\n", name)
-			} else {
 				fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
 			}
-		} else {
 			selectedServices[name] = services[name]
 		}
 	}
