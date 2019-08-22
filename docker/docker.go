@@ -88,7 +88,7 @@ func RmImages() error {
 	}
 
 	for _, image := range images {
-		if _, err := cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{}); err != nil {
+		if _, err := cli.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{Force: true, PruneChildren: true}); err != nil {
 			return errors.Wrapf(err, "failed to remove image %s", image.ID)
 		}
 	}
