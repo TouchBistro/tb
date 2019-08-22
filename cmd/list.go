@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"sort"
-
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
+	"sort"
 )
 
 var (
@@ -83,8 +83,11 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 		if !tree {
 			continue
 		}
-
-		for _, s := range config.GetPlaylist(name, make(map[string]bool)) {
+		list, err := config.GetPlaylist(name, make(map[string]bool))
+		if err != nil {
+			fatal.ExitErr(err, "☒ failed resolving service playlist")
+		}
+		for _, s := range list {
 			fmt.Printf("    - %s\n", s)
 		}
 	}

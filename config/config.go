@@ -176,7 +176,7 @@ func BaseImages() []string {
 	}
 }
 
-func GetPlaylist(name string, deps map[string]bool) []string {
+func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
 	// TODO: Make this less yolo if Init() wasn't called
 	if playlists == nil {
 		log.Panic("this is a bug. playlists is not initialised")
@@ -189,27 +189,29 @@ func GetPlaylist(name string, deps map[string]bool) []string {
 		if playlist.Extends != "" {
 			deps[name] = true
 			if deps[playlist.Extends] {
-				log.Fatalf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				return []string{}, errors.New(msg)
 			}
-			parentPlaylist := GetPlaylist(playlist.Extends, deps)
-			return append(parentPlaylist, playlist.Services...)
+			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
+			return append(parentPlaylist, playlist.Services...), err
 		}
 
-		return playlist.Services
+		return playlist.Services, nil
 	} else if playlist, ok := playlists[name]; ok {
 		if playlist.Extends != "" {
 			deps[name] = true
 			if deps[playlist.Extends] {
-				log.Fatalf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				return []string{}, errors.New(msg)
 			}
-			parentPlaylist := GetPlaylist(playlist.Extends, deps)
-			return append(parentPlaylist, playlist.Services...)
+			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
+			return append(parentPlaylist, playlist.Services...), err
 		}
 
-		return playlist.Services
+		return playlist.Services, nil
 	}
 
-	return []string{}
+	return []string{}, nil
 }
 
 func RmFiles() error {
