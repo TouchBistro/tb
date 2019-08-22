@@ -176,7 +176,7 @@ func BaseImages() []string {
 	}
 }
 
-func GetPlaylist(name string) []string {
+func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
 	// TODO: Make this less yolo if Init() wasn't called
 	if playlists == nil {
 		log.Panic("this is a bug. playlists is not initialised")
@@ -185,25 +185,33 @@ func GetPlaylist(name string) []string {
 
 	// Check custom playlists first
 	if playlist, ok := customList[name]; ok {
-		// TODO: Circular extends can make this infinite loop
-		// Make sure people don't do that
 		// Resolve parent playlist defined in extends
 		if playlist.Extends != "" {
-			parentPlaylist := GetPlaylist(playlist.Extends)
-			return append(parentPlaylist, playlist.Services...)
+			deps[name] = true
+			if deps[playlist.Extends] {
+				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				return []string{}, errors.New(msg)
+			}
+			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
+			return append(parentPlaylist, playlist.Services...), err
 		}
 
-		return playlist.Services
+		return playlist.Services, nil
 	} else if playlist, ok := playlists[name]; ok {
 		if playlist.Extends != "" {
-			parentPlaylist := GetPlaylist(playlist.Extends)
-			return append(parentPlaylist, playlist.Services...)
+			deps[name] = true
+			if deps[playlist.Extends] {
+				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
+				return []string{}, errors.New(msg)
+			}
+			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
+			return append(parentPlaylist, playlist.Services...), err
 		}
 
-		return playlist.Services
+		return playlist.Services, nil
 	}
 
-	return []string{}
+	return []string{}, nil
 }
 
 func RmFiles() error {

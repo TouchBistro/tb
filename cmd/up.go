@@ -136,12 +136,14 @@ func selectServices() {
 		if len(name) == 0 {
 			fatal.Exit("playlist name cannot be blank. try running tb up --help")
 		}
-
-		names = config.GetPlaylist(name)
+		var err error
+		names, err = config.GetPlaylist(name, make(map[string]bool))
+		if err != nil {
+			fatal.ExitErr(err, "☒ failed resolving service playlist")
+		}
 		if len(names) == 0 {
 			fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb list --playlists to see all the available playlists.\n", name)
 		}
-
 		// parsing --services
 	} else if len(opts.cliServiceNames) > 0 {
 		names = opts.cliServiceNames
