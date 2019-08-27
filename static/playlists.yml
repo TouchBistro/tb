@@ -71,3 +71,7 @@ vaf:
   extends: vaf-deps
   services:
     - venue-admin-frontend
+loyalty:
+  services:
+    - postgres
+    - loyalty-gateway-service
