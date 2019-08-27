@@ -3,6 +3,7 @@ package docker
 import (
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/TouchBistro/tb/util"
@@ -96,6 +97,22 @@ func RmImages() error {
 	return nil
 }
 
+func PruneImages() (uint64, error) {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to create docker client")
+	}
+	args := filters.NewArgs()
+	args.Add("dangling", "false")
+	report, err := cli.ImagesPrune(ctx, args)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed to prune images")
+	}
+
+	return report.SpaceReclaimed, nil
+}
+
 func RmNetworks() error {
 	ctx := context.Background()
 	cli, err := client.NewEnvClient()
@@ -160,4 +177,29 @@ func StopContainersAndServices() error {
 	log.Debug("...done")
 
 	return nil
+}
+
+func CheckDockerDiskUsage() (bool, uint64, error) {
+	ctx := context.Background()
+	cli, err := client.NewEnvClient()
+	if err != nil {
+		return false, 0, errors.Wrap(err, "failed to create docker client")
+	}
+
+	disk, err := cli.DiskUsage(ctx)
+	usage := uint64(disk.LayersSize)
+	if err != nil {
+		return false, 0, errors.Wrap(err, "could not retreive docker disk usage")
+	}
+	fs := syscall.Statfs_t{}
+	err = syscall.Statfs("/", &fs)
+	if err != nil {
+		return false, usage, errors.Wrap(err, "could not retreive system disk usage")
+	}
+
+	//if docker is using more than double our available disk space, probably cleanup
+	if usage > (fs.Bfree*uint64(fs.Bsize))*2 {
+		return true, usage, nil
+	}
+	return false, usage, nil
 }

@@ -118,3 +118,17 @@ func clearLine(length int) {
 	fmt.Print(b.String())
 	fmt.Printf("\r")
 }
+
+func Prompt(msg string) bool {
+	//check for yes and assume no on any other input to avoid annoyance
+	fmt.Printf(msg)
+	var resp string
+	_, err := fmt.Scanln(&resp)
+	if err != nil {
+		return false
+	}
+	if strings.ToLower(string(resp[0])) == "y" {
+		return true
+	}
+	return false
+}

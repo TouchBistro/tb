@@ -234,6 +234,29 @@ Examples:
 		log.Info("☑ Finished setup tasks")
 		fmt.Println()
 
+		//check for docker disk usage after cleanup
+		full, usage, err := docker.CheckDockerDiskUsage()
+		log.Infof("Current docker disk usage: %.2fGB", ((float64(usage)/1024)/1024)/1024)
+		if err != nil {
+			fatal.ExitErr(err, "☒ failed checking docker status")
+		}
+		if full {
+			if util.Prompt("Your free disk space is running out, would you like to cleanup? y/n >") {
+				//Images are all we really care about as far as space cleaning
+				log.Infoln("Removing images...")
+				go func(successCh chan string, failedCh chan error) {
+					pruned, err := docker.PruneImages()
+					if err != nil {
+						failedCh <- err
+						return
+					}
+					cleaned := fmt.Sprintf("%.2f", ((float64(pruned)/1024)/1024)/1024)
+					successCh <- cleaned
+				}(successCh, failedCh)
+				util.SpinnerWait(successCh, failedCh, "\t☑ finished pruning docker images, reclaimed %sGB\n", "failed pruning docker images", 1)
+			}
+		}
+
 		if !opts.shouldSkipDockerPull {
 			pullTBBaseImages()
 			fmt.Println()
