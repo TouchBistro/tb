@@ -533,6 +533,19 @@ x-infrastructure-auth-service-boilerplate:
   depends_on:
     - postgres
 
+x-loyalty-gateway-service-boilerplate:
+  &loyalty-gateway-service-boilerplate
+  env_file:
+    - $TB_ROOT/loyalty-gateway-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    << : *node-service
+    << : *postgres-connect
+  ports:
+    - "8600:8080"
+  depends_on:
+    - postgres
+
 ###### SERVICES ######
 
 services:
@@ -998,6 +1011,23 @@ services:
     volumes:
       - $TB_ROOT/infrastructure-auth-service:/home/node/app:delegated
 
+  loyalty-gateway-service-ecr:
+    << : *loyalty-gateway-service-boilerplate
+    image: $LOYALTY_GATEWAY_SERVICE_IMAGE_URI
+    container_name: loyalty-devtools_loyalty-gateway-service-ecr_container
+    << : *command-serve
+
+  loyalty-gateway-service:
+    << : *loyalty-gateway-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/loyalty-gateway-service
+    image: loyalty-devtools_loyalty-gateway-service
+    container_name: loyalty-devtools_loyalty-gateway-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
+
 ###### VOLUMES ######
 
 volumes:
@@ -1016,3 +1046,4 @@ volumes:
   partners-reservations-service-node_modules:
   venue-upload-service-node_modules:
   infrastructure-auth-service-node_modules:
+  loyalty-gateway-service-node_modules:

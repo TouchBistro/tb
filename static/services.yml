@@ -134,3 +134,8 @@ infrastructure-auth-service:
   migrations: true
   ecr: true
   ecrTag: master
+loyalty-gateway-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
