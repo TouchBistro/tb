@@ -51,6 +51,8 @@ You will need access to AWS ECR (Amazon's docker registry) to pull artifacts ins
 ### SSH Key
 The following instructions assume you have an ssh key connected to your GitHub account. If you do not have one, please create on by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh). Also make sure your SSH key is enabled for SSO.
 
+If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh-agent` before running tb. This can be done automatically using your MacOS keyring to automatically load the key to your shell with `ssh-add -K $HOME/.ssh/id_rsa`, which can be added to your shell configuration.
+
 ## Installation
 
 `tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
