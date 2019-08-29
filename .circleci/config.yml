@@ -1,4 +1,4 @@
-version: 2
+version: 2.1
 
 jobs:
   lint-build:
@@ -30,7 +30,6 @@ jobs:
           command: ./tb
 
 workflows:
-  version: 2
   lint-build:
     jobs:
       - lint-build
