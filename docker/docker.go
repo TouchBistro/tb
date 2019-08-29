@@ -197,7 +197,7 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 		return false, usage, errors.Wrap(err, "could not retreive system disk usage")
 	}
 
-	//if docker is using more than double our available disk space, probably cleanup
+	// if docker is using more than double our available disk space, probably cleanup
 	if usage > (fs.Bfree*uint64(fs.Bsize))*2 {
 		return true, usage, nil
 	}

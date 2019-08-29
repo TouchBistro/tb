@@ -120,7 +120,7 @@ func clearLine(length int) {
 }
 
 func Prompt(msg string) bool {
-	//check for yes and assume no on any other input to avoid annoyance
+	// check for yes and assume no on any other input to avoid annoyance
 	fmt.Print(msg)
 	var resp string
 	_, err := fmt.Scanln(&resp)
