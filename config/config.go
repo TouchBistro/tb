@@ -22,6 +22,7 @@ const (
 	playlistPath             = "playlists.yml"
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
+	lazydockerConfigPath     = "config.yml"
 	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
@@ -40,8 +41,8 @@ func setupEnv() error {
 	return nil
 }
 
-func dumpFile(name string, box *packr.Box) error {
-	path := fmt.Sprintf("%s/%s", tbRoot, name)
+func dumpFile(name, dir string, box *packr.Box) error {
+	path := fmt.Sprintf("%s/%s", dir, name)
 	buf, err := box.Find(name)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", name)
@@ -116,12 +117,18 @@ func Init() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	err = dumpFile(dockerComposePath, box)
+	err = dumpFile(dockerComposePath, tbRoot, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", dockerComposePath)
 	}
 
-	err = dumpFile(localstackEntrypointPath, box)
+	err = dumpFile(localstackEntrypointPath, tbRoot, box)
+	if err != nil {
+		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
+	}
+
+	ldPath := fmt.Sprintf("%s/Library/ApplicationSupport/jesseduffield/lazydocker/", os.Getenv("HOME"))
+	err = dumpFile(lazydockerConfigPath, ldPath, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
