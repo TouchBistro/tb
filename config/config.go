@@ -22,6 +22,7 @@ const (
 	playlistPath             = "playlists.yml"
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
+	lazydockerConfigPath     = "lazydocker.yml"
 	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
@@ -40,18 +41,18 @@ func setupEnv() error {
 	return nil
 }
 
-func dumpFile(name string, box *packr.Box) error {
-	path := fmt.Sprintf("%s/%s", tbRoot, name)
-	buf, err := box.Find(name)
+func dumpFile(from, to, dir string, box *packr.Box) error {
+	path := fmt.Sprintf("%s/%s", dir, to)
+	buf, err := box.Find(from)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find packr box %s", name)
+		return errors.Wrapf(err, "failed to find packr box %s", from)
 	}
 
 	var reason string
 	// If file exists compare the checksum to the packr version
 	if util.FileOrDirExists(path) {
 		log.Debugf("%s exists", path)
-		log.Debugf("comparing checksums for %s", name)
+		log.Debugf("comparing checksums for %s", from)
 
 		fileBuf, err := ioutil.ReadFile(path)
 		if err != nil {
@@ -60,7 +61,7 @@ func dumpFile(name string, box *packr.Box) error {
 
 		memChecksum, err := util.MD5Checksum(buf)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get checksum of %s in packr box", name)
+			return errors.Wrapf(err, "failed to get checksum of %s in packr box", from)
 		}
 
 		fileChecksum, err := util.MD5Checksum(fileBuf)
@@ -70,7 +71,7 @@ func dumpFile(name string, box *packr.Box) error {
 
 		// checksums are the same, leave as is
 		if bytes.Equal(memChecksum, fileChecksum) {
-			log.Debugf("checksums match, leaving %s as is", name)
+			log.Debugf("checksums match, leaving %s as is", from)
 			return nil
 		}
 
@@ -82,7 +83,7 @@ func dumpFile(name string, box *packr.Box) error {
 	log.Debugf("%s %s", path, reason)
 
 	err = ioutil.WriteFile(path, buf, 0644)
-	return errors.Wrapf(err, "failed to write contents of %s to %s", name, path)
+	return errors.Wrapf(err, "failed to write contents of %s to %s", from, path)
 }
 
 func TBRootPath() string {
@@ -116,12 +117,18 @@ func Init() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	err = dumpFile(dockerComposePath, box)
+	err = dumpFile(dockerComposePath, dockerComposePath, tbRoot, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", dockerComposePath)
 	}
 
-	err = dumpFile(localstackEntrypointPath, box)
+	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
+	if err != nil {
+		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
+	}
+
+	ldPath := fmt.Sprintf("%s/Library/ApplicationSupport/jesseduffield/lazydocker/", os.Getenv("HOME"))
+	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
