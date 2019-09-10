@@ -59,17 +59,7 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
 
 1. If you haven't set up the AWS CLI before, see the [setup instructions](#aws-ecr).
 
-2. Add Touchbistro's tap to get access to all the available tools:
-    ```sh
-    brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
-    ```
-3. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.  
-    Go to `Preferences` > `Advanced` and set the following settings:
-    - CPUs: 3
-    - Memory: 10.0 GiB
-    - Swap: 1.0 GiB
-
-4. Create a GitHub Access Token
+2. Create a GitHub Access Token
     - Create the token with the `repo` box checked in the list of permissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
         - Make sure you copy the token when you create it!
     - After the token has been created, enable SSO for it.
@@ -79,7 +69,24 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
     ```
     - Run `source ~/.zshrc` or `source ~/.bash_profile`.
 
-5. Install `tb` with brew
+3. Add the following to your `.bash_profile` or `.zshrc`:
+    ```sh
+    export NPM_TOKEN=<YOUR_TOKEN>
+    ```
+    - Run `source ~/.zshrc` or `source ~/.bash_profile`.
+
+4. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.  
+    Go to `Preferences` > `Advanced` and set the following settings:
+    - CPUs: 3
+    - Memory: 10.0 GiB
+    - Swap: 1.0 GiB
+
+5. Add Touchbistro's tap to get access to all the available tools:
+    ```sh
+    brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
+    ```
+
+6. Install `tb` with brew
     ```sh
     brew install tb
     ```
