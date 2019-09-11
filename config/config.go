@@ -127,7 +127,7 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
-	ldPath := fmt.Sprintf("%s/Library/ApplicationSupport/jesseduffield/lazydocker/", os.Getenv("HOME"))
+	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
 	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
