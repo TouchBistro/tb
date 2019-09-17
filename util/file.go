@@ -3,6 +3,7 @@ package util
 import (
 	"io"
 	"os"
+	"strings"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -13,6 +14,19 @@ func FileOrDirExists(path string) bool {
 		return false
 	}
 	return true
+}
+
+func MkdirFullpath(path string) error {
+	parent := strings.Join(strings.Split(path, "/")[:len(strings.Split(path, "/"))-1], "/")
+	_, err := os.Stat(parent)
+	if os.IsNotExist(err) {
+		err = MkdirFullpath(parent)
+		if err != nil {
+			return nil
+		}
+	}
+	err = os.Mkdir(path, 0766)
+	return err
 }
 
 func AppendLineToFile(path string, line string) error {
