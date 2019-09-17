@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -90,6 +91,21 @@ func TBRootPath() string {
 	return tbRoot
 }
 
+func mkdirFullpath(path string) error {
+	log.Debug("Creating " + path)
+	parent := strings.Join(strings.Split(path, "/")[:len(strings.Split(path, "/"))-1], "/")
+	log.Debug(parent)
+	_, err := os.Stat(parent)
+	if os.IsNotExist(err) {
+		err = mkdirFullpath(parent)
+		if err != nil {
+			return nil
+		}
+	}
+	err = os.Mkdir(path, 0766)
+	return err
+}
+
 func Init() error {
 	err := setupEnv()
 	if err != nil {
@@ -128,6 +144,7 @@ func Init() error {
 	}
 
 	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
+	err = mkdirFullpath(ldPath)
 	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
