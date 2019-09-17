@@ -128,6 +128,11 @@ func Init() error {
 	}
 
 	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
+	err = os.MkdirAll(ldPath, 0766)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldPath)
+	}
+
 	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
