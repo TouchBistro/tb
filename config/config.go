@@ -128,7 +128,7 @@ func Init() error {
 	}
 
 	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
-	err = util.MkdirFullpath(ldPath)
+	err = os.MkdirAll(ldPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldPath)
 	}
