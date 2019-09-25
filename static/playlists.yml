@@ -75,3 +75,12 @@ loyalty:
   services:
     - postgres
     - loyalty-gateway-service
+pos-loyalty:
+  extends: loyalty
+  services:
+    - venue-provisioning-service
+    - legacy-database
+    - dotnet-manage
+    - dotnet-api
+    - cloud-server
+    - redis
