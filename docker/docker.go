@@ -1,9 +1,10 @@
 package docker
 
 import (
+	"fmt"
+	"os"
 	"os/exec"
 	"strings"
-	"syscall"
 	"time"
 
 	"github.com/TouchBistro/tb/util"
@@ -191,14 +192,14 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 	if err != nil {
 		return false, 0, errors.Wrap(err, "could not retreive docker disk usage")
 	}
-	fs := syscall.Statfs_t{}
-	err = syscall.Statfs("/", &fs)
+	dockerVmPath := fmt.Sprintf("%s/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw", os.Getenv("HOME"))
+	fs, err := os.Stat(dockerVmPath)
 	if err != nil {
 		return false, usage, errors.Wrap(err, "could not retreive system disk usage")
 	}
 
-	// if docker is using more than double our available disk space, probably cleanup
-	if usage > (fs.Bfree*uint64(fs.Bsize))*2 {
+	// if docker is using more than 90% our available docker space, probably cleanup
+	if usage > uint64(float64(fs.Size())*0.9) {
 		return true, usage, nil
 	}
 	return false, usage, nil
