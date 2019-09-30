@@ -198,8 +198,8 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 		return false, usage, errors.Wrap(err, "could not retreive system disk usage")
 	}
 
-	// if docker is using more than 90% our available docker space, probably cleanup
-	if usage > uint64(float64(fs.Size())*0.9) {
+	// if docker is using more than 60% our available docker space, probably cleanup
+	if usage > uint64(float64(fs.Size())*0.6) {
 		return true, usage, nil
 	}
 	return false, usage, nil
