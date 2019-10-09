@@ -192,7 +192,7 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 	if err != nil {
 		return false, 0, errors.Wrap(err, "could not retreive docker disk usage")
 	}
-	dockerVmPath := fmt.Sprintf("%s/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw", os.Getenv("HOME"))
+	dockerVmPath := fmt.Sprintf("%s/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw", os.Getenv("HOME"))
 	fs, err := os.Stat(dockerVmPath)
 	if err != nil {
 		return false, usage, errors.Wrap(err, "could not retreive system disk usage")
