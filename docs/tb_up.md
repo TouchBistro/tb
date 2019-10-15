@@ -21,10 +21,11 @@ tb up [flags]
 
 ```
   -h, --help               help for up
-      --no-db-reset        dont reset databases with yarn db:prepare
-      --no-ecr-pull        dont get new ecr images
-      --no-git-pull        dont update git repositories
-      --no-start-servers   dont start servers with yarn start or yarn serve on container boot
+      --no-cleanup         don't stop or remove existing containers
+      --no-db-reset        don't reset databases with yarn db:prepare
+      --no-ecr-pull        don't get new ecr images
+      --no-git-pull        don't update git repositories
+      --no-start-servers   don't start servers with yarn start or yarn serve on container boot
   -p, --playlist string    the name of a service playlist
   -s, --services strings   comma separated list of services to start. eg --services postgres,localstack.
 ```

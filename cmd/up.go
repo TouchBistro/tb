@@ -19,12 +19,13 @@ import (
 )
 
 type options struct {
-	shouldSkipDBPrepare   bool
-	shouldSkipServerStart bool
-	shouldSkipGitPull     bool
-	shouldSkipDockerPull  bool
-	cliServiceNames       []string
-	playlistName          string
+	shouldSkipDBPrepare     bool
+	shouldSkipServerStart   bool
+	shouldSkipDockerCleanup bool
+	shouldSkipGitPull       bool
+	shouldSkipDockerPull    bool
+	cliServiceNames         []string
+	playlistName            string
 }
 
 var (
@@ -226,8 +227,12 @@ Examples:
 			successCh <- "ECR Login"
 		}()
 		go func() {
-			cleanupPrevDocker()
-			successCh <- "Docker Cleanup"
+			if opts.shouldSkipDockerCleanup {
+				successCh <- "Skipping Docker Cleanup"
+			} else {
+				cleanupPrevDocker()
+				successCh <- "Docker Cleanup"
+			}
 		}()
 
 		util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while setting up", 3)
@@ -375,10 +380,11 @@ Examples:
 }
 
 func init() {
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "dont get new ecr images")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "don't start servers with yarn start or yarn serve on container boot")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "don't reset databases with yarn db:prepare")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerCleanup, "no-cleanup", false, "don't stop or remove existing containers")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "don't update git repositories")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "don't get new ecr images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
