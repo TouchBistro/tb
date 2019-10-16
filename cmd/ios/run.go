@@ -1,4 +1,4 @@
-package cmd
+package ios
 
 import (
 	"github.com/TouchBistro/tb/config"
@@ -15,15 +15,10 @@ var (
 	appPath     string
 )
 
-var iosCmd = &cobra.Command{
-	Use:   "ios",
+var runCmd = &cobra.Command{
+	Use:   "run",
 	Short: "Runs iOS apps in the iOS Simulator",
 	Run: func(cmd *cobra.Command, args []string) {
-		err := config.InitIOS()
-		if err != nil {
-			fatal.ExitErr(err, "Failed to initialize iOS config")
-		}
-
 		log.Debugln("☐ Finding device UUID")
 		deviceUUID, err := config.GetDeviceUUID(iosVersion, deviceName)
 		if err != nil {
@@ -69,10 +64,16 @@ var iosCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(iosCmd)
-	iosCmd.Flags().StringVarP(&iosVersion, "version", "v", "iOS 12.2", "iOS version to use")
-	iosCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air 2", "The name of the device to use")
-	iosCmd.Flags().StringVarP(&appBundleID, "bundleID", "b", "com.touchbistro.TouchBistro", "The application bundle identifier")
-	iosCmd.Flags().StringVarP(&appPath, "path", "p", "", "The path to the app build")
-	iosCmd.MarkFlagRequired("path")
+	iosCmd.AddCommand(runCmd)
+	runCmd.Flags().StringVarP(&iosVersion, "version", "v", "iOS 12.2", "iOS version to use")
+	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air 2", "The name of the device to use")
+	runCmd.Flags().StringVarP(&appBundleID, "bundleID", "b", "com.touchbistro.TouchBistro", "The application bundle identifier")
+
+	// TODO remove this shit once we pull from S3
+	runCmd.Flags().StringVarP(&appPath, "path", "p", "", "The path to the app build")
+
+	err := runCmd.MarkFlagRequired("path")
+	if err != nil {
+		fatal.ExitErrf(err, "No such command %s", "path")
+	}
 }
