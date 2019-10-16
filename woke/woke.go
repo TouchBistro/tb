@@ -16,8 +16,8 @@ type Fortune struct {
 // TODO: Consider moving these to an external Wokefile
 var fortunes = []Fortune{
 	Fortune{
-		Quote:  "Duplication is far cheaper than the wrong abstraction.",
-		Author: "Sandi Metz",
+		"Duplication is far cheaper than the wrong abstraction.",
+		"Sandi Metz",
 	},
 	Fortune{
 		"Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.",
@@ -88,7 +88,8 @@ func (f Fortune) String() string {
 
 		currLine.WriteString(word)
 
-		if i == len(words)-1 {
+		isLastWord := i == len(words)-1
+		if isLastWord {
 			lines = append(lines, currLine.String())
 		} else {
 			currLine.WriteString(" ")
