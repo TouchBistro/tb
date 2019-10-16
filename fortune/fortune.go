@@ -1,4 +1,4 @@
-package woke
+package fortune
 
 import (
 	"fmt"
