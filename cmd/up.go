@@ -11,10 +11,10 @@ import (
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
-	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/npm"
 	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/woke"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -185,7 +185,7 @@ Examples:
 			os.Setenv("START_SERVER", "true")
 		}
 
-		f := fortune.Random()
+		f := woke.Random()
 		fmt.Println(f)
 
 		selectServices()
