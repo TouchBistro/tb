@@ -82,14 +82,13 @@ func (f Fortune) String() string {
 	for i, word := range words {
 		if currLine.Len()+len(word) >= termWidth {
 			lines = append(lines, currLine.String())
-			var next strings.Builder
-			currLine = next
+			var nextLine strings.Builder
+			currLine = nextLine
 		}
 
 		currLine.WriteString(word)
 
-		isLastWord := i == len(words)-1
-		if isLastWord {
+		if i == len(words)-1 {
 			lines = append(lines, currLine.String())
 		} else {
 			currLine.WriteString(" ")
