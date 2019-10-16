@@ -10,10 +10,10 @@ import (
 const termWidth = 80
 
 type Fortune struct {
-	Quote, Author string
+	Quote  string
+	Author string
 }
 
-// TODO: Consider moving these to an external Wokefile
 var fortunes = []Fortune{
 	Fortune{
 		"Duplication is far cheaper than the wrong abstraction.",
