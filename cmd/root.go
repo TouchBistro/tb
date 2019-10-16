@@ -3,8 +3,10 @@ package cmd
 import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/aybabtme/logzalgo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 var version string
@@ -43,6 +45,11 @@ func initConfig() {
 		// TODO: Remove the log level - its quite ugly
 		DisableTimestamp: true,
 	})
+
+	now := time.Now()
+	if now.Month() == 10 && now.Day() == 31 {
+		log.SetFormatter(logzalgo.NewZalgoFormatterrrrrr())
+	}
 
 	if logLevel != log.DebugLevel {
 		fatal.ShowStackTraces = false
