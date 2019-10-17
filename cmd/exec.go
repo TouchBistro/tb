@@ -39,10 +39,12 @@ Examples:
 			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
-		cmds := strings.Join(args[1:], " ")
-		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), config.ComposeName(serviceName, service), cmds)
+		composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), config.ComposeName(serviceName, service))
+		composeCmdArgs := strings.Split(composeCmd, " ")
+		composeCmdArgs = append(composeCmdArgs, args[1:]...)
 
-		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
+		execCmd := exec.Command("docker-compose", composeCmdArgs...)
+
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
 		execCmd.Stdin = os.Stdin
