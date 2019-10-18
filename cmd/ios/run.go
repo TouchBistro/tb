@@ -3,7 +3,7 @@ package ios
 import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/simulator"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -28,34 +28,33 @@ var runCmd = &cobra.Command{
 		log.Debugf("☑ Found device UUID: %s\n", deviceUUID)
 		log.Infof("☐ Booting Simulator %s\n", deviceName)
 
-		execID := "simctl"
-		err = util.Exec(execID, "xcrun", "simctl", "bootstatus", deviceUUID, "-b")
+		err = simulator.Boot(deviceUUID)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to boot simulator %s with UUID %s", deviceName, deviceUUID)
+			fatal.ExitErrf(err, "☒ Failed to boot simulator %s", deviceName)
 		}
 
 		log.Infof("☑ Booted simulator %s\n", deviceName)
 		log.Debugln("☐ Opening simulator app")
 
-		err = util.Exec("open-sim", "open", "-a", "simulator")
+		err = simulator.Open()
 		if err != nil {
-			fatal.ExitErr(err, "Failed to open simulator application")
+			fatal.ExitErr(err, "☒ Failed to launch simulator")
 		}
 
 		log.Debugln("☑ Opened simulator app")
 		log.Infof("☐ Installing app on %s\n", deviceName)
 
-		err = util.Exec(execID, "xcrun", "simctl", "install", deviceUUID, appPath)
+		err = simulator.InstallApp(deviceUUID, appPath)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to install app on simulator %s with UUID %s", deviceName, deviceUUID)
+			fatal.ExitErrf(err, "☒ Failed to install app at path %s on simulator %s", appPath, deviceName)
 		}
 
 		log.Infof("☑ Installed app %s on %s\n", appBundleID, deviceName)
 		log.Info("☐ Launching app in simulator")
 
-		err = util.Exec(execID, "xcrun", "simctl", "launch", deviceUUID, appBundleID)
+		err = simulator.LaunchApp(deviceUUID, appBundleID)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to launch app %s on simulator %s with UUID %s", appBundleID, deviceName, deviceUUID)
+			fatal.ExitErrf(err, "☒ Failed to launch app %s on simulator %s", appBundleID, deviceName)
 		}
 
 		log.Infof("☑ Launched app %s on %s\n", appBundleID, deviceName)
