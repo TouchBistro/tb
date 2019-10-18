@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"runtime"
 	"time"
 
 	"github.com/TouchBistro/tb/cmd/ios"
@@ -31,9 +30,7 @@ func Execute() {
 
 func init() {
 	// Add subcommands
-	if runtime.GOOS == "darwin" {
-		rootCmd.AddCommand(ios.IOS())
-	}
+	rootCmd.AddCommand(ios.IOS())
 
 	cobra.OnInitialize(initConfig)
 }
