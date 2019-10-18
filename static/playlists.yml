@@ -84,3 +84,7 @@ pos-loyalty:
     - dotnet-api
     - cloud-server
     - redis
+cs-portal-deps:
+  services:
+    - backoffice-customer-service
+    - infrastructure-auth-service

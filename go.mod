@@ -7,7 +7,8 @@ require (
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/gobuffalo/packr/v2 v2.5.2
+	github.com/gobuffalo/packr/v2 v2.7.1
+	github.com/karrick/godirwalk v1.10.12 // indirect
 	github.com/kortschak/zalgo v0.0.0-20190131100928-344d6584eb92
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.8.1
@@ -16,3 +17,5 @@ require (
 	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+go 1.13

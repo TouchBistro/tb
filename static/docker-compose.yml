@@ -546,6 +546,21 @@ x-loyalty-gateway-service-boilerplate:
   depends_on:
     - postgres
 
+x-backoffice-customer-service-boilerplate:
+  &backoffice-customer-service-boilerplate
+  env_file:
+    - $TB_ROOT/backoffice-customer-service/.env.example
+  environment:
+    << : *postgres-connect
+    << : *node-service
+    JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
+    TASK_PROVIDER: inmemory
+  ports:
+    - "8101:8080"
+  depends_on:
+    - postgres
+    - $INFRASTRUCTURE_AUTH_SERVICE_NAME
+
 ###### SERVICES ######
 
 services:
@@ -1027,6 +1042,24 @@ services:
     << : *command-start
     volumes:
       - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
+  
+  backoffice-customer-service-ecr:
+    << : *backoffice-customer-service-boilerplate
+    image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
+    container_name: backoffice-devtools_backoffice-customer-service-ecr_container
+    << : *command-serve
+
+  backoffice-customer-service:
+    << : *backoffice-customer-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/backoffice-customer-service
+    image: backoffice-devtools_backoffice-customer-service
+    container_name: backoffice-devtools_backoffice-customer-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
+      - backoffice-customer-service-node_modules:/home/node/app/node_modules
 
 ###### VOLUMES ######
 
@@ -1047,3 +1080,4 @@ volumes:
   venue-upload-service-node_modules:
   infrastructure-auth-service-node_modules:
   loyalty-gateway-service-node_modules:
+  backoffice-customer-service-node_modules:
