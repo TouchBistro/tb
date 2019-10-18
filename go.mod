@@ -3,13 +3,13 @@ module github.com/TouchBistro/tb
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/aybabtme/logzalgo v0.0.0-20191015021931-2f671f6203fa
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/distribution v2.7.1+incompatible // indirect
 	github.com/docker/docker v1.13.1
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/gobuffalo/packr/v2 v2.7.1
-	github.com/karrick/godirwalk v1.10.12 // indirect
-	github.com/kortschak/zalgo v0.0.0-20190131100928-344d6584eb92
+	github.com/kortschak/zalgo v0.0.0-20190131100928-344d6584eb92 // indirect
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/sirupsen/logrus v1.4.2
