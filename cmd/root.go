@@ -1,12 +1,16 @@
 package cmd
 
 import (
+	"time"
+
+	"github.com/TouchBistro/tb/color"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/tb/git"
 	"github.com/aybabtme/logzalgo"
+	semver "github.com/blang/semver"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"time"
 )
 
 var version string
@@ -59,6 +63,42 @@ func initConfig() {
 	if err != nil {
 		fatal.ExitErr(err, "Failed to initialise config files.")
 	}
+
+	checkVersion()
+}
+
+func checkVersion() {
+	// Check if there is a newer version available and let the user know
+	// If it fails just ignore and continue normal operation
+	// Log to debug for troubleshooting
+	latestRelease, err := git.GetLatestRelease()
+	if err != nil {
+		log.Debugln("Failed to get latest version of tb from GitHub. Skipping.")
+		log.Debugln(err)
+		return
+	}
+
+	currentVersion, err := semver.Make(version)
+	if err != nil {
+		log.Debugln("Unable to check current version of tb")
+		return
+	}
+
+	latestVersion, err := semver.Make(latestRelease)
+	if err != nil {
+		log.Debugln("Unable to check latest version of tb")
+		return
+	}
+
+	isLessThan := currentVersion.LT(latestVersion)
+	if !isLessThan {
+		return
+	}
+
+	log.Info(color.Yellow("🚨🚨🚨 Your version of tb is out of date 🚨🚨🚨"))
+	log.Info(color.Yellow("Current version: "), color.Cyan(version))
+	log.Info(color.Yellow("Latest version: "), color.Cyan(latestRelease))
+	log.Info(color.Yellow("Please consider upgrading by running: "), color.Cyan("brew update && brew upgrade tb"))
 }
 
 func Root() *cobra.Command {
