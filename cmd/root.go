@@ -3,6 +3,7 @@ package cmd
 import (
 	"time"
 
+	"github.com/TouchBistro/tb/cmd/ios"
 	"github.com/TouchBistro/tb/color"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
@@ -28,6 +29,9 @@ func Execute() {
 }
 
 func init() {
+	// Add subcommands
+	rootCmd.AddCommand(ios.IOS())
+
 	cobra.OnInitialize(initConfig)
 }
 
