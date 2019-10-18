@@ -1,4 +1,4 @@
-package config
+package simulator
 
 import (
 	"bytes"
@@ -22,6 +22,7 @@ type DeviceSet struct {
 var osMap OSMap
 
 func getSimulators() (OSMap, error) {
+	// Convert plist file containing installed simulators to json
 	path := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/device_set.plist", os.Getenv("HOME"))
 	cmd := exec.Command("plutil", "-convert", "json", "-o", "-", path)
 	cmdOut := &bytes.Buffer{}
@@ -80,7 +81,7 @@ func dashEncode(str string) string {
 	return regex.ReplaceAllString(str, "-")
 }
 
-func InitIOS() error {
+func FindSimulators() error {
 	var err error
 	osMap, err = getSimulators()
 	if err != nil {

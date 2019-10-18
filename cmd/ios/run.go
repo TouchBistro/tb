@@ -1,7 +1,6 @@
 package ios
 
 import (
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/simulator"
 	log "github.com/sirupsen/logrus"
@@ -20,7 +19,7 @@ var runCmd = &cobra.Command{
 	Short: "Runs iOS apps in the iOS Simulator",
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Debugln("☐ Finding device UUID")
-		deviceUUID, err := config.GetDeviceUUID(iosVersion, deviceName)
+		deviceUUID, err := simulator.GetDeviceUUID(iosVersion, deviceName)
 		if err != nil {
 			fatal.ExitErr(err, "☒ Failed to get device UUID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}

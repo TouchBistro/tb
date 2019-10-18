@@ -3,8 +3,8 @@ package ios
 import (
 	"runtime"
 
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/tb/simulator"
 	"github.com/spf13/cobra"
 )
 
@@ -20,9 +20,9 @@ var iosCmd = &cobra.Command{
 			fatal.Exit("Error: tb ios is only supported on macOS")
 		}
 
-		err := config.InitIOS()
+		err := simulator.FindSimulators()
 		if err != nil {
-			fatal.ExitErr(err, "Failed to initialize iOS config")
+			fatal.ExitErr(err, "Failed to find installed iOS simulators")
 		}
 	},
 }
