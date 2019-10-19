@@ -3,6 +3,7 @@ package ios
 import (
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/simulator"
+	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,7 @@ var (
 	deviceName  string
 	appBundleID string
 	appPath     string
+	dataPath    string
 )
 
 var runCmd = &cobra.Command{
@@ -49,6 +51,23 @@ var runCmd = &cobra.Command{
 		}
 
 		log.Infof("☑ Installed app %s on %s\n", appBundleID, deviceName)
+
+		if dataPath != "" {
+			log.Infoln("☐ Injecting data files into simulator")
+
+			appDataPath, err := simulator.GetAppDataPath(deviceUUID, appBundleID)
+			if err != nil {
+				fatal.ExitErrf(err, "Failed to get path to data for app %s", appBundleID)
+			}
+
+			err = util.CopyDirContents(dataPath, appDataPath)
+			if err != nil {
+				fatal.ExitErrf(err, "☒ Failed to inject data into simulator")
+			}
+
+			log.Infoln("☑ Injected data into simulator")
+		}
+
 		log.Info("☐ Launching app in simulator")
 
 		err = simulator.LaunchApp(deviceUUID, appBundleID)
@@ -66,6 +85,7 @@ func init() {
 	runCmd.Flags().StringVarP(&iosVersion, "version", "v", "iOS 12.2", "iOS version to use")
 	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air 2", "The name of the device to use")
 	runCmd.Flags().StringVarP(&appBundleID, "bundleID", "b", "com.touchbistro.TouchBistro", "The application bundle identifier")
+	runCmd.Flags().StringVar(&dataPath, "data-path", "", "The path to a data directory to inject into the simulator")
 
 	// TODO remove this shit once we pull from S3
 	runCmd.Flags().StringVarP(&appPath, "path", "p", "", "The path to the app build")
