@@ -1,14 +1,13 @@
 package simulator
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"regexp"
 	"strings"
 
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
 
@@ -24,17 +23,13 @@ var osMap OSMap
 func getSimulators() (OSMap, error) {
 	// Convert plist file containing installed simulators to json
 	path := fmt.Sprintf("%s/Library/Developer/CoreSimulator/Devices/device_set.plist", os.Getenv("HOME"))
-	cmd := exec.Command("plutil", "-convert", "json", "-o", "-", path)
-	cmdOut := &bytes.Buffer{}
-	cmd.Stdout = cmdOut
-
-	err := cmd.Run()
+	buf, err := util.ExecResult("plutil", "plutil", "-convert", "json", "-o", "-", path)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to read set of iOS simulators")
 	}
 
 	var deviceSet DeviceSet
-	err = json.Unmarshal(cmdOut.Bytes(), &deviceSet)
+	err = json.Unmarshal(buf.Bytes(), &deviceSet)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to parse simulator set JSON")
 	}
