@@ -99,7 +99,7 @@ func dockerComposeBuild() {
 		return
 	}
 
-	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str)
+	buildArgs := fmt.Sprintf("-f %s build --parallel %s", composeFile, str)
 	err := util.Exec("compose-build", "docker-compose", strings.Fields(buildArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "could not build docker-compose services")
@@ -114,55 +114,13 @@ func dockerComposeUp() {
 
 	log.Info("☐ starting docker-compose up in detached mode")
 
-	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
+	upArgs := fmt.Sprintf("-f %s up -d %s", composeFile, strings.Join(serviceNames, " "))
 	err := util.Exec("compose-up", "docker-compose", strings.Fields(upArgs)...)
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
 	}
 
 	log.Info("☑ finished starting docker-compose up in detached mode")
-}
-
-func selectServices() {
-	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
-		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
-	}
-
-	var names []string
-
-	// parsing --playlist
-	if opts.playlistName != "" {
-		name := opts.playlistName
-		if len(name) == 0 {
-			fatal.Exit("playlist name cannot be blank. try running tb up --help")
-		}
-		var err error
-		names, err = config.GetPlaylist(name, make(map[string]bool))
-		if err != nil {
-			fatal.ExitErr(err, "☒ failed resolving service playlist")
-		}
-		if len(names) == 0 {
-			fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb list --playlists to see all the available playlists.\n", name)
-		}
-		// parsing --services
-	} else if len(opts.cliServiceNames) > 0 {
-		names = opts.cliServiceNames
-	} else {
-		fatal.Exit("you must specify either --playlist or --services.\ntry tb up --help for some examples.")
-	}
-
-	services := config.Services()
-	selectedServices = make(config.ServiceMap, len(names))
-	for _, name := range names {
-		if _, ok := services[name]; !ok {
-			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
-		}
-		selectedServices[name] = services[name]
-	}
-
-	if len(selectedServices) == 0 {
-		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
-	}
 }
 
 var upCmd = &cobra.Command{
@@ -184,12 +142,21 @@ Examples:
 			os.Setenv("START_SERVER", "true")
 		}
 
-		selectServices()
+		if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
+			fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
+		}
+
+		var err error
+
+		selectedServices, err = config.SelectServices(opts.cliServiceNames, opts.playlistName)
+		if err != nil {
+			fatal.ExitErr(err, "problem with requested service configuration")
+		}
 
 		composeNames := config.ComposeNames(selectedServices)
 		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
-		err := deps.Resolve(
+		err = deps.Resolve(
 			deps.Brew,
 			deps.Aws,
 			deps.Lazydocker,
@@ -337,7 +304,7 @@ Examples:
 				}
 
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
-				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
+				composeArgs := fmt.Sprintf("-f %s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
 				go func(successCh chan string, failedCh chan error, name string, args ...string) {
 					err := util.Exec(name, "docker-compose", args...)
 					if err != nil {

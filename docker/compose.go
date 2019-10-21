@@ -14,11 +14,11 @@ const (
 )
 
 func ComposeFile() string {
-	return fmt.Sprintf("-f %s/docker-compose.yml", config.TBRootPath())
+	return fmt.Sprintf("%s/docker-compose.yml", config.TBRootPath())
 }
 
 func ComposeStop() error {
-	stopArgs := fmt.Sprintf("%s stop -t %d", ComposeFile(), stopTimeoutSecs)
+	stopArgs := fmt.Sprintf("-f %s stop -t %d", ComposeFile(), stopTimeoutSecs)
 	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
 
 	return errors.Wrap(err, "could not exec docker-compose stop")

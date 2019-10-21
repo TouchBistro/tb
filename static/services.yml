@@ -8,11 +8,25 @@ legacy-database:
   migrations: true
   ecr: true
   ecrTag: master-db-migrate-with-seeds
+
 venue-core-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
+  logger: true
+  database: postgres/mssql/false
+  start_cmd: "yarn serve"
+
+actual-inter-serice-name:
+  repo-name: real-repo-name
+  database: postgres/mssql/false
+  start_cmd: "yarn serve"
+  env_file: ".env.example"
+  default_local: build/pull
+  default_branch: master
+  local_overrides: 
+    LOCAL_SERVICE_CONFIG: true
+  deployed_overrides:
+    REMOTE_SERVICE_CONFIG: true
+  node_module_volume: true
+
 venue-provisioning-service:
   repo: true
   migrations: true

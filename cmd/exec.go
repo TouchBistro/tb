@@ -40,7 +40,7 @@ Examples:
 		}
 
 		cmds := strings.Join(args[1:], " ")
-		cmdStr := fmt.Sprintf("%s exec %s %s", docker.ComposeFile(), config.ComposeName(serviceName, service), cmds)
+		cmdStr := fmt.Sprintf("-f %s exec %s %s", docker.ComposeFile(), config.ComposeName(serviceName, service), cmds)
 
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout

@@ -120,7 +120,7 @@ x-cloud-server-boilerplate:
     env_file:
       - $TB_ROOT/cloud-server/.env.compose
     environment:
-      - MSSQL_HOST=legacy-database-ecr
+      MSSQL_HOST: legacy-database-ecr
     entrypoint: [ "bash", "./docker-entrypoint.sh" ]
     command: >
       bash -c '
@@ -199,6 +199,8 @@ x-venue-core-service-boilerplate:
   depends_on:
     - localstack
     - postgres
+    - $VENUE_PROVISIONING_SERVICE_NAME
+    - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
 x-legacy-bridge-manage-service-boilerplate:
   &legacy-bridge-manage-service-boilerplate
@@ -288,6 +290,7 @@ x-ordering-ooa-service-boilerplate:
   depends_on:
     - postgres
     - localstack
+    - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
 
 x-ordering-demo-frontend-boilerplate:
   &ordering-demo-frontend-boilerplate
@@ -305,6 +308,8 @@ x-ordering-demo-frontend-boilerplate:
     - "8010:8080"
   depends_on:
     - postgres
+    - $ORDERING_DELIVEROO_SERVICE_NAME
+    - $ORDERING_OOA_SERVICE_NAME
 
 x-ordering-demo-frontend-venue-boilerplate:
   &ordering-demo-frontend-venue-boilerplate
@@ -320,6 +325,7 @@ x-ordering-demo-frontend-venue-boilerplate:
     - "8020:8080"
   depends_on:
     - postgres
+    - $ORDERING_OOA_SERVICE_NAME
 
 x-ordering-gateways-frontend-boilerplate:
   &ordering-gateways-frontend-boilerplate
@@ -331,6 +337,8 @@ x-ordering-gateways-frontend-boilerplate:
     ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal
   ports:
     - "8030:8080"
+  depends_on:
+    - $ORDERING_OOA_SERVICE_NAME
 
 x-ordering-deliveroo-service-boilerplate:
   &ordering-deliveroo-service-boilerplate
@@ -347,6 +355,7 @@ x-ordering-deliveroo-service-boilerplate:
     - "8015:8080"
   depends_on:
     - postgres
+    - $ORDERING_OOA_SERVICE_NAME
 
 x-partners-etl-service-boilerplate:
   &partners-etl-service-boilerplate
@@ -376,6 +385,8 @@ x-partners-etl-service-boilerplate:
   depends_on:
     - postgres
     - localstack
+    - $PARTNERS_CONFIG_SERVICE_NAME
+    - $CLOUD_SERVER_NAME
 
 x-partners-config-service-boilerplate:
   &partners-config-service-boilerplate
@@ -437,6 +448,10 @@ x-partners-orchestration-service-boilerplate:
   depends_on:
     - postgres
     - localstack
+    - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
+    - $PARTNERS_CONFIG_SERVICE_NAME
+    - $PARTNERS_RESERVATIONS_SERVICE_NAME
+    - $VENUE_PROVISIONING_SERVICE_NAME
 
 x-partners-reservations-service-boilerplate:
   &partners-reservations-service-boilerplate
@@ -462,10 +477,6 @@ x-partners-reservations-service-boilerplate:
   depends_on:
     - postgres
     - localstack
-    - $VENUE_UPLOAD_SERVICE_NAME
-    - $PARTNERS_CONFIG_SERVICE_NAME
-    - $PARTNERS_ORCHESTRATION_SERVICE_NAME
-    - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
 
 x-venue-upload-service-boilerplate:
   &venue-upload-service-boilerplate
@@ -503,12 +514,12 @@ x-venue-admin-frontend-boilerplate:
   env_file:
     - $TB_ROOT/venue-admin-frontend/.env.example
   environment:
-    - CORE_BACKEND_URL_BASE=http://${VENUE_CORE_SERVICE_NAME}:8080
-    - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
-    - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
-    - INFRASTRUCTURE_AUTH_SERVICE_URL=http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080
-    - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
-    - NODE_ENV=production
+    CORE_BACKEND_URL_BASE: http://${VENUE_CORE_SERVICE_NAME}:8080
+    TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
+    TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
+    INFRASTRUCTURE_AUTH_SERVICE_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080
+    HTTP_PORT: 9002   # VAF will default to :5000 for local server development.
+    NODE_ENV: production
   ports:
     - "9002:9002"
   # Note the `../`, since the Dockerfile executes from $HOME/app/dist
@@ -519,6 +530,7 @@ x-venue-admin-frontend-boilerplate:
     - $CLOUD_SERVER_NAME
     - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
     - $PARTNERS_CONFIG_SERVICE_NAME
+    - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
 x-infrastructure-auth-service-boilerplate:
   &infrastructure-auth-service-boilerplate
@@ -553,8 +565,8 @@ services:
     image: $POSTGRES_IMAGE_URI
     container_name: tb_postgres_container
     environment:
-      - POSTGRES_USER=core
-      - POSTGRES_PASSWORD=localdev
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: localdev
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
@@ -573,9 +585,9 @@ services:
       - "9888:8080" # web interface
       - "4567-4584:4567-4584"
     environment:
-      - SERVICES=s3,sqs,sns
-      - PORT_WEB_UI=8080
-      - DOCKER_HOST=unix:///var/run/docker.sock
+      SERVICES: s3,sqs,sns
+      PORT_WEB_UI: 8080
+      DOCKER_HOST: unix:///var/run/docker.sock
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
