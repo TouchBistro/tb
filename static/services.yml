@@ -3,6 +3,16 @@ backoffice-customer-service:
   migrations: true
   ecr: true
   ecrTag: master
+cloud-server:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+cloud-server-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
 dotnet-api:
   repo: false
   migrations: false
@@ -15,16 +25,6 @@ dotnet-manage:
   repo: false
   migrations: false
   ecr: false
-cloud-server:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: develop
-cloud-server-frontend:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: develop
 health-clinic:
   repo: true
   migrations: false
@@ -80,16 +80,6 @@ mokta:
   migrations: true
   ecr: true
   ecrTag: master
-ordering-ooa-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-ordering-gateways-frontend:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: master
 ordering-deliveroo-service:
   repo: true
   migrations: true
@@ -104,6 +94,16 @@ ordering-demo-frontend-venue:
   repo: false
   migrations: false
   ecr: false
+ordering-gateways-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+ordering-ooa-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
 partners-config-service:
   repo: true
   migrations: true
