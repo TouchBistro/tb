@@ -1,6 +1,8 @@
 package simulator
 
 import (
+	"strings"
+
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
@@ -45,4 +47,13 @@ func LaunchApp(deviceUUID, appBundleID string) error {
 	}
 
 	return nil
+}
+
+func GetAppDataPath(deviceUUID, appBundleID string) (string, error) {
+	buf, err := util.ExecResult(execID, xcrun, simctl, "get_app_container", deviceUUID, appBundleID, "data")
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to get path to app data directory")
+	}
+
+	return strings.TrimSpace(buf.String()), nil
 }

@@ -1,14 +1,16 @@
 package util
 
 import (
+	"bytes"
 	"crypto/md5"
 	"fmt"
-	"github.com/TouchBistro/tb/fatal"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/TouchBistro/tb/fatal"
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 func IsCommandAvailable(command string) bool {
@@ -42,6 +44,26 @@ func Exec(id string, name string, arg ...string) error {
 	}
 
 	return nil
+}
+
+func ExecResult(id string, name string, args ...string) (*bytes.Buffer, error) {
+	cmd := exec.Command(name, args...)
+
+	stdoutBuf := &bytes.Buffer{}
+	stderr := log.WithFields(log.Fields{
+		"id": id,
+	}).WriterLevel(log.DebugLevel)
+	defer stderr.Close()
+
+	cmd.Stdout = stdoutBuf
+	cmd.Stderr = stderr
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Exec failed to run %s %s", name, args)
+	}
+
+	return stdoutBuf, nil
 }
 
 func StringToUpperAndSnake(str string) string {
