@@ -581,7 +581,7 @@ x-backoffice-customer-service-boilerplate:
     JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
     TASK_PROVIDER: inmemory
   ports:
-    - "8101:8080"
+    - "8700:8080"
   depends_on:
     - postgres
     - $INFRASTRUCTURE_AUTH_SERVICE_NAME
