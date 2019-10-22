@@ -12,20 +12,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func DownloadFile(dlPath string, r io.Reader) (int64, error) {
+func DownloadFile(downloadPath string, r io.Reader) (int64, error) {
 	// Check if file exists
-	dlDir := filepath.Dir(dlPath)
-	if !FileOrDirExists(dlDir) {
-		err := os.MkdirAll(dlDir, 0766)
+	downloadDir := filepath.Dir(downloadPath)
+	if !FileOrDirExists(downloadDir) {
+		err := os.MkdirAll(downloadDir, 0755)
 		if err != nil {
-			return 0, errors.Wrapf(err, "could not create directory %s", dlDir)
+			return 0, errors.Wrapf(err, "could not create directory %s", downloadDir)
 		}
 	}
 
 	// Write payload to target dir
-	f, err := os.Create(dlPath)
+	f, err := os.Create(downloadPath)
 	if err != nil {
-		return 0, errors.Wrapf(err, "failed to create file %s", dlPath)
+		return 0, errors.Wrapf(err, "failed to create file %s", downloadPath)
 	}
 	w := bufio.NewWriter(f)
 	nBytes, err := io.Copy(w, r)
