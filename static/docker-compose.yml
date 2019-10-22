@@ -112,8 +112,7 @@ x-legacy-database-boilerplate:
     DB_NAME: cloud_db
   ports:
     - "1433:1433"
-  entrypoint: [ "bash", "./docker-entrypoint-db.sh" ]
-  command: [ "tail", "-f", "/dev/null" ]
+  command: [ "/opt/mssql/bin/sqlservr" ]
 
 x-cloud-server-boilerplate:
   &cloud-server-boilerplate

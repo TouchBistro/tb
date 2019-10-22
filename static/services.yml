@@ -5,7 +5,7 @@ legacy-bridge-manage-service:
   ecrTag: develop
 legacy-database:
   repo: true
-  migrations: true
+  migrations: false
   ecr: true
   ecrTag: master-db-migrate-with-seeds
 venue-core-service:
