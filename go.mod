@@ -2,6 +2,7 @@ module github.com/TouchBistro/tb
 
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
+	github.com/aws/aws-sdk-go-v2 v0.15.0
 	github.com/aybabtme/logzalgo v0.0.0-20191015021931-2f671f6203fa
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/distribution v2.7.1+incompatible // indirect

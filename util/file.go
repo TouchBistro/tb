@@ -1,14 +1,41 @@
 package util
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
+
+func DownloadFile(downloadPath string, r io.Reader) (int64, error) {
+	// Check if file exists
+	downloadDir := filepath.Dir(downloadPath)
+	if !FileOrDirExists(downloadDir) {
+		err := os.MkdirAll(downloadDir, 0755)
+		if err != nil {
+			return 0, errors.Wrapf(err, "could not create directory %s", downloadDir)
+		}
+	}
+
+	// Write payload to target dir
+	f, err := os.Create(downloadPath)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to create file %s", downloadPath)
+	}
+	w := bufio.NewWriter(f)
+	nBytes, err := io.Copy(w, r)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed writing build to file")
+	}
+	w.Flush()
+
+	return nBytes, nil
+}
 
 func FileOrDirExists(path string) bool {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
