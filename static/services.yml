@@ -1,3 +1,50 @@
+backoffice-customer-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+cloud-server:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+cloud-server-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: develop
+dotnet-api:
+  repo: false
+  migrations: false
+  ecr: false
+dotnet-depot:
+  repo: true
+  migrations: false
+  ecr: false
+dotnet-manage:
+  repo: false
+  migrations: false
+  ecr: false
+health-clinic:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+identity-user-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+infrastructure-auth-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+legacy-bridge-cloud-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
 legacy-bridge-manage-service:
   repo: true
   migrations: false
@@ -8,19 +55,14 @@ legacy-database:
   migrations: true
   ecr: true
   ecrTag: master-db-migrate-with-seeds
-venue-core-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-venue-provisioning-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-health-clinic:
-  repo: true
+localstack:
+  repo: false
   migrations: false
+  ecr: false
+  dockerhubImage: localstack/localstack
+loyalty-gateway-service:
+  repo: true
+  migrations: true
   ecr: true
   ecrTag: master
 postgres:
@@ -33,29 +75,9 @@ redis:
   migrations: false
   ecr: false
   dockerhubImage: redis:4-alpine
-localstack:
-  repo: false
-  migrations: false
-  ecr: false
-  dockerhubImage: localstack/localstack
-cloud-server:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: develop
-cloud-server-frontend:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: develop
-ordering-ooa-service:
+mokta:
   repo: true
   migrations: true
-  ecr: true
-  ecrTag: master
-ordering-gateways-frontend:
-  repo: true
-  migrations: false
   ecr: true
   ecrTag: master
 ordering-deliveroo-service:
@@ -72,6 +94,26 @@ ordering-demo-frontend-venue:
   repo: false
   migrations: false
   ecr: false
+ordering-engine-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+ordering-gateways-frontend:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
+ordering-ooa-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
+partners-config-service:
+  repo: true
+  migrations: true
+  ecr: true
+  ecrTag: master
 partners-etl-service:
   repo: true
   migrations: true
@@ -82,12 +124,12 @@ partners-orchestration-service:
   migrations: true
   ecr: true
   ecrTag: master
-partners-config-service:
+partners-reservations-service:
   repo: true
   migrations: true
   ecr: true
   ecrTag: master
-legacy-bridge-cloud-service:
+singleapp-database:
   repo: true
   migrations: false
   ecr: true
@@ -97,50 +139,18 @@ venue-admin-frontend:
   migrations: false
   ecr: true
   ecrTag: master
-identity-user-service:
-  repo: true
-  migrations: false
-  ecr: true
-  ecrTag: master
-mokta:
+venue-core-service:
   repo: true
   migrations: true
   ecr: true
   ecrTag: master
-dotnet-depot:
+venue-provisioning-service:
   repo: true
-  migrations: false
-  ecr: false
-dotnet-manage:
-  repo: false
-  migrations: false
-  ecr: false
-dotnet-api:
-  repo: false
-  migrations: false
-  ecr: false
+  migrations: true
+  ecr: true
+  ecrTag: master
 venue-upload-service:
   repo: true
   migrations: false
-  ecr: true
-  ecrTag: master
-partners-reservations-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-infrastructure-auth-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-loyalty-gateway-service:
-  repo: true
-  migrations: true
-  ecr: true
-  ecrTag: master
-backoffice-customer-service:
-  repo: true
-  migrations: true
   ecr: true
   ecrTag: master

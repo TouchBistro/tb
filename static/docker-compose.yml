@@ -47,6 +47,14 @@ x-mssqlconnect:
   DB_PASSWORD: Password123
   DB_DISABLE_SSL: "true"
 
+x-mysqlconnect:
+  &mysql-connect
+  DB_HOST: singleapp-database-ecr
+  DB_PORT: 3306
+  DB_USER: root
+  DB_PASSWORD: root
+  DB_DISABLE_SSL: "true"
+
 x-nodeservice:
   &node-service
   << : *json-logger-config
@@ -348,6 +356,18 @@ x-ordering-deliveroo-service-boilerplate:
   depends_on:
     - postgres
 
+x-ordering-engine-service-boilerplate:
+  &ordering-engine-service-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-engine-service/.env.example
+  environment:
+    << : *node-service
+    << : *mysql-connect
+  ports:
+    - "8610:8080"
+  depends_on:
+    - $SINGLEAPP_DATABASE_NAME
+
 x-partners-etl-service-boilerplate:
   &partners-etl-service-boilerplate
   env_file:
@@ -467,6 +487,11 @@ x-partners-reservations-service-boilerplate:
     - $PARTNERS_ORCHESTRATION_SERVICE_NAME
     - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
 
+x-singleapp-database-boilerplate:
+  &singleapp-database-boilerplate
+  ports:
+    - "3306:3306"
+
 x-venue-upload-service-boilerplate:
   &venue-upload-service-boilerplate
   env_file:
@@ -556,7 +581,7 @@ x-backoffice-customer-service-boilerplate:
     JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
     TASK_PROVIDER: inmemory
   ports:
-    - "8101:8080"
+    - "8700:8080"
   depends_on:
     - postgres
     - $INFRASTRUCTURE_AUTH_SERVICE_NAME
@@ -900,6 +925,24 @@ services:
       - $TB_ROOT/ordering-deliveroo-service:/home/node/app:delegated
       - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
 
+  ordering-engine-service-ecr:
+    << : *ordering-engine-service-boilerplate
+    image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
+    container_name: ordering-engine-service-ecr_container
+    << : *command-serve
+
+  ordering-engine-service:
+    << : *ordering-engine-service-boilerplate
+    build:
+      << : *build-node-dev
+      context: $TB_ROOT/ordering-engine-service
+    image: ordering-engine-service
+    container_name: ordering-engine-service_container
+    << : *command-start
+    volumes:
+      - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
+      - ordering-engine-service-node_modules:/home/node/app/node_modules
+  
   partners-etl-service-ecr:
     << : *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
@@ -971,6 +1014,22 @@ services:
     volumes:
       - $TB_ROOT/partners-reservations-service:/home/node/app:delegated
       - partners-reservations-service-node_modules:/home/node/app/node_modules
+
+  singleapp-database:
+    << : *singleapp-database-boilerplate
+    build:
+      context: $TB_ROOT/singleapp-database
+    image: singleapp-database
+    container_name: singleapp-database_container
+    volumes:
+      - singleapp-database:/var/lib/mysql/
+
+  singleapp-database-ecr:
+    << : *singleapp-database-boilerplate
+    image: $SINGLEAPP_DATABASE_IMAGE_URI
+    container_name: singleapp-database-ecr_container
+    volumes:
+      - singleapp-database:/var/lib/mysql/
 
   venue-upload-service-ecr:
     << : *venue-upload-service-boilerplate
@@ -1066,6 +1125,7 @@ services:
 volumes:
   postgres:
   legacy-database:
+  singleapp-database:
   venue-core-service-node_modules:
   legacy-bridge-cloud-service-node_modules:
   ordering-ooa-service-node_modules:
@@ -1073,6 +1133,7 @@ volumes:
   ordering-demo-frontend-venue-node_modules:
   ordering-deliveroo-service-node_modules:
   ordering-gateways-frontend-node_modules:
+  ordering-engine-service-node_modules:
   partners-etl-service-node_modules:
   partners-config-service-node_modules:
   partners-orchestration-service-node_modules:

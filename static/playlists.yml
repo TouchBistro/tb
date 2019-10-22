@@ -37,6 +37,10 @@ ordering:
     - ordering-deliveroo-service
     - ordering-demo-frontend
     - ordering-demo-frontend-venue
+online-ordering:
+  services:
+    - singleapp-database
+    - ordering-engine-service
 partners:
   services:
     - postgres
