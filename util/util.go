@@ -46,8 +46,6 @@ func Exec(id string, name string, arg ...string) error {
 	return nil
 }
 
-// TODO might need to rethink the design of Exec
-// Need a more robust version that allows for actually uses the data in stdout
 func ExecResult(id string, name string, args ...string) (*bytes.Buffer, error) {
 	cmd := exec.Command(name, args...)
 
