@@ -94,6 +94,11 @@ ordering-demo-frontend-venue:
   repo: false
   migrations: false
   ecr: false
+ordering-engine-service:
+  repo: true
+  migrations: false
+  ecr: true
+  ecrTag: master
 ordering-gateways-frontend:
   repo: true
   migrations: false
@@ -122,6 +127,11 @@ partners-orchestration-service:
 partners-reservations-service:
   repo: true
   migrations: true
+  ecr: true
+  ecrTag: master
+singleapp-database:
+  repo: true
+  migrations: false
   ecr: true
   ecrTag: master
 venue-admin-frontend:
