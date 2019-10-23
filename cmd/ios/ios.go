@@ -8,6 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Flags available for multiple commands
+var (
+	iosVersion string
+)
+
 var iosCmd = &cobra.Command{
 	Use:   "ios",
 	Short: "tb ios allows running and managing iOS apps",
@@ -25,6 +30,10 @@ var iosCmd = &cobra.Command{
 			fatal.ExitErr(err, "Failed to find available iOS simulators")
 		}
 	},
+}
+
+func init() {
+	iosCmd.PersistentFlags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
 }
 
 func IOS() *cobra.Command {

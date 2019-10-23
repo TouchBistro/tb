@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	iosVersion string
 	deviceName string
 	dataPath   string
 	appName    string
@@ -211,7 +210,6 @@ Examples:
 
 func init() {
 	iosCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
 	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
 	runCmd.Flags().StringVarP(&appName, "app", "a", "TouchBistro", "The name of the application to run, eg TouchBistro")
 	runCmd.Flags().StringVarP(&branch, "branch", "b", "master", "The name of the git branch associated build to pull down and run")
