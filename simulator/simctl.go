@@ -57,3 +57,13 @@ func GetAppDataPath(deviceUDID, appBundleID string) (string, error) {
 
 	return strings.TrimSpace(buf.String()), nil
 }
+
+func ListDevices() ([]byte, error) {
+	// List available simulators as json
+	buf, err := util.ExecResult(execID, xcrun, simctl, "list", "devices", "-j", "available")
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to get list of devices")
+	}
+
+	return buf.Bytes(), nil
+}
