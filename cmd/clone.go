@@ -5,8 +5,8 @@ import (
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
 
-	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var cloneCmd = &cobra.Command{
@@ -25,11 +25,11 @@ var cloneCmd = &cobra.Command{
 			fatal.Exitf("%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
 		}
 
-		if !service.IsGithubRepo {
+		if !service.IsGithubRepo() {
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		err := git.Clone(serviceName, "./")
+		err := git.Clone(service.GithubRepo, "./")
 		if err != nil {
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}

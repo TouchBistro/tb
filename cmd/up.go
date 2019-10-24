@@ -305,19 +305,18 @@ Examples:
 			successCh = make(chan string)
 			failedCh = make(chan error)
 			count := 0
-			for name, s := range selectedServices {
-				if s.IsGithubRepo {
-					log.Infof("\t☐ pulling %s\n", name)
-					go func(successCh chan string, failedCh chan error, name, root string) {
-						err := git.Pull(name, root)
-						if err != nil {
-							failedCh <- err
-							return
-						}
-						successCh <- name
-					}(successCh, failedCh, name, config.TBRootPath())
-					count++
-				}
+
+			for _, repoName := range config.RepoNames(selectedServices) {
+				log.Infof("\t☐ pulling %s\n", repoName)
+				go func(successCh chan string, failedCh chan error, name, root string) {
+					err := git.Pull(name, root)
+					if err != nil {
+						failedCh <- err
+						return
+					}
+					successCh <- name
+				}(successCh, failedCh, repoName, config.TBRootPath())
+				count++
 			}
 
 			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling git repo", count)
