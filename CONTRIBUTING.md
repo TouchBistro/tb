@@ -71,7 +71,7 @@ To add a new service do the following:
     The format is as follows:
     ```yaml
     <service-name>:
-      repo: boolean       # Is it a GitHub repo?
+      repo: string        # The repo name on GitHub
       migrations: boolean # Does it have migrations that need to be run?
       ecr: boolean        # Is it available on ECR?
       ecrTag: string      # The ECR tag to use, usually master
