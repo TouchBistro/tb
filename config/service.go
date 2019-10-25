@@ -9,7 +9,7 @@ import (
 )
 
 type Service struct {
-	IsGithubRepo   bool   `yaml:"repo"`
+	GithubRepo     string `yaml:"repo"`
 	Migrations     bool   `yaml:"migrations"`
 	ECR            bool   `yaml:"ecr"`
 	ECRTag         string `yaml:"ecrTag"`
@@ -22,6 +22,10 @@ type ServiceOverride struct {
 }
 
 type ServiceMap = map[string]Service
+
+func (s Service) IsGithubRepo() bool {
+	return s.GithubRepo != ""
+}
 
 func ComposeName(name string, s Service) string {
 	if s.ECR {
@@ -81,11 +85,21 @@ func ComposeNames(configs ServiceMap) []string {
 
 func RepoNames(services ServiceMap) []string {
 	var repos []string
+	repoNames := make(map[string]bool)
 
-	for name, s := range services {
-		if s.IsGithubRepo {
-			repos = append(repos, name)
+	for _, s := range services {
+		repoName := s.GithubRepo
+		if !s.IsGithubRepo() {
+			continue
 		}
+
+		// repoName has already been added to the list, don't add it again
+		if repoNames[repoName] {
+			continue
+		}
+
+		repos = append(repos, repoName)
+		repoNames[repoName] = true
 	}
 
 	return repos
