@@ -21,7 +21,6 @@ var (
 	iosVersion string
 	deviceName string
 	dataPath   string
-	app        string
 	appName    string
 	branch     string
 )
@@ -141,7 +140,7 @@ Examples:
 			}
 		}
 
-		pathToApp := filepath.Join(downloadDst, util.WithoutSuffix(pathToS3Tarball, ".tgz"))
+		pathToApp := filepath.Join(downloadDst, strings.TrimSuffix(pathToS3Tarball, ".tgz"))
 
 		log.Debugln("☐ Finding device UUID")
 		deviceUUID, err := simulator.GetDeviceUUID("iOS "+iosVersion, deviceName)
