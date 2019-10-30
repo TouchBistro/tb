@@ -1,10 +1,18 @@
 package ios
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/TouchBistro/tb/awss3"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/simulator"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -12,20 +20,127 @@ import (
 var (
 	iosVersion string
 	deviceName string
-	appPath    string
 	dataPath   string
+	app        string
+	appName    string
+	branch     string
 )
 
 var runCmd = &cobra.Command{
 	Use:   "run <app-name>",
-	Short: "Runs iOS apps in the iOS Simulator",
-	Args:  cobra.ExactArgs(1),
+	Short: "Runs an iOS app build in an iOS Simulator",
+	Args:  cobra.ExactArgs(0),
+	Long: `Runs an iOS app build in an iOS Simulator.
+
+Examples:
+- run the current master build in the default iOS Simulator
+	tb ios run
+
+- run the build for specific branch in an iOS 12.3 iPad Air 2 simulator
+	tb ios run --app TouchBistro --ios-version 12.3 --device iPad Air 2 --branch task/pay-631/fix-thing`,
 	Run: func(cmd *cobra.Command, args []string) {
-		appName := args[0]
 		app, ok := config.Apps()[appName]
 		if !ok {
 			fatal.Exitf("Error: No iOS app with name %s\n", appName)
 		}
+
+		// Look up the latest build sha for user-specified branch and app.
+		s3Dir := fmt.Sprintf("%s/%s", appName, branch)
+		log.Debugf("Checking objects on aws in bucket %s matching prefix %s...", config.Bucket, s3Dir)
+		s3Builds, err := awss3.ListObjectKeysByPrefix(config.Bucket, s3Dir)
+
+		if err != nil {
+			fatal.ExitErrf(err, "Failed getting keys from s3 in dir %s", s3Dir)
+		}
+		if len(s3Builds) == 0 {
+			fatal.Exitf("could not find any builds for %s", s3Dir)
+		}
+		if len(s3Builds) > 1 {
+			// We only expect one build per branch. If we find two, its likely a bug or some kind of
+			// race condition from the build-uploading side.
+			// If this gets clunky we can determine a sort order for the builds.
+			fatal.Exitf("Got the following builds for this branch %+v. Only expecting one build", s3Builds)
+		}
+		pathToS3Tarball := s3Builds[0]
+		s3BuildFilename := filepath.Base(pathToS3Tarball)
+
+		// Decide whether or not to pull down a new version.
+		downloadDst := fmt.Sprintf("%s/.tb/ios", os.Getenv("HOME"))
+		localBranchDir := filepath.Join(downloadDst, appName, branch)
+		log.Debugf("checking contents at %s to see if we need to download a new version from S3", localBranchDir)
+
+		pattern := fmt.Sprintf("%s/*.app", localBranchDir)
+		localBuilds, err := filepath.Glob(pattern)
+		if err != nil {
+			fatal.ExitErrf(err, "couldn't glob for %s", pattern)
+		}
+
+		if len(localBuilds) > 1 {
+			fatal.Exitf("Got the following builds: %+v. Only expecting one build", localBuilds)
+		}
+
+		// If there is a local build, compare its sha against s3 and github versions
+		var refreshLocalBuild bool
+		if len(localBuilds) == 1 {
+			localBuild := localBuilds[0]
+
+			// If there is a local build, get latest sha from github for desired branch to see if the build available on s3 corresponds to the
+			// latest commit on the branch.
+			log.Debugf("Checking latest sha for %s/%s branch %s", app.Organisation, app.Repo, branch)
+			latestGitsha, err := git.GetBranchHeadSha(app.Organisation, app.Repo, branch)
+			if err != nil {
+				fatal.ExitErrf(err, "Failed getting branch head sha for %s/%s", app.Repo, branch)
+			}
+			log.Debugf("Latest sha is %s", latestGitsha)
+			if !strings.HasPrefix(s3BuildFilename, latestGitsha) {
+				log.Warnf("sha of s3 build %s does not match latest github sha %s for branch %s", s3BuildFilename, latestGitsha, branch)
+			}
+
+			currentSha := strings.Split(filepath.Base(localBuild), ".")[0]
+			s3Sha := strings.Split(filepath.Base(pathToS3Tarball), ".")[0]
+
+			log.Debugf("local sha is %s", currentSha)
+			log.Debugf("s3 sha is %s", s3Sha)
+
+			if currentSha == s3Sha {
+				log.Debugf("Current build sha %s matches remote sha", currentSha)
+			} else {
+				log.Debugf("Current build sha %s is different from s3 sha %s. Deleting local version.", currentSha, s3Sha)
+				err := os.RemoveAll(localBranchDir)
+				if err != nil {
+					fatal.ExitErrf(err, "failed to delete %s", localBranchDir)
+				}
+
+				refreshLocalBuild = true
+			}
+		}
+
+		// If there are no local builds or if our local build was outdated, download the latest object from S3
+		if len(localBuilds) == 0 || refreshLocalBuild {
+			log.Debugf("Downloading %s from bucket %s to %s", pathToS3Tarball, config.Bucket, downloadDst)
+			successCh := make(chan string)
+			failedCh := make(chan error)
+			go func(successCh chan string, failedCh chan error) {
+				err = awss3.DownloadObject(config.Bucket, pathToS3Tarball, downloadDst)
+				if err != nil {
+					failedCh <- errors.Wrapf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDst)
+					return
+				}
+				successCh <- pathToS3Tarball
+			}(successCh, failedCh)
+			count := 1
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
+
+			// Untar, ungzip and cleanup the file
+			pathToLocalTarball := filepath.Join(downloadDst, pathToS3Tarball)
+			log.Debugf("untar-ing %s", pathToLocalTarball)
+			err := util.Untar(pathToLocalTarball, true)
+			if err != nil {
+				fatal.ExitErrf(err, "Failed to untar or cleanup app archive at %s", pathToLocalTarball)
+			}
+		}
+
+		pathToApp := filepath.Join(downloadDst, util.WithoutSuffix(pathToS3Tarball, ".tgz"))
 
 		log.Debugln("☐ Finding device UUID")
 		deviceUUID, err := simulator.GetDeviceUUID("iOS "+iosVersion, deviceName)
@@ -52,9 +167,9 @@ var runCmd = &cobra.Command{
 		log.Debugln("☑ Opened simulator app")
 		log.Infof("☐ Installing app on %s\n", deviceName)
 
-		err = simulator.InstallApp(deviceUUID, appPath)
+		err = simulator.InstallApp(deviceUUID, pathToApp)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to install app at path %s on simulator %s", appPath, deviceName)
+			fatal.ExitErrf(err, "☒ Failed to install app at path %s on simulator %s", pathToApp, deviceName)
 		}
 
 		log.Infof("☑ Installed app %s on %s\n", app.BundleID, deviceName)
@@ -91,13 +206,7 @@ func init() {
 	iosCmd.AddCommand(runCmd)
 	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "12.2", "The iOS version to use")
 	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air 2", "The name of the device to use")
-	runCmd.Flags().StringVar(&dataPath, "data-path", "", "The path to a data directory to inject into the simulator")
-
-	// TODO remove this shit once we pull from S3
-	runCmd.Flags().StringVarP(&appPath, "path", "p", "", "The path to the app build")
-
-	err := runCmd.MarkFlagRequired("path")
-	if err != nil {
-		fatal.ExitErrf(err, "No such command %s", "path")
-	}
+	runCmd.Flags().StringVarP(&appName, "app", "a", "TouchBistro", "The name of the application to run, eg TouchBistro or TouchBistroServer")
+	runCmd.Flags().StringVarP(&branch, "branch", "b", "master", "The name of the git branch associated build to pull down and run")
+	runCmd.Flags().StringVar(&dataPath, "data-path", "D", "The path to a data directory to inject into the simulator")
 }

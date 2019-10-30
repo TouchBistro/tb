@@ -70,6 +70,13 @@ func StringToUpperAndSnake(str string) string {
 	return strings.ReplaceAll(strings.ToUpper(str), "-", "_")
 }
 
+func WithoutSuffix(str, suffix string) string {
+	if strings.HasSuffix(str, suffix) {
+		str = str[:len(str)-len(suffix)]
+	}
+	return str
+}
+
 func MD5Checksum(buf []byte) ([]byte, error) {
 	hash := md5.New()
 	_, err := hash.Write(buf)
