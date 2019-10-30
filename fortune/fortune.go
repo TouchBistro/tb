@@ -16,8 +16,28 @@ type Fortune struct {
 
 var fortunes = []Fortune{
 	Fortune{
+		"The trick is to fix the problem you have, rather than the problem you want.",
+		"Bram Cohen",
+	},
+	Fortune{
+		"As a rule, software systems do not work well until they have been used, and have failed repeatedly, in real applications.",
+		"Dave Parnas",
+	},
+	Fortune{
+		"The most effective debugging tool is still careful thought, coupled with judiciously placed print statements.",
+		"Brian Kernighan",
+	},
+	Fortune{
 		"Duplication is far cheaper than the wrong abstraction.",
 		"Sandi Metz",
+	},
+	Fortune{
+		"First, solve the problem. Then, write the code.",
+		"John Johnson",
+	},
+	Fortune{
+		"In programming the hard part isn’t solving problems, but deciding what problems to solve.",
+		"Paul Graham",
 	},
 	Fortune{
 		"Debugging is twice as hard as writing the code in the first place. Therefore, if you write the code as cleverly as possible, you are, by definition, not smart enough to debug it.",
@@ -31,6 +51,10 @@ var fortunes = []Fortune{
 		"Don't be a boilerplate programmer. Instead, build tools for users and other programmers. Take historical note of textile and steel industries: do you want to build machines and tools, or do you want to operate those machines?",
 		"Ras Bodik",
 	},
+	// Fortune{
+	// 	"Alan Kay is a cuck",
+	// 	"Omar Sabry",
+	// },
 	Fortune{
 		"Don't program defensively.",
 		"Erlang style guide",
@@ -67,10 +91,6 @@ var fortunes = []Fortune{
 		"Without requirements or design, programming is the art of adding bugs to an empty text file.",
 		"Louis Srygley",
 	},
-	// Fortune{
-	// 	"Alan Kay is a cuck",
-	// 	"Omar Sabry",
-	// },
 }
 
 func (f Fortune) String() string {
