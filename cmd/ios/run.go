@@ -65,6 +65,7 @@ Examples:
 		s3BuildFilename := filepath.Base(pathToS3Tarball)
 
 		// Decide whether or not to pull down a new version.
+
 		downloadDst := fmt.Sprintf("%s/.tb/ios", os.Getenv("HOME"))
 		localBranchDir := filepath.Join(downloadDst, appName, branch)
 		log.Debugf("checking contents at %s to see if we need to download a new version from S3", localBranchDir)
@@ -115,7 +116,7 @@ Examples:
 			}
 		}
 
-		// If there are no local builds or if our local build was outdated, download the latest object from S3
+		// If there are no local builds or if our local build was deemed out of date, download the latest object from S3
 		if len(localBuilds) == 0 || refreshLocalBuild {
 			log.Debugf("Downloading %s from bucket %s to %s", pathToS3Tarball, config.Bucket, downloadDst)
 			successCh := make(chan string)
