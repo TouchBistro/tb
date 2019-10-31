@@ -43,6 +43,15 @@ Examples:
 			fatal.Exitf("Error: No iOS app with name %s\n", appName)
 		}
 
+		downloadDest := config.IOSBuildPath()
+
+		// Check disk utilisation by ios directory
+		usageBytes, err := util.DirSize(downloadDest)
+		if err != nil {
+			fatal.ExitErr(err, "Error checking ios build disk space usage")
+		}
+		log.Infof("Current ios build disk usage: %.2fGB", float64(usageBytes)/1024.0/1024.0/1024.0)
+
 		// Look up the latest build sha for user-specified branch and app.
 		s3Dir := fmt.Sprintf("%s/%s", appName, branch)
 		log.Infof("Checking objects on aws in bucket %s matching prefix %s...", config.Bucket, s3Dir)
@@ -64,7 +73,6 @@ Examples:
 
 		// Decide whether or not to pull down a new version.
 
-		downloadDest := config.IOSBuildPath()
 		localBranchDir := filepath.Join(downloadDest, appName, branch)
 		log.Infof("Checking contents at %s to see if we need to download a new version from S3", localBranchDir)
 

@@ -191,3 +191,21 @@ func DecodeYaml(r io.Reader, val interface{}) error {
 
 	return err
 }
+
+func DirSize(path string) (int64, error) {
+	if !FileOrDirExists(path) {
+		return 0, nil
+	}
+
+	var size int64
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrapf(err, "failed to walk %s", path)
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size, err
+}
