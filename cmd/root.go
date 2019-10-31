@@ -51,11 +51,6 @@ func initConfig() {
 		DisableTimestamp: true,
 	})
 
-	// now := time.Now()
-	// if now.Month() == 10 && now.Day() == 31 {
-	// 	log.SetFormatter(logzalgo.NewZalgoFormatterrrrrr())
-	// }
-
 	if logLevel != log.DebugLevel {
 		fatal.ShowStackTraces = false
 	}
