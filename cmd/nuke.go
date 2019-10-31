@@ -111,8 +111,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeIOSBuilds || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing ios builds...")
-			buildDir := fmt.Sprintf("%s/.tb/ios", os.Getenv("HOME"))
-			err := os.RemoveAll(buildDir)
+			err := os.RemoveAll(config.IOSBuildPath())
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing ios builds.")
 			}
@@ -129,6 +128,6 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeNetworks, "networks", false, "nuke all networks")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
-	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all ios builds downloaded with tb run ios")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 }

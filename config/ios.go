@@ -1,5 +1,10 @@
 package config
 
+import (
+	"fmt"
+	"os"
+)
+
 type IOSApp struct {
 	BundleID     string
 	Branch       string
@@ -20,4 +25,8 @@ var apps = map[string]IOSApp{
 
 func Apps() map[string]IOSApp {
 	return apps
+}
+
+func IOSBuildPath() string {
+	return fmt.Sprintf("%s/.tb/ios", os.Getenv("HOME"))
 }

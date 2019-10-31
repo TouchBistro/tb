@@ -37,7 +37,7 @@ func GetBranchHeadSha(org, repo, branch string) (string, error) {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return "", errors.Wrap(err, "Unable to get latest release of tb")
+		return "", errors.Wrapf(err, "Unable to complete GET request %s", url)
 	}
 
 	defer res.Body.Close()
