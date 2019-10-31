@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"time"
-
 	"github.com/TouchBistro/tb/cmd/ios"
 	"github.com/TouchBistro/tb/color"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
-	"github.com/aybabtme/logzalgo"
 	semver "github.com/blang/semver"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -54,10 +51,10 @@ func initConfig() {
 		DisableTimestamp: true,
 	})
 
-	now := time.Now()
-	if now.Month() == 10 && now.Day() == 31 {
-		log.SetFormatter(logzalgo.NewZalgoFormatterrrrrr())
-	}
+	// now := time.Now()
+	// if now.Month() == 10 && now.Day() == 31 {
+	// 	log.SetFormatter(logzalgo.NewZalgoFormatterrrrrr())
+	// }
 
 	if logLevel != log.DebugLevel {
 		fatal.ShowStackTraces = false
