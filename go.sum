@@ -4,8 +4,6 @@ github.com/Microsoft/go-winio v0.4.12/go.mod h1:VhR8bwka0BXejwEJY73c50VrPtXAaKcy
 github.com/armon/consul-api v0.0.0-20180202201655-eb2c6b5be1b6/go.mod h1:grANhF5doyWs3UAsr3K4I6qtAmlQcZDesFNEHPZAzj8=
 github.com/aws/aws-sdk-go-v2 v0.15.0 h1:mQCV2MV4I0L02Nwi1xs0HM7yWbrcWjjUOy1UAv27sw8=
 github.com/aws/aws-sdk-go-v2 v0.15.0/go.mod h1:pFLIN9LDjOEwHfruGweAXEq0XaD6uRkY8FsRkxhuBIg=
-github.com/aybabtme/logzalgo v0.0.0-20191015021931-2f671f6203fa h1:AAY+KljhLlgbQAbHirawnOmLs5QXkdBz4M0hyY4WsiQ=
-github.com/aybabtme/logzalgo v0.0.0-20191015021931-2f671f6203fa/go.mod h1:32hclK0Nkc+noRp7i0LagWZfFHIv5uW/WRriwfz+fdk=
 github.com/blang/semver v3.5.1+incompatible h1:cQNTCjp13qL8KC3Nbxr/y2Bqb63oX6wdnnjpJbkM4JQ=
 github.com/blang/semver v3.5.1+incompatible/go.mod h1:kRBLl5iJ+tD4TcOOxsy/0fnwebNt5EWlYSAyrTnjyyk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
@@ -51,8 +49,6 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1 h1:mweAR1A6xJ3oS2pRaGi
 github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2 h1:DB17ag19krx9CFsz4o3enTrPXyIXCl+2iCXH/aMAp9s=
 github.com/konsorten/go-windows-terminal-sequences v1.0.2/go.mod h1:T0+1ngSBFLxvqU3pZ+m/2kptfBszLMUkC4ZK/EgS/cQ=
-github.com/kortschak/zalgo v0.0.0-20190131100928-344d6584eb92 h1:JTPTx3xW3Cj5fKC2RUiMFPHNIxUrKg9DraUMj3MOJKk=
-github.com/kortschak/zalgo v0.0.0-20190131100928-344d6584eb92/go.mod h1:EG+ODQ0g9W43AzhWDDmbiFnnS0sXPAeUE1Vyqu4vzaQ=
 github.com/kr/pretty v0.1.0 h1:L/CwN0zerZDmRFUapSPitk6f+Q3+0za1rQkzVuMiMFI=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
