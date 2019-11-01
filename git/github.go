@@ -15,6 +15,52 @@ const (
 	tokenVar = "HOMEBREW_GITHUB_API_TOKEN"
 )
 
+type getBranchResponse struct {
+	Commit struct {
+		Sha string `json:"sha"`
+	} `json:"commit"`
+}
+
+func GetBranchHeadSha(org, repo, branch string) (string, error) {
+	url := fmt.Sprintf("%s/repos/%s/%s/branches/%s", apiURL, org, repo, branch)
+	client := &http.Client{}
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to create GET request to GitHub API")
+	}
+
+	token := fmt.Sprintf("token %s", os.Getenv(tokenVar))
+	req.Header.Add("Authorization", token)
+	// Use v3 API
+	req.Header.Add("Accept", "application/vnd.github.v3+json")
+
+	res, err := client.Do(req)
+	if err != nil {
+		return "", errors.Wrapf(err, "Unable to complete GET request %s", url)
+	}
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", errors.Wrap(err, "Unable to read response body")
+	}
+
+	if res.StatusCode != 200 {
+		return "", errors.New(fmt.Sprintf("Got %d response from GitHub API:\n%s", res.StatusCode, string(body)))
+	}
+
+	getBranchResp := getBranchResponse{}
+	err = json.Unmarshal(body, &getBranchResp)
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to parse JSON from reponse body")
+	}
+
+	sha := getBranchResp.Commit.Sha
+	return sha, nil
+}
+
 func GetLatestRelease() (string, error) {
 	url := fmt.Sprintf("%s/repos/TouchBistro/tb/releases/latest", apiURL)
 	client := &http.Client{}

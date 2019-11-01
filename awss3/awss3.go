@@ -25,7 +25,7 @@ func ListObjectKeysByPrefix(bucket, objKeyPrefix string) ([]string, error) {
 	req := client.ListObjectsV2Request(&s3.ListObjectsV2Input{
 		Bucket:     aws.String(bucket),
 		Prefix:     aws.String(objKeyPrefix),
-		StartAfter: aws.String(objKeyPrefix),
+		StartAfter: aws.String(objKeyPrefix + "/"),
 	})
 	resp, err := req.Send(ctx)
 	if err != nil {

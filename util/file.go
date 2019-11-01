@@ -12,6 +12,37 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func Untar(src string, cleanup bool) error {
+	if !FileOrDirExists(src) {
+		return errors.New(src + " does not exist")
+	}
+
+	flags := ""
+	ext := filepath.Ext(src)
+	if ext == ".tar" {
+		flags = "-xf"
+	} else if ext == ".tgz" {
+		flags = "-xzf"
+	} else {
+		return errors.New(src + " does not end in .tar or .tgz")
+	}
+
+	label := "untar"
+	err := Exec(label, "tar", flags, src, "-C", filepath.Dir(src))
+	if err != nil {
+		return errors.Wrapf(err, "failed to extract %s in its parent directory", src)
+	}
+
+	if cleanup {
+		err := os.Remove(src)
+		if err != nil {
+			return errors.Wrapf(err, "failed to delete %s after extracting", src)
+		}
+	}
+
+	return nil
+}
+
 func DownloadFile(downloadPath string, r io.Reader) (int64, error) {
 	// Check if file exists
 	downloadDir := filepath.Dir(downloadPath)
@@ -159,4 +190,22 @@ func DecodeYaml(r io.Reader, val interface{}) error {
 	err := dec.Decode(val)
 
 	return err
+}
+
+func DirSize(path string) (int64, error) {
+	if !FileOrDirExists(path) {
+		return 0, nil
+	}
+
+	var size int64
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return errors.Wrapf(err, "failed to walk %s", path)
+		}
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return nil
+	})
+	return size, err
 }

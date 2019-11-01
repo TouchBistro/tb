@@ -239,10 +239,11 @@ Examples:
 
 		// check for docker disk usage after cleanup
 		full, usage, err := docker.CheckDockerDiskUsage()
-		log.Infof("Current docker disk usage: %.2fGB", ((float64(usage)/1024)/1024)/1024)
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed checking docker status")
 		}
+		log.Infof("Current docker disk usage: %.2fGB", float64(usage)/1024/1024/1024)
+
 		if full {
 			if util.Prompt("Your free disk space is running out, would you like to cleanup? y/n >") {
 				// Images are all we really care about as far as space cleaning
