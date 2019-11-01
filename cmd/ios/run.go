@@ -149,16 +149,16 @@ Examples:
 
 		appPath := filepath.Join(downloadDest, strings.TrimSuffix(pathToS3Tarball, ".tgz"))
 
-		log.Debugln("☐ Finding device UUID")
-		deviceUUID, err := simulator.GetDeviceUUID("iOS "+iosVersion, deviceName)
+		log.Debugln("☐ Finding device UDID")
+		deviceUDID, err := simulator.GetDeviceUDID("iOS "+iosVersion, deviceName)
 		if err != nil {
-			fatal.ExitErr(err, "☒ Failed to get device UUID.\nRun \"xcrun simctl list devices\" to list available simulators.")
+			fatal.ExitErr(err, "☒ Failed to get device UDID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}
 
-		log.Debugf("☑ Found device UUID: %s\n", deviceUUID)
+		log.Debugf("☑ Found device UDID: %s\n", deviceUDID)
 		log.Infof("☐ Booting Simulator %s\n", deviceName)
 
-		err = simulator.Boot(deviceUUID)
+		err = simulator.Boot(deviceUDID)
 		if err != nil {
 			fatal.ExitErrf(err, "☒ Failed to boot simulator %s", deviceName)
 		}
@@ -174,7 +174,7 @@ Examples:
 		log.Debugln("☑ Opened simulator app")
 		log.Infof("☐ Installing app on %s\n", deviceName)
 
-		err = simulator.InstallApp(deviceUUID, appPath)
+		err = simulator.InstallApp(deviceUDID, appPath)
 		if err != nil {
 			fatal.ExitErrf(err, "☒ Failed to install app at path %s on simulator %s", appPath, deviceName)
 		}
@@ -184,7 +184,7 @@ Examples:
 		if dataPath != "" {
 			log.Infoln("☐ Injecting data files into simulator")
 
-			appDataPath, err := simulator.GetAppDataPath(deviceUUID, app.BundleID)
+			appDataPath, err := simulator.GetAppDataPath(deviceUDID, app.BundleID)
 			if err != nil {
 				fatal.ExitErrf(err, "Failed to get path to data for app %s", app.BundleID)
 			}
@@ -199,7 +199,7 @@ Examples:
 
 		log.Info("☐ Launching app in simulator")
 
-		err = simulator.LaunchApp(deviceUUID, app.BundleID)
+		err = simulator.LaunchApp(deviceUDID, app.BundleID)
 		if err != nil {
 			fatal.ExitErrf(err, "☒ Failed to launch app %s on simulator %s", app.BundleID, deviceName)
 		}
@@ -211,9 +211,9 @@ Examples:
 
 func init() {
 	iosCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "12.2", "The iOS version to use")
-	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air 2", "The name of the device to use")
+	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
+	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
 	runCmd.Flags().StringVarP(&appName, "app", "a", "TouchBistro", "The name of the application to run, eg TouchBistro")
 	runCmd.Flags().StringVarP(&branch, "branch", "b", "master", "The name of the git branch associated build to pull down and run")
-	runCmd.Flags().StringVar(&dataPath, "data-path", "D", "The path to a data directory to inject into the simulator")
+	runCmd.Flags().StringVarP(&dataPath, "data-path", "D", "", "The path to a data directory to inject into the simulator")
 }
