@@ -1,10 +1,13 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/TouchBistro/tb/cmd/ios"
 	"github.com/TouchBistro/tb/color"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
 	semver "github.com/blang/semver"
 	log "github.com/sirupsen/logrus"
@@ -29,7 +32,11 @@ func init() {
 	// Add subcommands
 	rootCmd.AddCommand(ios.IOS())
 
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(func() {
+		f := fortune.Random().String()
+		fmt.Println(color.Magenta(f))
+		initConfig()
+	})
 }
 
 func initConfig() {
