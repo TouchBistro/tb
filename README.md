@@ -42,9 +42,10 @@ You will need access to AWS ECR (Amazon's docker registry) to pull artifacts ins
     ```sh
     brew install awscli
     ```
-2. Get access to our AWS account by asking DevOps support.
-3. Go to your security settings and create a personal access token, making note of your secret key. Details on how to do this are available in the [AWS docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey).
-4. Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for the region).
+2. If you don't have access to the Touchbistro AWS account contact DevOps support.
+3. You'll need to add MFA (2FA) to your account before generating an access key.  [Setup MFA](https://touchbistro.atlassian.net/wiki/x/mYAXLg).
+4. Go to your security settings and create a personal access token, making note of your secret key. Details on how to do this are available in the [AWS docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey).
+5. Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for the region).
 
 </details>
 
