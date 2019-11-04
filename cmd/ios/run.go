@@ -28,7 +28,7 @@ var (
 var runCmd = &cobra.Command{
 	Use:   "run",
 	Short: "Runs an iOS app build in an iOS Simulator",
-	Args:  cobra.ExactArgs(0),
+	Args:  cobra.NoArgs,
 	Long: `Runs an iOS app build in an iOS Simulator.
 
 Examples:
@@ -41,6 +41,11 @@ Examples:
 		app, ok := config.Apps()[appName]
 		if !ok {
 			fatal.Exitf("Error: No iOS app with name %s\n", appName)
+		}
+
+		// If no branch provided, use default branch for app
+		if branch == "" {
+			branch = app.Branch
 		}
 
 		downloadDest := config.IOSBuildPath()
@@ -214,6 +219,6 @@ func init() {
 	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
 	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
 	runCmd.Flags().StringVarP(&appName, "app", "a", "TouchBistro", "The name of the application to run, eg TouchBistro")
-	runCmd.Flags().StringVarP(&branch, "branch", "b", "master", "The name of the git branch associated build to pull down and run")
+	runCmd.Flags().StringVarP(&branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
 	runCmd.Flags().StringVarP(&dataPath, "data-path", "D", "", "The path to a data directory to inject into the simulator")
 }
