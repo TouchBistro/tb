@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"os"
 
 	"github.com/TouchBistro/tb/git"
@@ -54,17 +55,17 @@ func CloneMissingRepos(services ServiceMap) error {
 		path := fmt.Sprintf("%s/%s", TBRootPath(), repo)
 
 		if util.FileOrDirExists(path) {
-			if dirlen, err := util.DirLen(path); dirlen < 2 {
-				//Directory exists but only contains .git subdirtory, rm and clone again
-				if err != nil {
-					return err
-				}
-				err := os.RemoveAll(path)
-				if err != nil {
-					return err
-				}
-			} else {
+			dirlen, err := util.DirLen(path)
+			if err != nil {
+				return errors.Wrap(err, "Could not read project directory")
+			}
+			// Directory exists but only contains .git subdirectory, rm and clone again
+			if dirlen < 2 {
 				continue
+			}
+			err = os.RemoveAll(path)
+			if err != nil {
+				return errors.Wrapf(err, "Couldn't remove project directory for %s", path)
 			}
 		}
 
