@@ -75,6 +75,15 @@ func FileOrDirExists(path string) bool {
 	return true
 }
 
+func DirLen(path string) (int, error) {
+	dir, err := os.Open(path)
+	if err != nil {
+		return 0, err
+	}
+	list, err := dir.Readdirnames(0)
+	return len(list), err
+}
+
 func AppendLineToFile(path string, line string) error {
 	f, err := os.OpenFile(path, os.O_APPEND|os.O_WRONLY, 0644)
 	if err != nil {

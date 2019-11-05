@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
@@ -53,7 +54,18 @@ func CloneMissingRepos(services ServiceMap) error {
 		path := fmt.Sprintf("%s/%s", TBRootPath(), repo)
 
 		if util.FileOrDirExists(path) {
-			continue
+			if dirlen, err := util.DirLen(path); dirlen < 2 {
+				//Directory exists but only contains .git subdirtory, rm and clone again
+				if err != nil {
+					return err
+				}
+				err := os.RemoveAll(path)
+				if err != nil {
+					return err
+				}
+			} else {
+				continue
+			}
 		}
 
 		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)

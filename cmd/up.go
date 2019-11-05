@@ -205,6 +205,8 @@ Examples:
 		var err error
 		composeFile = docker.ComposeFile()
 
+		//We have to clone every possible repo instead of just selected services
+		//Because otherwise docker-compose will complaing about missing build paths
 		err = config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
