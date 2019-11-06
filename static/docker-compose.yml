@@ -203,6 +203,7 @@ x-venue-core-service-boilerplate:
     - "9901:9229"  # 9229, 9330: Node debugger
     - "9902:9230"
     - "4001:4001"  # JSDoc server
+    - "9901:9999"  # rtail log server
     # - "8089:8089"   # Not used?
   depends_on:
     - localstack
@@ -943,7 +944,7 @@ services:
     volumes:
       - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
       - ordering-engine-service-node_modules:/home/node/app/node_modules
-  
+
   partners-etl-service-ecr:
     << : *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
@@ -1102,7 +1103,7 @@ services:
     << : *command-start
     volumes:
       - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
-  
+
   backoffice-customer-service-ecr:
     << : *backoffice-customer-service-boilerplate
     image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
