@@ -203,7 +203,7 @@ x-venue-core-service-boilerplate:
     - "9901:9229"  # 9229, 9330: Node debugger
     - "9902:9230"
     - "4001:4001"  # JSDoc server
-    - "9901:9999"  # rtail log server
+    - "9903:9999"  # rtail log server
     # - "8089:8089"   # Not used?
   depends_on:
     - localstack
