@@ -62,11 +62,11 @@ x-nodeservice:
 
 x-command-serve:
   &command-serve
-  command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+  command: bash -c 'yarn serve'
 
 x-command-start:
   &command-start
-  command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+  command: bash -c 'yarn start'
 
 x-build-node-dev:
   &build-node-dev
@@ -131,15 +131,7 @@ x-cloud-server-boilerplate:
       - MSSQL_HOST=legacy-database-ecr
     entrypoint: [ "bash", "./docker-entrypoint.sh" ]
     command: >
-      bash -c '
-        echo '...done'
-        if [ "$START_SERVER" = "true" ]; then
-          echo "Starting server.."
-          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
-        else
-          echo "Not starting server.."
-          tail -f /dev/null
-        fi'
+      bash -c 'bundle exec unicorn -p 3000 -c ./config/unicorn.rb'
     ports:
       - "3000:3000"
     depends_on:
@@ -714,15 +706,7 @@ services:
     << : *venue-core-service-boilerplate
     image: $VENUE_CORE_SERVICE_IMAGE_URI
     command: >
-      bash -c '
-        echo '...done'
-        if [ "$START_SERVER" = "true" ]; then
-          echo "Starting server.."
-          yarn serve
-        else
-          echo "Not starting server.."
-          tail -f /dev/null
-        fi'
+      bash -c 'yarn serve'
     container_name: venue-core-service-ecr
 
   venue-core-service:
@@ -736,15 +720,7 @@ services:
     image: tb_venue-core-service
     container_name: tb_venue-core-service_container
     command: >
-      bash -c '
-        echo '...done'
-        if [ "$START_SERVER" = "true" ]; then
-          echo "Starting server.."
-          yarn start
-        else
-          echo "Not starting server.."
-          tail -f /dev/null
-        fi'
+      bash -c 'yarn start'
     volumes:
       - $TB_ROOT/venue-core-service:/home/node/app:delegated
       - venue-core-service-node_modules:/home/node/app/node_modules:delegated

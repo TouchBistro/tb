@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"time"
@@ -20,7 +19,7 @@ import (
 
 type options struct {
 	shouldSkipDBPrepare   bool
-	shouldSkipServerStart bool
+	shouldSkipServerStart []string
 	shouldSkipGitPull     bool
 	shouldSkipDockerPull  bool
 	cliServiceNames       []string
@@ -120,6 +119,12 @@ func dockerComposeUp() {
 		fatal.ExitErr(err, "could not run docker-compose up")
 	}
 
+	stopArgs := fmt.Sprintf("%s stop %s", composeFile, strings.Join(opts.shouldSkipServerStart, " "))
+	err = util.Exec("compose-up", "docker-compose", strings.Fields(stopArgs)...)
+	if err != nil {
+		fatal.ExitErr(err, "could not stop skipped services")
+	}
+
 	log.Info("☑ finished starting docker-compose up in detached mode")
 }
 
@@ -137,11 +142,6 @@ Examples:
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		var err error
-		if opts.shouldSkipServerStart {
-			os.Setenv("START_SERVER", "false")
-		} else {
-			os.Setenv("START_SERVER", "true")
-		}
 
 		if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
 			fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
@@ -330,7 +330,7 @@ Examples:
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
-		err = util.Exec("lazydocker", "lazydocker")
+		err = util.Exec("lazydocker", "lazydocker", docker.ComposeFile())
 		if err != nil {
 			fatal.ExitErr(err, "failed running lazydocker")
 		}
@@ -343,12 +343,12 @@ Examples:
 }
 
 func init() {
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "dont get new ecr images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
+	upCmd.PersistentFlags().StringSliceVarP(&opts.shouldSkipServerStart, "no-start-servers", "n", []string{}, "comma seperated list of services to avoid starting after creation")
 
 	rootCmd.AddCommand(upCmd)
 }
