@@ -123,48 +123,6 @@ func dockerComposeUp() {
 	log.Info("☑ finished starting docker-compose up in detached mode")
 }
 
-func selectServices() {
-	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
-		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
-	}
-
-	var names []string
-
-	// parsing --playlist
-	if opts.playlistName != "" {
-		name := opts.playlistName
-		if len(name) == 0 {
-			fatal.Exit("playlist name cannot be blank. try running tb up --help")
-		}
-		var err error
-		names, err = config.GetPlaylist(name, make(map[string]bool))
-		if err != nil {
-			fatal.ExitErr(err, "☒ failed resolving service playlist")
-		}
-		if len(names) == 0 {
-			fatal.Exitf("playlist \"%s\" is empty or nonexistent.\ntry running tb list --playlists to see all the available playlists.\n", name)
-		}
-		// parsing --services
-	} else if len(opts.cliServiceNames) > 0 {
-		names = opts.cliServiceNames
-	} else {
-		fatal.Exit("you must specify either --playlist or --services.\ntry tb up --help for some examples.")
-	}
-
-	services := config.Services()
-	selectedServices = make(config.ServiceMap, len(names))
-	for _, name := range names {
-		if _, ok := services[name]; !ok {
-			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
-		}
-		selectedServices[name] = services[name]
-	}
-
-	if len(selectedServices) == 0 {
-		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
-	}
-}
-
 var upCmd = &cobra.Command{
 	Use:   "up",
 	Short: "Starts services from a playlist name or as a comma separated list of services",
@@ -178,18 +136,26 @@ Examples:
 	tb up --services postgres,localstack`,
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
+		var err error
 		if opts.shouldSkipServerStart {
 			os.Setenv("START_SERVER", "false")
 		} else {
 			os.Setenv("START_SERVER", "true")
 		}
 
-		selectServices()
+		if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
+			fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
+		}
+
+		selectedServices, err = config.SelectServices(opts.cliServiceNames, opts.playlistName)
+		if err != nil {
+			fatal.ExitErr(err, "failed resolving selected services")
+		}
 
 		composeNames := config.ComposeNames(selectedServices)
 		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
-		err := deps.Resolve(
+		err = deps.Resolve(
 			deps.Brew,
 			deps.Aws,
 			deps.Lazydocker,

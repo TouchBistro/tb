@@ -240,3 +240,44 @@ func RmFiles() error {
 
 	return nil
 }
+
+func SelectServices(cliServiceNames []string, playlistName string) (ServiceMap, error) {
+	var names []string
+
+	// parsing --playlist
+	if playlistName != "" {
+		name := playlistName
+		if len(name) == 0 {
+			return nil, errors.New("playlist name cannot be blank. try running tb up --help")
+		}
+		var err error
+		names, err = GetPlaylist(name, make(map[string]bool))
+		if err != nil {
+			return nil, errors.Wrap(err, "failed resolving service playlist")
+		}
+		if len(names) == 0 {
+			return nil, fmt.Errorf("playlist \"%s\" is empty or nonexistent.\ntry running tb list --playlists to see all the available playlists.\n", name)
+		}
+
+		// parsing --services
+	} else if len(cliServiceNames) > 0 {
+		names = cliServiceNames
+	} else {
+		return nil, fmt.Errorf("you must specify either --playlist or --services.\ntry tb up --help for some examples.")
+	}
+
+	services := Services()
+	selectedServices := make(ServiceMap, len(names))
+	for _, name := range names {
+		if _, ok := services[name]; !ok {
+			return nil, fmt.Errorf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
+		}
+		selectedServices[name] = services[name]
+	}
+
+	if len(selectedServices) == 0 {
+		return nil, fmt.Errorf("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
+	}
+
+	return selectedServices, nil
+}
