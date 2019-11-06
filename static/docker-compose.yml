@@ -729,7 +729,7 @@ services:
   venue-core-service:
     << : *venue-core-service-boilerplate
     build:
-      target: local
+      target: dev
       context: $TB_ROOT/venue-core-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
