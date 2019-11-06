@@ -60,7 +60,7 @@ func CloneMissingRepos(services ServiceMap) error {
 				return errors.Wrap(err, "Could not read project directory")
 			}
 			// Directory exists but only contains .git subdirectory, rm and clone again
-			if dirlen < 2 {
+			if dirlen > 2 {
 				continue
 			}
 			err = os.RemoveAll(path)
