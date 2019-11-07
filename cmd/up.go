@@ -155,6 +155,8 @@ Examples:
 		composeNames := config.ComposeNames(selectedServices)
 		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
+		//check -n flag for valid service names
+
 		err = deps.Resolve(
 			deps.Brew,
 			deps.Aws,
@@ -330,7 +332,7 @@ Examples:
 
 		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
-		err = util.Exec("lazydocker", "lazydocker", docker.ComposeFile())
+		err = util.Exec("lazydocker", "lazydocker")
 		if err != nil {
 			fatal.ExitErr(err, "failed running lazydocker")
 		}
