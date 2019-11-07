@@ -261,14 +261,14 @@ x-venue-core-service-boilerplate:
               {
                 "pattern": "core.backend.loggable.error.class.*",
                 "binding": {
-                  "transport": ["ErrorLog"],
+                  "transport": ["errorLog"],
                   "level": "debug"
                 }
               },
               {
                 "pattern": "core.backend.error.not.from.defined.core.error",
                 "binding": {
-                  "transport": ["ErrorLog"],
+                  "transport": ["errorLog"],
                   "level": "debug"
                 }
               }
