@@ -1,4 +1,4 @@
-version: "3.7"
+version: '3.7'
 
 ###### ANCHORS ######
 
@@ -35,21 +35,21 @@ x-postgresconnect: &postgres-connect
   DB_PORT: 5432
   DB_USER: core
   DB_PASSWORD: localdev
-  DB_DISABLE_SSL: "true"
+  DB_DISABLE_SSL: 'true'
 
 x-mssqlconnect: &mssql-connect
   DB_HOST: $LEGACY_DATABASE_NAME
   DB_PORT: 1433
   DB_USER: SA
   DB_PASSWORD: Password123
-  DB_DISABLE_SSL: "true"
+  DB_DISABLE_SSL: 'true'
 
 x-mysqlconnect: &mysql-connect
   DB_HOST: $SINGLEAPP_DATABASE_NAME
   DB_PORT: 3306
   DB_USER: root
   DB_PASSWORD: root
-  DB_DISABLE_SSL: "true"
+  DB_DISABLE_SSL: 'true'
 
 x-nodeservice: &node-service
   <<: *json-logger-config
@@ -72,12 +72,12 @@ x-build-node-dev: &build-node-dev
 x-mokta-boilerplate: &mokta-boilerplate
   env_file:
     - $TB_ROOT/mokta/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *node-service
     <<: *postgres-connect
   ports:
-    - "9443:8080"
+    - '9443:8080'
   depends_on:
     - postgres
 
@@ -85,18 +85,24 @@ x-identity-user-service-boilerplate: &identity-user-service-boilerplate
   env_file:
     - $TB_ROOT/identity-user-service/.env.example
   environment:
-      <<: *node-service
-      OKTA_BASE_URL: https://${MOKTA_NAME}:8080
-      INSECURE_DISABLE_SSL_VALIDATION: "true"
+    <<: *node-service
+    OKTA_BASE_URL: https://${MOKTA_NAME}:8080
+    INSECURE_DISABLE_SSL_VALIDATION: 'true'
   ports:
-    - "8777:8080"
+    - '8777:8080'
+
+x-identity-home-frontend-boilerplate: &identity-home-frontend-boilerplate
+  env_file:
+    - $TB_ROOT/identity-home-frontend/.env.example
+  ports:
+    - '9090:8080'
 
 x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
   init: true
   env_file:
     - $TB_ROOT/cloud-server-frontend/packages/frontend/.env.example
   ports:
-    - "8080:80"
+    - '8080:80'
   depends_on:
     - $CLOUD_SERVER_NAME
 
@@ -107,20 +113,20 @@ x-legacy-database-boilerplate: &legacy-database-boilerplate
     DB_PORT: 1433
     DB_USER: SA
     DB_PASSWORD: Password123
-    DB_DISABLE_SSL: "true"
+    DB_DISABLE_SSL: 'true'
     DB_HOST: localhost
     DB_NAME: cloud_db
   ports:
-    - "1433:1433"
-  entrypoint: ["bash", "./docker-entrypoint-db.sh"]
-  command: ["tail", "-f", "/dev/null"]
+    - '1433:1433'
+  entrypoint: ['bash', './docker-entrypoint-db.sh']
+  command: ['tail', '-f', '/dev/null']
 
 x-cloud-server-boilerplate: &cloud-server-boilerplate
   env_file:
     - $TB_ROOT/cloud-server/.env.compose
   environment:
     - MSSQL_HOST=$LEGACY_DATABASE_NAME
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   command: >
     bash -c '
       echo '...done'
@@ -132,7 +138,7 @@ x-cloud-server-boilerplate: &cloud-server-boilerplate
         tail -f /dev/null
       fi'
   ports:
-    - "3000:3000"
+    - '3000:3000'
   depends_on:
     - redis
     - $LEGACY_DATABASE_NAME
@@ -144,18 +150,18 @@ x-venue-provisioning-service-boilerplate:
   environment:
     <<: *postgres-connect
     <<: *node-service
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   ports:
-    - "8666:8080"
+    - '8666:8080'
   depends_on:
     - postgres
 
 x-health-clinic-boilerplate: &health-clinic-boilerplate
-  command: ["tail", "-f", "/dev/null"]
+  command: ['tail', '-f', '/dev/null']
   env_file:
     - $TB_ROOT/health-clinic/.env.compose
   ports:
-    - "8089:8089"
+    - '8089:8089'
 
 x-dotnet-boilerplate: &dotnet-boilerplate
   image: hpgy/mono-xsp4
@@ -163,21 +169,21 @@ x-dotnet-boilerplate: &dotnet-boilerplate
     MONO_OPTIONS: --debug
   entrypoint:
     [
-      "xsp4",
-      "--port",
-      "80",
-      "--nonstop",
-      "--verbose",
-      "--printlog",
-      "--loglevels",
-      "All",
+      'xsp4',
+      '--port',
+      '80',
+      '--nonstop',
+      '--verbose',
+      '--printlog',
+      '--loglevels',
+      'All',
     ]
   depends_on:
     - $LEGACY_DATABASE_NAME
 
 x-venue-core-service-boilerplate: &venue-core-service-boilerplate
-  command: ["tail", "-f", "/dev/null"]
-  entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
+  command: ['tail', '-f', '/dev/null']
+  entrypoint: ['bash', './entrypoints/server-entrypoint.sh']
   env_file:
     - $TB_ROOT/venue-core-service/.env.example
   environment:
@@ -275,11 +281,11 @@ x-venue-core-service-boilerplate: &venue-core-service-boilerplate
         }
       }
   ports:
-    - "8081:8080" # Main HTTP port
-    - "9901:9229" # 9229, 9330: Node debugger
-    - "9902:9230"
-    - "4001:4001" # JSDoc server
-    - "9903:8090" # rtail log server
+    - '8081:8080' # Main HTTP port
+    - '9901:9229' # 9229, 9330: Node debugger
+    - '9902:9230'
+    - '4001:4001' # JSDoc server
+    - '9903:8090' # rtail log server
     # - "8089:8089"   # Not used?
   depends_on:
     - localstack
@@ -287,7 +293,7 @@ x-venue-core-service-boilerplate: &venue-core-service-boilerplate
 
 x-legacy-bridge-manage-service-boilerplate:
   &legacy-bridge-manage-service-boilerplate
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   env_file:
     - $TB_ROOT/legacy-bridge-manage-service/.env.example
   environment:
@@ -295,13 +301,13 @@ x-legacy-bridge-manage-service-boilerplate:
     DB_NAME: cloud_db
     <<: *json-logger-config
   ports:
-    - "8999:8080"
+    - '8999:8080'
   depends_on:
     - $LEGACY_DATABASE_NAME
 
 x-legacy-bridge-cloud-service-boilerplate:
   &legacy-bridge-cloud-service-boilerplate
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   env_file:
     - $TB_ROOT/legacy-bridge-cloud-service/.env.example
   environment:
@@ -309,14 +315,14 @@ x-legacy-bridge-cloud-service-boilerplate:
     <<: *node-service
     DB_NAME: cloud_db
   ports:
-    - "8101:8080"
+    - '8101:8080'
   depends_on:
     - $LEGACY_DATABASE_NAME
 
 x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
   env_file:
     - $TB_ROOT/ordering-ooa-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -369,7 +375,7 @@ x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
     TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
   ports:
-    - "8005:8080"
+    - '8005:8080'
   depends_on:
     - postgres
     - localstack
@@ -377,16 +383,16 @@ x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
 x-ordering-demo-frontend-boilerplate: &ordering-demo-frontend-boilerplate
   env_file:
     - $TB_ROOT/ordering-demo-frontend/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *postgres-connect
     <<: *node-service
     DELIVEROO_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
-    DELIVEROO_DISABLED: "false"
+    DELIVEROO_DISABLED: 'false'
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     URL_CALLBACK_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/callback
   ports:
-    - "8010:8080"
+    - '8010:8080'
   depends_on:
     - postgres
 
@@ -394,14 +400,14 @@ x-ordering-demo-frontend-venue-boilerplate:
   &ordering-demo-frontend-venue-boilerplate
   env_file:
     - $TB_ROOT/ordering-demo-frontend/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *postgres-connect
     <<: *node-service
     INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     MODE: venue
   ports:
-    - "8020:8080"
+    - '8020:8080'
   depends_on:
     - postgres
 
@@ -414,7 +420,7 @@ x-ordering-gateways-frontend-boilerplate:
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal
   ports:
-    - "8030:8080"
+    - '8030:8080'
 
 x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
   env_file:
@@ -423,7 +429,7 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
     <<: *node-service
     <<: *mysql-connect
   ports:
-    - "8610:8080"
+    - '8610:8080'
   depends_on:
     - $SINGLEAPP_DATABASE_NAME
 
@@ -435,19 +441,19 @@ x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
     - CONFIG_PROXY_APP_URL=http://localhost:8080
     - CONFIG_PROXY_PORT=8080
   ports:
-    - "8611:8080"
+    - '8611:8080'
   depends_on:
     - $ORDERING_ENGINE_SERVICE_NAME
 
 x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
   env_file:
     - $TB_ROOT/partners-etl-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *node-service
     <<: *postgres-connect
     AWS_S3_ENDPOINT: http://localstack:4572
-    AWS_S3_STUB: "false"
+    AWS_S3_STUB: 'false'
     PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
@@ -462,7 +468,7 @@ x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
       }
     TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${CLOUD_SERVER_NAME}:3000/api/v2_5
   ports:
-    - "8888:8080"
+    - '8888:8080'
   depends_on:
     - postgres
     - localstack
@@ -470,7 +476,7 @@ x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
 x-partners-config-service-boilerplate: &partners-config-service-boilerplate
   env_file:
     - $TB_ROOT/partners-config-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -486,7 +492,7 @@ x-partners-config-service-boilerplate: &partners-config-service-boilerplate
         }
       }
   ports:
-    - "8090:8080"
+    - '8090:8080'
   depends_on:
     - postgres
     - localstack
@@ -495,7 +501,7 @@ x-partners-orchestration-service-boilerplate:
   &partners-orchestration-service-boilerplate
   env_file:
     - $TB_ROOT/partners-orchestration-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -522,7 +528,7 @@ x-partners-orchestration-service-boilerplate:
         }
       }
   ports:
-    - "8085:8080"
+    - '8085:8080'
   depends_on:
     - postgres
     - localstack
@@ -547,7 +553,7 @@ x-partners-reservations-service-boilerplate:
         }
       }
   ports:
-    - "8602:8080"
+    - '8602:8080'
   depends_on:
     - postgres
     - localstack
@@ -558,7 +564,7 @@ x-partners-reservations-service-boilerplate:
 
 x-singleapp-database-boilerplate: &singleapp-database-boilerplate
   ports:
-    - "3306:3306"
+    - '3306:3306'
 
 x-venue-upload-service-boilerplate: &venue-upload-service-boilerplate
   env_file:
@@ -586,7 +592,7 @@ x-venue-upload-service-boilerplate: &venue-upload-service-boilerplate
         }
       }
   ports:
-    - "8601:8080"
+    - '8601:8080'
   depends_on:
     - localstack
 
@@ -601,9 +607,9 @@ x-venue-admin-frontend-boilerplate: &venue-admin-frontend-boilerplate
     - HTTP_PORT=9002 # VAF will default to :5000 for local server development.
     - NODE_ENV=production
   ports:
-    - "9002:9002"
+    - '9002:9002'
   # Note the `../`, since the Dockerfile executes from $HOME/app/dist
-  entrypoint: ["bash", "../docker-entrypoint.sh"]
+  entrypoint: ['bash', '../docker-entrypoint.sh']
   <<: *command-serve
   depends_on:
     - $VENUE_CORE_SERVICE_NAME
@@ -615,24 +621,24 @@ x-infrastructure-auth-service-boilerplate:
   &infrastructure-auth-service-boilerplate
   env_file:
     - $TB_ROOT/infrastructure-auth-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *node-service
     <<: *postgres-connect
   ports:
-    - "8073:8080"
+    - '8073:8080'
   depends_on:
     - postgres
 
 x-loyalty-gateway-service-boilerplate: &loyalty-gateway-service-boilerplate
   env_file:
     - $TB_ROOT/loyalty-gateway-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  entrypoint: ['bash', './docker-entrypoint.sh']
   environment:
     <<: *node-service
     <<: *postgres-connect
   ports:
-    - "8600:8080"
+    - '8600:8080'
   depends_on:
     - postgres
 
@@ -646,20 +652,19 @@ x-backoffice-customer-service-boilerplate:
     JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
     TASK_PROVIDER: inmemory
   ports:
-    - "8700:8080"
+    - '8700:8080'
   depends_on:
     - postgres
     - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
-x-legacy-upload-service-boilerplate:
-  &legacy-upload-service-boilerplate
+x-legacy-upload-service-boilerplate: &legacy-upload-service-boilerplate
   env_file:
     - $TB_ROOT/legacy-upload-service/.env.example
   environment:
     <<: *postgres-connect
     <<: *node-service
   ports:
-    - "8009:8080"
+    - '8009:8080'
   depends_on:
     - postgres
     - localstack
@@ -676,33 +681,33 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - '5432:5432'
 
   redis:
     image: $REDIS_IMAGE_URI
     container_name: redis
     ports:
-      - "6379:6379"
+      - '6379:6379'
 
   localstack:
     image: $LOCALSTACK_IMAGE_URI
     container_name: localstack
     ports:
-      - "9888:8080" # web interface
-      - "4567-4584:4567-4584"
+      - '9888:8080' # web interface
+      - '4567-4584:4567-4584'
     environment:
       - SERVICES=s3,sqs,sns
       - PORT_WEB_UI=8080
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
-      - "$TB_ROOT/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
-      - "$TB_ROOT/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
-      - "$TB_ROOT/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
-      - "$TB_ROOT/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
-      - "$TB_ROOT/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
-      - "$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
+      - '/var/run/docker.sock:/var/run/docker.sock'
+      - '$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh' # docker-entrypoint-initaws.d files are run in alphabetical order
+      - '$TB_ROOT/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh'
+      - '$TB_ROOT/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh'
+      - '$TB_ROOT/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh'
+      - '$TB_ROOT/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh'
+      - '$TB_ROOT/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh'
+      - '$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh'
 
   mokta:
     <<: *mokta-boilerplate
@@ -728,11 +733,33 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: identity-user-service
+    environment:
+      <<: *node-service
+      OKTA_BASE_URL: https://mokta:8080
+      INSECURE_DISABLE_SSL_VALIDATION: 'true'
 
   identity-user-service-ecr:
     <<: *identity-user-service-boilerplate
     image: $IDENTITY_USER_SERVICE_IMAGE_URI
     container_name: identity-user-service-ecr
+    environment:
+      <<: *node-service
+      OKTA_BASE_URL: https://mokta-ecr:8080
+      INSECURE_DISABLE_SSL_VALIDATION: 'true'
+
+  identity-home-frontend:
+    <<: *identity-home-frontend-boilerplate
+    build:
+      target: dev
+      context: $TB_ROOT/identity-home-frontend
+      args:
+        - NPM_TOKEN=$NPM_TOKEN
+    container_name: identity-home-frontend_container
+
+  identity-home-frontend-ecr:
+    <<: *identity-home-frontend-boilerplate
+    image: $IDENTITY_HOME_FRONTEND_IMAGE_URI
+    container_name: identity-home-frontend-ecr_container
 
   legacy-database:
     <<: *legacy-database-boilerplate
@@ -850,7 +877,7 @@ services:
     <<: *dotnet-boilerplate
     container_name: tb_dotnet-manage_container
     ports:
-      - "9000:80"
+      - '9000:80'
     volumes:
       - $TB_ROOT/dotnet-depot/manage:/app:delegated
 
@@ -858,7 +885,7 @@ services:
     <<: *dotnet-boilerplate
     container_name: tb_dotnet-api_container
     ports:
-      - "9001:80"
+      - '9001:80'
     volumes:
       - $TB_ROOT/dotnet-depot/api:/app:delegated
 
@@ -947,7 +974,7 @@ services:
       - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
       - ordering-demo-frontend-venue-node_modules:/home/node/app/node_modules
     ports:
-      - "8020:8080"
+      - '8020:8080'
     depends_on:
       - postgres
 
@@ -1186,7 +1213,6 @@ services:
     volumes:
       - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
-
 
 ###### VOLUMES ######
 

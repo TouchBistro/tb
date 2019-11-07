@@ -26,6 +26,11 @@ health-clinic:
   migrations: false
   ecr: true
   ecrTag: master
+identity-home-frontend:
+  repo: identity-home-frontend
+  migrations: false
+  ecr: true
+  ecrTag: master
 identity-user-service:
   repo: identity-user-service
   migrations: false
