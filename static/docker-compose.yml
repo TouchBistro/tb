@@ -198,6 +198,84 @@ x-venue-core-service-boilerplate:
     INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
     TASK_AWS_SQS_CONFIG_JSON: >
       {"core.task.data.migration":{"queueURL":"http://localstack:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
+    LOGGER_CONFIG_JSON: >
+      {
+        "transports": {
+          "devConsole": {
+            "provider": "winston.transports.Console",
+            "config": {
+              "colorize": true,
+              "timestamp": true,
+              "json": false
+            }
+          },
+          "graphqlLegacy": {
+            "provider": "winston.transports.File",
+            "config": {
+              "filename": "./logs/request_graphql_legacy.log",
+              "timestamp": true,
+              "json": true
+            }
+          },
+          "graphqlUp": {
+            "provider": "winston.transports.File",
+            "config": {
+              "filename": "./logs/request_graphql_up.log",
+              "timestamp": true,
+              "json": true
+            }
+          },
+          "errorLog": {
+            "provider": "winston.transports.File",
+            "config": {
+              "filename": "./logs/error_log.log",
+              "timestamp": true,
+              "json": true
+            }
+          }
+        },
+        "env": {
+          "development": {
+            "rules": [
+              {
+                "pattern": "*",
+                "binding": {
+                  "transport": ["devConsole"],
+                  "level": "info"
+                }
+              },
+              {
+                "pattern": "core.backend.request.log.graphql.legacy.*",
+                "binding": {
+                  "transport": ["graphqlLegacy"],
+                  "level": "debug"
+                }
+              },
+              {
+                "pattern": "core.backend.request.log.graphql.up.*",
+                "binding": {
+                  "transport": ["graphqlUp"],
+                  "level": "debug"
+                }
+              },
+              {
+                "pattern": "core.backend.loggable.error.class.*",
+                "binding": {
+                  "transport": ["errorLog"],
+                  "level": "debug"
+                }
+              },
+              {
+                "pattern": "core.backend.error.not.from.defined.core.error",
+                "binding": {
+                  "transport": ["errorLog"],
+                  "level": "debug"
+                }
+              }
+            ]
+          }
+        }
+      }
   ports:
     - "8081:8080"  # Main HTTP port
     - "9901:9229"  # 9229, 9330: Node debugger
