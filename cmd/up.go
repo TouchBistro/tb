@@ -29,6 +29,7 @@ type options struct {
 var (
 	composeFile      string
 	selectedServices config.ServiceMap
+	downedServices   string
 	opts             options
 )
 
@@ -118,11 +119,12 @@ func dockerComposeUp() {
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
 	}
-
-	stopArgs := fmt.Sprintf("%s stop %s", composeFile, strings.Join(opts.shouldSkipServerStart, " "))
-	err = util.Exec("compose-up", "docker-compose", strings.Fields(stopArgs)...)
-	if err != nil {
-		fatal.ExitErr(err, "could not stop skipped services")
+	if len(opts.shouldSkipServerStart) > 0 {
+		stopArgs := fmt.Sprintf("%s stop %s", composeFile, downedServices)
+		err = util.Exec("compose-up", "docker-compose", strings.Fields(stopArgs)...)
+		if err != nil {
+			fatal.ExitErr(err, "could not stop skipped services")
+		}
 	}
 
 	log.Info("☑ finished starting docker-compose up in detached mode")
@@ -155,7 +157,10 @@ Examples:
 		composeNames := config.ComposeNames(selectedServices)
 		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
-		//check -n flag for valid service names
+		downedServices, err = config.ValidateServiceList(opts.shouldSkipServerStart)
+		if err != nil {
+			fatal.ExitErr(err, "Invalid service selected to stop in flags")
+		}
 
 		err = deps.Resolve(
 			deps.Brew,

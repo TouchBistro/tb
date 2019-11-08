@@ -12,9 +12,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var logsCmd = &cobra.Command{
-	Use:   "logs [services...]",
-	Short: "View logs from containers",
+var stopCmd = &cobra.Command{
+	Use:   "stop [services...]",
+	Short: "Stop running containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
@@ -26,21 +26,21 @@ var logsCmd = &cobra.Command{
 
 		services, err := config.ValidateServiceList(args)
 		if err != nil {
-			fatal.ExitErr(err, "failed checking container logs.")
+			fatal.ExitErr(err, "failed stopping containers.")
 		}
 
-		cmdStr := fmt.Sprintf("%s logs -t %s", docker.ComposeFile(), services)
+		cmdStr := fmt.Sprintf("%s stop %s", docker.ComposeFile(), services)
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
 
 		err = execCmd.Run()
 		if err != nil {
-			fatal.ExitErr(err, "Could not view logs.")
+			fatal.ExitErr(err, "Could not stop containers.")
 		}
 	},
 }
 
 func init() {
-	rootCmd.AddCommand(logsCmd)
+	rootCmd.AddCommand(stopCmd)
 }

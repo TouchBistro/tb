@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -280,4 +281,19 @@ func SelectServices(cliServiceNames []string, playlistName string) (ServiceMap, 
 	}
 
 	return selectedServices, nil
+}
+
+func ValidateServiceList(args []string) (string, error) {
+	var b strings.Builder
+	for _, serviceName := range args {
+		// Make sure it's a valid service
+		s, ok := Services()[serviceName]
+		if !ok {
+			return "", errors.Errorf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		}
+		b.WriteString(ComposeName(serviceName, s))
+		b.WriteString(" ")
+	}
+
+	return b.String(), nil
 }
