@@ -18,11 +18,9 @@ import (
 )
 
 var (
-	iosVersion string
-	deviceName string
-	dataPath   string
-	appName    string
-	branch     string
+	dataPath string
+	appName  string
+	branch   string
 )
 
 var runCmd = &cobra.Command{

@@ -8,6 +8,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// Flags available for multiple commands
+var (
+	iosVersion string
+	deviceName string
+)
+
 var iosCmd = &cobra.Command{
 	Use:   "ios",
 	Short: "tb ios allows running and managing iOS apps",
