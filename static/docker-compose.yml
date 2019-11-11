@@ -96,6 +96,8 @@ x-identity-home-frontend-boilerplate: &identity-home-frontend-boilerplate
     - $TB_ROOT/identity-home-frontend/.env.example
   ports:
     - '9090:8080'
+  depends_on:
+    - identity-user-service
 
 x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
   init: true
