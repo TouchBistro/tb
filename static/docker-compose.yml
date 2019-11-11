@@ -94,10 +94,16 @@ x-identity-user-service-boilerplate: &identity-user-service-boilerplate
 x-identity-home-frontend-boilerplate: &identity-home-frontend-boilerplate
   env_file:
     - $TB_ROOT/identity-home-frontend/.env.example
+  environment:
+    - OKTA_APPLICATION_URL_BASE=https://${MOKTA_NAME}:8080
+    - OKTA_ISSUER_URL=https://${MOKTA_NAME}:8080
+    - TOUCHBISTRO_PROFILE_SERVICE_URL_BASE=https://${IDENTITY_USER_SERVICE_NAME}:8080/internal
   ports:
     - '9090:8080'
+  <<: *command-serve
   depends_on:
-    - identity-user-service
+    - $IDENTITY_USER_SERVICE_NAME
+    - $MOKTA_NAME
 
 x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
   init: true
@@ -752,7 +758,7 @@ services:
   identity-home-frontend:
     <<: *identity-home-frontend-boilerplate
     build:
-      target: dev
+      target: release
       context: $TB_ROOT/identity-home-frontend
       args:
         - NPM_TOKEN=$NPM_TOKEN
