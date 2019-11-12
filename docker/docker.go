@@ -160,18 +160,11 @@ func RmVolumes() error {
 	return nil
 }
 
-func StopContainersAndServices() error {
+func StopContainersAndServices(services string) error {
 	var err error
 
-	log.Debug("stopping running containers...")
-	err = StopAllContainers()
-	if err != nil {
-		return errors.Wrap(err, "failed stopping all containers")
-	}
-	log.Debug("...done")
-
 	log.Debug("stopping compose services...")
-	err = ComposeStop()
+	err = ComposeStop(services)
 	if err != nil {
 		return errors.Wrap(err, "failed stopping compose services")
 	}

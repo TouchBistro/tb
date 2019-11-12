@@ -48,7 +48,7 @@ func attemptECRLogin() {
 }
 
 func cleanupPrevDocker() {
-	err := docker.StopContainersAndServices()
+	err := docker.StopContainersAndServices("")
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
