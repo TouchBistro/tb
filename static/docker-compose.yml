@@ -670,7 +670,7 @@ x-backoffice-customer-service-boilerplate:
 services:
   postgres:
     image: $POSTGRES_IMAGE_URI
-    container_name: tb_postgres_container
+    container_name: postgres
     environment:
       - POSTGRES_USER=core
       - POSTGRES_PASSWORD=localdev
@@ -681,13 +681,13 @@ services:
 
   redis:
     image: $REDIS_IMAGE_URI
-    container_name: cloud-server-redis_container
+    container_name: redis
     ports:
       - "6379:6379"
 
   localstack:
     image: $LOCALSTACK_IMAGE_URI
-    container_name: tb_localstack_container
+    container_name: localstack
     ports:
       - "9888:8080" # web interface
       - "4567-4584:4567-4584"
@@ -712,13 +712,13 @@ services:
       context: $TB_ROOT/mokta
       args:
         - NPM_TOKEN=$NPM_TOKEN
-    container_name: mokta_container
+    container_name: mokta
     << : *command-start
 
   mokta-ecr:
     << : *mokta-boilerplate
     image: $MOKTA_IMAGE_URI
-    container_name: mokta-ecr_container
+    container_name: mokta-ecr
     << : *command-serve
 
   identity-user-service:
@@ -728,7 +728,7 @@ services:
       context: $TB_ROOT/identity-user-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
-    container_name: identity-user-service_container
+    container_name: identity-user-service
     environment:
       << : *node-service
       OKTA_BASE_URL: https://mokta:8080
@@ -737,7 +737,7 @@ services:
   identity-user-service-ecr:
     << : *identity-user-service-boilerplate
     image: $IDENTITY_USER_SERVICE_IMAGE_URI
-    container_name: identity-user-service-ecr_container
+    container_name: identity-user-service-ecr
     environment:
       << : *node-service
       OKTA_BASE_URL: https://mokta-ecr:8080
@@ -751,15 +751,14 @@ services:
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: tb_legacy-database
-    container_name: tb_legacy-database_container
+    container_name: legacy-database
     volumes:
       - legacy-database:/var/opt/mssql/data
 
   legacy-database-ecr:
     << : *legacy-database-boilerplate
     image: $LEGACY_DATABASE_IMAGE_URI
-    container_name: tb_legacy-database-ecr_container
+    container_name: legacy-database-ecr
     volumes:
       - legacy-database:/var/opt/mssql/data
 
@@ -767,16 +766,16 @@ services:
     << : *cloud-server-boilerplate
     build:
       context: $TB_ROOT/cloud-server
-    container_name: cloud-server_container
+    container_name: cloud-server
 
   cloud-server-ecr:
     << : *cloud-server-boilerplate
     image: $CLOUD_SERVER_IMAGE_URI
-    container_name: cloud-server-ecr_container
+    container_name: cloud-server-ecr
 
   cloud-server-frontend-ecr:
     << : *cloud-server-frontend-boilerplate
-    container_name: cloud-server-frontend-ecr_container
+    container_name: cloud-server-frontend-ecr
     image: $CLOUD_SERVER_FRONTEND_IMAGE_URI
 
   cloud-server-frontend:
@@ -787,7 +786,7 @@ services:
         # This is for running a prod build of the frontend locally
         # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
         - USE_INSECURE_COOKIE=insecure
-    container_name: cloud-server-frontend_container
+    container_name: cloud-server-frontend
 
   venue-core-service-ecr:
     << : *venue-core-service-boilerplate
@@ -812,8 +811,7 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
-    image: tb_venue-core-service
-    container_name: tb_venue-core-service_container
+    container_name: venue-core-service
     command: >
       bash -c '
         echo '...done'
@@ -831,7 +829,7 @@ services:
   venue-provisioning-service-ecr:
     << : *venue-provisioning-service-boilerplate
     image: $VENUE_PROVISIONING_SERVICE_IMAGE_URI
-    container_name: venue-provisioning-service-ecr_container
+    container_name: venue-provisioning-service-ecr
     << : *command-serve
 
   venue-provisioning-service:
@@ -841,20 +839,18 @@ services:
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
-    image: tb_venue-provisioning-service
-    container_name: tb_venue-provisioning-service_container
+    container_name: \venue-provisioning-service
     << : *command-start
 
   health-clinic-ecr:
     << : *health-clinic-boilerplate
     image: $HEALTH_CLINIC_IMAGE_URI
-    container_name: tb_health-clinic-ecr_container
+    container_name: health-clinic-ecr
 
   health-clinic:
     << : *health-clinic-boilerplate
     build:
       context: $TB_ROOT/health-clinic
-    image: tb_health-clinic
     container_name: tb_health-clinic_container
     volumes:
       - $TB_ROOT/health-clinic:/home/python/app
@@ -883,14 +879,13 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
-    image: tb_legacy-bridge-manage-service
-    container_name: tb_legacy-bridge-manage-service_container
+    container_name: legacy-bridge-manage-service
     << : *command-start
 
   legacy-bridge-manage-service-ecr:
     << : *legacy-bridge-manage-service-boilerplate
     image: $LEGACY_BRIDGE_MANAGE_SERVICE_IMAGE_URI
-    container_name: tb_legacy-bridge-manage-service-ecr_container
+    container_name: legacy-bridge-manage-service-ecr
     << : *command-serve
 
   legacy-bridge-cloud-service:
@@ -898,9 +893,8 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/legacy-bridge-cloud-service
-    image: tb_legacy-bridge-cloud-service
     << : *command-start
-    container_name: tb_legacy-bridge-cloud-service_container
+    container_name: legacy-bridge-cloud-service
     volumes:
       - $TB_ROOT/legacy-bridge-cloud-service:/home/node/app:delegated
       - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
@@ -908,13 +902,13 @@ services:
   legacy-bridge-cloud-service-ecr:
     << : *legacy-bridge-cloud-service-boilerplate
     image: $LEGACY_BRIDGE_CLOUD_SERVICE_IMAGE_URI
-    container_name: tb_legacy-bridge-cloud-service-ecr_container
+    container_name: legacy-bridge-cloud-service-ecr
     << : *command-serve
 
   ordering-ooa-service-ecr:
     << : *ordering-ooa-service-boilerplate
     image: $ORDERING_OOA_SERVICE_IMAGE_URI
-    container_name: ordering-devtools_ordering-ooa-service-ecr_container
+    container_name: ordering-ooa-service-ecr
     << : *command-serve
 
   ordering-ooa-service:
@@ -922,8 +916,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-ooa-service
-    image: ordering-devtools_ordering-ooa-service
-    container_name: ordering-devtools_ordering-ooa-service_container
+    container_name: ordering-ooa-service
     << : *command-start
     volumes:
       - $TB_ROOT/ordering-ooa-service:/home/node/app:delegated
@@ -932,7 +925,7 @@ services:
   ordering-demo-frontend-ecr:
     << : *ordering-demo-frontend-boilerplate
     image: $ORDERING_DEMO_FRONTEND_IMAGE_URI
-    container_name: ordering-devtools_ordering-demo-frontend-ecr_container
+    container_name: ordering-demo-frontend-ecr
     << : *command-serve
 
   ordering-demo-frontend:
@@ -940,8 +933,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-demo-frontend
-    image: ordering-devtools_ordering-demo-frontend
-    container_name: ordering-devtools_ordering-demo-frontend_container
+    container_name: ordering-demo-frontend
     << : *command-start
     volumes:
       - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
@@ -951,8 +943,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-demo-frontend
-    image: ordering-devtools_ordering-demo-frontend-venue
-    container_name: ordering-devtools_ordering-demo-frontend-venue_container
+    container_name: ordering-demo-frontend-venue
     << : *command-start
     env_file:
       - $TB_ROOT/ordering-demo-frontend/.env.example
@@ -972,7 +963,7 @@ services:
   ordering-gateways-frontend-ecr:
     << : *ordering-gateways-frontend-boilerplate
     image: $ORDERING_GATEWAYS_FRONTEND_IMAGE_URI
-    container_name: ordering-devtools_ordering-gateways-frontend-ecr_container
+    container_name: ordering-gateways-frontend-ecr
     << : *command-serve
 
   ordering-gateways-frontend:
@@ -980,8 +971,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-gateways-frontend
-    image: ordering-devtools_ordering-gateways-frontend
-    container_name: ordering-devtools_ordering-gateways-frontend_container
+    container_name: ordering-gateways-frontend
     << : *command-start
     volumes:
       - $TB_ROOT/ordering-gateways-frontend:/home/node/app:delegated
@@ -990,7 +980,7 @@ services:
   ordering-deliveroo-service-ecr:
     << : *ordering-deliveroo-service-boilerplate
     image: $ORDERING_DELIVEROO_SERVICE_IMAGE_URI
-    container_name: ordering-devtools_ordering-deliveroo-service-ecr_container
+    container_name: _ordering-deliveroo-service-ecr
     << : *command-serve
 
   ordering-deliveroo-service:
@@ -998,8 +988,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-deliveroo-service
-    image: ordering-devtools_ordering-deliveroo-service
-    container_name: ordering-devtools_ordering-deliveroo-service_container
+    container_name: ordering-deliveroo-service
     << : *command-start
     volumes:
       - $TB_ROOT/ordering-deliveroo-service:/home/node/app:delegated
@@ -1008,7 +997,7 @@ services:
   ordering-engine-service-ecr:
     << : *ordering-engine-service-boilerplate
     image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
-    container_name: ordering-engine-service-ecr_container
+    container_name: ordering-engine-service-ecr
     << : *command-serve
 
   ordering-engine-service:
@@ -1016,8 +1005,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/ordering-engine-service
-    image: ordering-engine-service
-    container_name: ordering-engine-service_container
+    container_name: ordering-engine-service
     << : *command-start
     volumes:
       - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
@@ -1026,7 +1014,7 @@ services:
   partners-etl-service-ecr:
     << : *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
-    container_name: partners-devtools_partners-etl-service-ecr_container
+    container_name: partners-etl-service-ecr
     << : *command-serve
 
   partners-etl-service:
@@ -1034,8 +1022,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/partners-etl-service
-    image: partners-devtools_partners-etl-service
-    container_name: partners-devtools_partners-etl-service_container
+    container_name: partners-etl-service
     << : *command-start
     volumes:
       - $TB_ROOT/partners-etl-service:/home/node/app:delegated
@@ -1044,7 +1031,7 @@ services:
   partners-config-service-ecr:
     << : *partners-config-service-boilerplate
     image: $PARTNERS_CONFIG_SERVICE_IMAGE_URI
-    container_name: partners-devtools_partners-config-service-ecr_container
+    container_name: partners-config-service-ecr
     << : *command-serve
 
   partners-config-service:
@@ -1052,8 +1039,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/partners-config-service
-    image: partners-devtools_partners-config-service
-    container_name: partners-devtools_partners-config-service_container
+    container_name: partners-config-service
     << : *command-start
     volumes:
       - $TB_ROOT/partners-config-service:/home/node/app:delegated
@@ -1062,7 +1048,7 @@ services:
   partners-orchestration-service-ecr:
     << : *partners-orchestration-service-boilerplate
     image: $PARTNERS_ORCHESTRATION_SERVICE_IMAGE_URI
-    container_name: partners-devtools_partners-orchestration-service-ecr_container
+    container_name: partners-orchestration-service-ecr
     << : *command-serve
 
   partners-orchestration-service:
@@ -1070,8 +1056,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/partners-orchestration-service
-    image: partners-devtools_partners-orchestration-service
-    container_name: partners-devtools_partners-orchestration-service_container
+    container_name: partners-orchestration-service
     << : *command-start
     volumes:
       - $TB_ROOT/partners-orchestration-service:/home/node/app:delegated
@@ -1080,7 +1065,7 @@ services:
   partners-reservations-service-ecr:
     << : *partners-reservations-service-boilerplate
     image: $PARTNERS_RESERVATIONS_SERVICE_IMAGE_URI
-    container_name: partners-devtools_partners-reservations-service-ecr_container
+    container_name: partners-reservations-service-ecr
     << : *command-serve
 
   partners-reservations-service:
@@ -1088,8 +1073,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/partners-reservations-service
-    image: partners-devtools_partners-reservations-service
-    container_name: partners-devtools_partners-reservations-service_container
+    container_name: partners-reservations-service
     << : *command-start
     volumes:
       - $TB_ROOT/partners-reservations-service:/home/node/app:delegated
@@ -1099,22 +1083,21 @@ services:
     << : *singleapp-database-boilerplate
     build:
       context: $TB_ROOT/singleapp-database
-    image: singleapp-database
-    container_name: singleapp-database_container
+    container_name: singleapp-database
     volumes:
       - singleapp-database:/var/lib/mysql/
 
   singleapp-database-ecr:
     << : *singleapp-database-boilerplate
     image: $SINGLEAPP_DATABASE_IMAGE_URI
-    container_name: singleapp-database-ecr_container
+    container_name: singleapp-database-ecr
     volumes:
       - singleapp-database:/var/lib/mysql/
 
   venue-upload-service-ecr:
     << : *venue-upload-service-boilerplate
     image: $VENUE_UPLOAD_SERVICE_IMAGE_URI
-    container_name: venue-devtools_venue-upload-service-ecr_container
+    container_name: venue-devtools_venue-upload-service-ecr
     << : *command-serve
 
   venue-upload-service:
@@ -1122,8 +1105,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/venue-upload-service
-    image: venue-devtools_venue-upload-service
-    container_name: venue-devtools_venue-upload-service_container
+    container_name: venue-upload-service
     << : *command-start
     volumes:
       - $TB_ROOT/venue-upload-service:/home/node/app:delegated
@@ -1132,7 +1114,7 @@ services:
   venue-admin-frontend-ecr:
     << : *venue-admin-frontend-boilerplate
     image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
-    container_name: venue-admin-frontend-ecr_container
+    container_name: venue-admin-frontend-ecr
     << : *command-serve
 
   venue-admin-frontend:
@@ -1146,12 +1128,12 @@ services:
         # ^ This is to reduce the hard dependency on cloud-server[-frontend]
         # until "mokta" is available.
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
-    container_name: venue-admin-frontend_container
+    container_name: venue-admin-frontend
 
   infrastructure-auth-service-ecr:
     << : *infrastructure-auth-service-boilerplate
     image: $INFRASTRUCTURE_AUTH_SERVICE_IMAGE_URI
-    container_name: infrastructure-devtools_infrastructure-auth-service-ecr_container
+    container_name: infrastructure-auth-service-ecr
     << : *command-serve
 
   infrastructure-auth-service:
@@ -1159,8 +1141,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/infrastructure-auth-service
-    image: infrastructure-devtools_infrastructure-auth-service
-    container_name: infrastructure-devtools_infrastructure-auth-service_container
+    container_name: infrastructure-auth-service
     << : *command-start
     volumes:
       - $TB_ROOT/infrastructure-auth-service:/home/node/app:delegated
@@ -1168,7 +1149,7 @@ services:
   loyalty-gateway-service-ecr:
     << : *loyalty-gateway-service-boilerplate
     image: $LOYALTY_GATEWAY_SERVICE_IMAGE_URI
-    container_name: loyalty-devtools_loyalty-gateway-service-ecr_container
+    container_name: loyalty-gateway-service-ecr
     << : *command-serve
 
   loyalty-gateway-service:
@@ -1176,8 +1157,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/loyalty-gateway-service
-    image: loyalty-devtools_loyalty-gateway-service
-    container_name: loyalty-devtools_loyalty-gateway-service_container
+    container_name: devtools_loyalty-gateway-service
     << : *command-start
     volumes:
       - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
@@ -1185,7 +1165,7 @@ services:
   backoffice-customer-service-ecr:
     << : *backoffice-customer-service-boilerplate
     image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
-    container_name: backoffice-devtools_backoffice-customer-service-ecr_container
+    container_name: backoffice-customer-service-ecr
     << : *command-serve
 
   backoffice-customer-service:
@@ -1193,8 +1173,7 @@ services:
     build:
       << : *build-node-dev
       context: $TB_ROOT/backoffice-customer-service
-    image: backoffice-devtools_backoffice-customer-service
-    container_name: backoffice-devtools_backoffice-customer-service_container
+    container_name: backoffice-customer-service
     << : *command-start
     volumes:
       - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated

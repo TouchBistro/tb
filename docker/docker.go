@@ -12,7 +12,6 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 )
 
@@ -156,26 +155,6 @@ func RmVolumes() error {
 			return errors.Wrapf(err, "failed to remove volume %s", volume.Name)
 		}
 	}
-
-	return nil
-}
-
-func StopContainersAndServices() error {
-	var err error
-
-	log.Debug("stopping running containers...")
-	err = StopAllContainers()
-	if err != nil {
-		return errors.Wrap(err, "failed stopping all containers")
-	}
-	log.Debug("...done")
-
-	log.Debug("stopping compose services...")
-	err = ComposeStop()
-	if err != nil {
-		return errors.Wrap(err, "failed stopping compose services")
-	}
-	log.Debug("...done")
 
 	return nil
 }

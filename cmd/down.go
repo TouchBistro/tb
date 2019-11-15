@@ -9,9 +9,8 @@ import (
 )
 
 var downCmd = &cobra.Command{
-	Use:   "down",
-	Args:  cobra.NoArgs,
-	Short: "Stops any running services and removes all containers",
+	Use:   "down [services...]",
+	Short: "Stop and remove containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
@@ -19,13 +18,19 @@ var downCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := docker.StopContainersAndServices()
+
+		log.Debug("stopping compose services...")
+		err := docker.ComposeStop(args)
+		if err != nil {
+			fatal.ExitErr(err, "failed stopping compose services")
+		}
+		log.Debug("...done")
 		if err != nil {
 			fatal.ExitErr(err, "could not stop containers and services")
 		}
 
 		log.Println("removing stopped containers...")
-		err = docker.RmContainers()
+		err = docker.ComposeRm(args)
 		if err != nil {
 			fatal.ExitErr(err, "could not remove stopped containers")
 		}
