@@ -17,14 +17,14 @@ func ComposeFile() string {
 	return fmt.Sprintf("-f %s/docker-compose.yml", config.TBRootPath())
 }
 
-func ComposeStop(services string) error {
+func ComposeStop(services []string) error {
 	stopArgs := fmt.Sprintf("%s stop -t %d %s", ComposeFile(), stopTimeoutSecs, services)
 	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
 
 	return errors.Wrap(err, "could not exec docker-compose stop")
 }
 
-func ComposeRm(services string) error {
+func ComposeRm(services []string) error {
 	rmArgs := fmt.Sprintf("%s rm -f %s", ComposeFile(), services)
 	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(rmArgs)...)
 
