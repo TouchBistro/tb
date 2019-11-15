@@ -20,25 +20,13 @@ var downCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		services := ""
 
-		if len(args) > 0 {
-			var b strings.Builder
-			for _, serviceName := range args {
-				// Make sure it's a valid service
-				s, ok := config.Services()[serviceName]
-				if !ok {
-					fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
-				}
-
-				b.WriteString(config.ComposeName(serviceName, s))
-				b.WriteString(" ")
-			}
-
-			services = b.String()
+		log.Debug("stopping compose services...")
+		err := docker.ComposeStop(services)
+		if err != nil {
+			return errors.Wrap(err, "failed stopping compose services")
 		}
-
-		err := docker.StopContainersAndServices(services)
+		log.Debug("...done")
 		if err != nil {
 			fatal.ExitErr(err, "could not stop containers and services")
 		}
