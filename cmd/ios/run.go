@@ -200,6 +200,15 @@ Examples:
 			log.Infoln("☑ Injected data into simulator")
 		}
 
+		log.Info("☐ Setting environment variables")
+
+		for k, v := range app.EnvVars {
+			log.Debugf("Setting %s to %s", k, v)
+			// Env vars can be passed to simctl if they are set in the calling environment with a SIMCTL_CHILD_ prefix.
+			os.Setenv(fmt.Sprintf("SIMCTL_CHILD_%s", k), v)
+		}
+
+		log.Info("☑ Done setting environment variables")
 		log.Info("☐ Launching app in simulator")
 
 		err = simulator.LaunchApp(deviceUDID, app.BundleID)
