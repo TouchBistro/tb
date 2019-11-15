@@ -13,20 +13,21 @@ const (
 	stopTimeoutSecs = 2
 )
 
-func serviceString(services []string) string {
+func serviceString(services []string) (string, error) {
 	var b strings.Builder
 	for _, serviceName := range services {
 		// Make sure it's a valid service
 		s, ok := config.Services()[serviceName]
 		if !ok {
-			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+			msg := fmt.Sprintf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+			return "", errors.New(msg)
 		}
 
 		b.WriteString(config.ComposeName(serviceName, s))
 		b.WriteString(" ")
 	}
 
-	return b.String()
+	return b.String(), nil
 }
 
 func ComposeFile() string {
@@ -34,15 +35,23 @@ func ComposeFile() string {
 }
 
 func ComposeStop(services []string) error {
-	stopArgs := fmt.Sprintf("%s stop -t %d %s", ComposeFile(), stopTimeoutSecs, serviceString(services))
-	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
+	servicelist, err := serviceString(services)
+	if err != nil {
+		return errors.Wrap(err, "could not exec docker-compose stop")
+	}
+	stopArgs := fmt.Sprintf("%s stop -t %d %s", ComposeFile(), stopTimeoutSecs, servicelist)
+	err = util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
 
 	return errors.Wrap(err, "could not exec docker-compose stop")
 }
 
 func ComposeRm(services []string) error {
-	rmArgs := fmt.Sprintf("%s rm -f %s", ComposeFile(), serviceString(services))
-	err := util.Exec("docker-compose-stop", "docker-compose", strings.Fields(rmArgs)...)
+	servicelist, err := serviceString(services)
+	if err != nil {
+		return errors.Wrap(err, "could not exec docker-compose rm")
+	}
+	rmArgs := fmt.Sprintf("%s rm -f %s", ComposeFile(), servicelist)
+	err = util.Exec("docker-compose-stop", "docker-compose", strings.Fields(rmArgs)...)
 
 	return errors.Wrap(err, "could not exec docker-compose rm")
 }

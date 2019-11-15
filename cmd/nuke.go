@@ -46,7 +46,8 @@ var nukeCmd = &cobra.Command{
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		err := docker.StopContainersAndServices("")
+		// Passing nothing to compose will shut everything down
+		err := docker.ComposeStop(make([]string, 0))
 		if err != nil {
 			fatal.ExitErr(err, "Failed stopping docker containers and services.")
 		}

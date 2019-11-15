@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"strings"
-
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
@@ -22,9 +20,9 @@ var downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		log.Debug("stopping compose services...")
-		err := docker.ComposeStop(services)
+		err := docker.ComposeStop(args)
 		if err != nil {
-			return errors.Wrap(err, "failed stopping compose services")
+			fatal.ExitErr(err, "failed stopping compose services")
 		}
 		log.Debug("...done")
 		if err != nil {
@@ -32,7 +30,7 @@ var downCmd = &cobra.Command{
 		}
 
 		log.Println("removing stopped containers...")
-		err = docker.ComposeRm(services)
+		err = docker.ComposeRm(args)
 		if err != nil {
 			fatal.ExitErr(err, "could not remove stopped containers")
 		}
