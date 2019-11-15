@@ -10,6 +10,7 @@ type IOSApp struct {
 	Branch       string
 	Repo         string
 	Organisation string
+	EnvVars      map[string]string
 }
 
 const Bucket = "tb-ios-builds"
@@ -20,6 +21,9 @@ var apps = map[string]IOSApp{
 		Branch:       "develop",
 		Organisation: "TouchBistro",
 		Repo:         "tb-pos",
+		EnvVars: map[string]string{
+			"debug.autoAcceptTOS": "true",
+		},
 	},
 }
 
