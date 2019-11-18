@@ -1,9 +1,8 @@
-version: '3.7'
+version: "3.7"
 
 ###### ANCHORS ######
 
-x-json-logger-config:
-  &json-logger-config
+x-json-logger-config: &json-logger-config
   LOGGER_CONFIG_JSON: >
     {
       "transports": {
@@ -31,45 +30,38 @@ x-json-logger-config:
       }
     }
 
-x-postgresconnect:
-  &postgres-connect
+x-postgresconnect: &postgres-connect
   DB_HOST: postgres
   DB_PORT: 5432
   DB_USER: core
   DB_PASSWORD: localdev
   DB_DISABLE_SSL: "true"
 
-x-mssqlconnect:
-  &mssql-connect
+x-mssqlconnect: &mssql-connect
   DB_HOST: legacy-database-ecr
   DB_PORT: 1433
   DB_USER: SA
   DB_PASSWORD: Password123
   DB_DISABLE_SSL: "true"
 
-x-mysqlconnect:
-  &mysql-connect
+x-mysqlconnect: &mysql-connect
   DB_HOST: singleapp-database-ecr
   DB_PORT: 3306
   DB_USER: root
   DB_PASSWORD: root
   DB_DISABLE_SSL: "true"
 
-x-nodeservice:
-  &node-service
-  << : *json-logger-config
+x-nodeservice: &node-service
+  <<: *json-logger-config
   HTTP_PORT: 8080
 
-x-command-serve:
-  &command-serve
+x-command-serve: &command-serve
   command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
 
-x-command-start:
-  &command-start
+x-command-start: &command-start
   command: bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
 
-x-build-node-dev:
-  &build-node-dev
+x-build-node-dev: &build-node-dev
   target: dev
   args:
     - NODE_ENV=development
@@ -77,28 +69,25 @@ x-build-node-dev:
 
 ###### BOILERPLATES ######
 
-x-mokta-boilerplate:
-  &mokta-boilerplate
+x-mokta-boilerplate: &mokta-boilerplate
   env_file:
     - $TB_ROOT/mokta/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *node-service
-    << : *postgres-connect
+    <<: *node-service
+    <<: *postgres-connect
   ports:
     - "9443:8080"
   depends_on:
     - postgres
 
-x-identity-user-service-boilerplate:
-  &identity-user-service-boilerplate
+x-identity-user-service-boilerplate: &identity-user-service-boilerplate
   env_file:
     - $TB_ROOT/identity-user-service/.env.example
   ports:
     - "8777:8080"
 
-x-cloud-server-frontend-boilerplate:
-  &cloud-server-frontend-boilerplate
+x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
   init: true
   env_file:
     - $TB_ROOT/cloud-server-frontend/packages/frontend/.env.example
@@ -107,8 +96,7 @@ x-cloud-server-frontend-boilerplate:
   depends_on:
     - $CLOUD_SERVER_NAME
 
-x-legacy-database-boilerplate:
-  &legacy-database-boilerplate
+x-legacy-database-boilerplate: &legacy-database-boilerplate
   env_file:
     - $TB_ROOT/legacy-database/.env.example
   environment:
@@ -120,71 +108,76 @@ x-legacy-database-boilerplate:
     DB_NAME: cloud_db
   ports:
     - "1433:1433"
-  entrypoint: [ "bash", "./docker-entrypoint-db.sh" ]
-  command: [ "tail", "-f", "/dev/null" ]
+  entrypoint: ["bash", "./docker-entrypoint-db.sh"]
+  command: ["tail", "-f", "/dev/null"]
 
-x-cloud-server-boilerplate:
-  &cloud-server-boilerplate
-    env_file:
-      - $TB_ROOT/cloud-server/.env.compose
-    environment:
-      - MSSQL_HOST=legacy-database-ecr
-    entrypoint: [ "bash", "./docker-entrypoint.sh" ]
-    command: >
-      bash -c '
-        echo '...done'
-        if [ "$START_SERVER" = "true" ]; then
-          echo "Starting server.."
-          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
-        else
-          echo "Not starting server.."
-          tail -f /dev/null
-        fi'
-    ports:
-      - "3000:3000"
-    depends_on:
-      - redis
-      - $LEGACY_DATABASE_NAME
+x-cloud-server-boilerplate: &cloud-server-boilerplate
+  env_file:
+    - $TB_ROOT/cloud-server/.env.compose
+  environment:
+    - MSSQL_HOST=legacy-database-ecr
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  command: >
+    bash -c '
+      echo '...done'
+      if [ "$START_SERVER" = "true" ]; then
+        echo "Starting server.."
+        bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+      else
+        echo "Not starting server.."
+        tail -f /dev/null
+      fi'
+  ports:
+    - "3000:3000"
+  depends_on:
+    - redis
+    - $LEGACY_DATABASE_NAME
 
 x-venue-provisioning-service-boilerplate:
   &venue-provisioning-service-boilerplate
   env_file:
     - $TB_ROOT/venue-provisioning-service/.env.example
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   ports:
     - "8666:8080"
   depends_on:
     - postgres
 
-x-health-clinic-boilerplate:
-  &health-clinic-boilerplate
+x-health-clinic-boilerplate: &health-clinic-boilerplate
   command: ["tail", "-f", "/dev/null"]
   env_file:
     - $TB_ROOT/health-clinic/.env.compose
   ports:
     - "8089:8089"
 
-x-dotnet-boilerplate:
-  &dotnet-boilerplate
+x-dotnet-boilerplate: &dotnet-boilerplate
   image: hpgy/mono-xsp4
   environment:
     MONO_OPTIONS: --debug
   entrypoint:
-    [ "xsp4","--port","80","--nonstop", "--verbose", "--printlog", "--loglevels", "All" ]
+    [
+      "xsp4",
+      "--port",
+      "80",
+      "--nonstop",
+      "--verbose",
+      "--printlog",
+      "--loglevels",
+      "All",
+    ]
   depends_on:
     - $LEGACY_DATABASE_NAME
 
-x-venue-core-service-boilerplate:
-  &venue-core-service-boilerplate
+x-venue-core-service-boilerplate: &venue-core-service-boilerplate
   command: ["tail", "-f", "/dev/null"]
   entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
   env_file:
     - $TB_ROOT/venue-core-service/.env.example
   environment:
-    << : *node-service
+    <<: *node-service
     DB_HOST: postgres
     PROVISIONING_JWKS_URI: http://${VENUE_PROVISIONING_SERVICE_NAME}:8080/external/jwks
     AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
@@ -277,11 +270,11 @@ x-venue-core-service-boilerplate:
         }
       }
   ports:
-    - "8081:8080"  # Main HTTP port
-    - "9901:9229"  # 9229, 9330: Node debugger
+    - "8081:8080" # Main HTTP port
+    - "9901:9229" # 9229, 9330: Node debugger
     - "9902:9230"
-    - "4001:4001"  # JSDoc server
-    - "9903:8090"  # rtail log server
+    - "4001:4001" # JSDoc server
+    - "9903:8090" # rtail log server
     # - "8089:8089"   # Not used?
   depends_on:
     - localstack
@@ -289,13 +282,13 @@ x-venue-core-service-boilerplate:
 
 x-legacy-bridge-manage-service-boilerplate:
   &legacy-bridge-manage-service-boilerplate
-  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
   env_file:
     - $TB_ROOT/legacy-bridge-manage-service/.env.example
   environment:
-    << : *mssql-connect
+    <<: *mssql-connect
     DB_NAME: cloud_db
-    << : *json-logger-config
+    <<: *json-logger-config
   ports:
     - "8999:8080"
   depends_on:
@@ -303,26 +296,25 @@ x-legacy-bridge-manage-service-boilerplate:
 
 x-legacy-bridge-cloud-service-boilerplate:
   &legacy-bridge-cloud-service-boilerplate
-  entrypoint: [ "bash", "./docker-entrypoint.sh" ]
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
   env_file:
     - $TB_ROOT/legacy-bridge-cloud-service/.env.example
   environment:
-    << : *mssql-connect
-    << : *node-service
+    <<: *mssql-connect
+    <<: *node-service
     DB_NAME: cloud_db
   ports:
     - "8101:8080"
   depends_on:
     - $LEGACY_DATABASE_NAME
 
-x-ordering-ooa-service-boilerplate:
-  &ordering-ooa-service-boilerplate
+x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
   env_file:
     - $TB_ROOT/ordering-ooa-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -376,16 +368,15 @@ x-ordering-ooa-service-boilerplate:
     - postgres
     - localstack
 
-x-ordering-demo-frontend-boilerplate:
-  &ordering-demo-frontend-boilerplate
+x-ordering-demo-frontend-boilerplate: &ordering-demo-frontend-boilerplate
   env_file:
     - $TB_ROOT/ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     DELIVEROO_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
-    DELIVEROO_DISABLED: 'false'
+    DELIVEROO_DISABLED: "false"
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     URL_CALLBACK_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/callback
   ports:
@@ -399,8 +390,8 @@ x-ordering-demo-frontend-venue-boilerplate:
     - $TB_ROOT/ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     MODE: venue
   ports:
@@ -413,7 +404,7 @@ x-ordering-gateways-frontend-boilerplate:
   env_file:
     - $TB_ROOT/ordering-gateways-frontend/.env.example
   environment:
-    << : *node-service
+    <<: *node-service
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal
   ports:
@@ -425,8 +416,8 @@ x-ordering-deliveroo-service-boilerplate:
     - $TB_ROOT/ordering-deliveroo-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     DELIVEROO_BASE_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/deliveroo
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
     URL_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
@@ -435,20 +426,18 @@ x-ordering-deliveroo-service-boilerplate:
   depends_on:
     - postgres
 
-x-ordering-engine-service-boilerplate:
-  &ordering-engine-service-boilerplate
+x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
   env_file:
     - $TB_ROOT/ordering-engine-service/.env.example
   environment:
-    << : *node-service
-    << : *mysql-connect
+    <<: *node-service
+    <<: *mysql-connect
   ports:
     - "8610:8080"
   depends_on:
     - $SINGLEAPP_DATABASE_NAME
 
 x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
-  &partners-etl-service-boilerplate
   env_file:
     - $TB_ROOT/ordering-online-frontend/.env.example
   environment:
@@ -465,8 +454,8 @@ x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
     - $TB_ROOT/partners-etl-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *node-service
-    << : *postgres-connect
+    <<: *node-service
+    <<: *postgres-connect
     AWS_S3_ENDPOINT: http://localstack:4572
     AWS_S3_STUB: "false"
     PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
@@ -488,14 +477,13 @@ x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
     - postgres
     - localstack
 
-x-partners-config-service-boilerplate:
-  &partners-config-service-boilerplate
+x-partners-config-service-boilerplate: &partners-config-service-boilerplate
   env_file:
     - $TB_ROOT/partners-config-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
@@ -519,8 +507,8 @@ x-partners-orchestration-service-boilerplate:
     - $TB_ROOT/partners-orchestration-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     LEGACY_CLOUD_SERVICE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     PARTNERS_RESERVATIONS_SERVICE_URL: http://${PARTNERS_RESERVATIONS_SERVICE_NAME}:8080
@@ -554,8 +542,8 @@ x-partners-reservations-service-boilerplate:
   env_file:
     - $TB_ROOT/partners-reservations-service/.env.example
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     AWS_S3_ENDPOINT: http://localstack:4572
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
@@ -578,17 +566,15 @@ x-partners-reservations-service-boilerplate:
     - $PARTNERS_ORCHESTRATION_SERVICE_NAME
     - $LEGACY_BRIDGE_CLOUD_SERVICE_NAME
 
-x-singleapp-database-boilerplate:
-  &singleapp-database-boilerplate
+x-singleapp-database-boilerplate: &singleapp-database-boilerplate
   ports:
     - "3306:3306"
 
-x-venue-upload-service-boilerplate:
-  &venue-upload-service-boilerplate
+x-venue-upload-service-boilerplate: &venue-upload-service-boilerplate
   env_file:
     - $TB_ROOT/venue-upload-service/.env.example
   environment:
-    << : *node-service
+    <<: *node-service
     AWS_S3_ENDPOINT: http://localstack:4572
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
@@ -614,8 +600,7 @@ x-venue-upload-service-boilerplate:
   depends_on:
     - localstack
 
-x-venue-admin-frontend-boilerplate:
-  &venue-admin-frontend-boilerplate
+x-venue-admin-frontend-boilerplate: &venue-admin-frontend-boilerplate
   env_file:
     - $TB_ROOT/venue-admin-frontend/.env.example
   environment:
@@ -623,13 +608,13 @@ x-venue-admin-frontend-boilerplate:
     - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     - INFRASTRUCTURE_AUTH_SERVICE_URL=http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080
-    - HTTP_PORT=9002   # VAF will default to :5000 for local server development.
+    - HTTP_PORT=9002 # VAF will default to :5000 for local server development.
     - NODE_ENV=production
   ports:
     - "9002:9002"
   # Note the `../`, since the Dockerfile executes from $HOME/app/dist
-  entrypoint: [ "bash", "../docker-entrypoint.sh" ]
-  << : *command-serve
+  entrypoint: ["bash", "../docker-entrypoint.sh"]
+  <<: *command-serve
   depends_on:
     - $VENUE_CORE_SERVICE_NAME
     - $CLOUD_SERVER_NAME
@@ -642,21 +627,20 @@ x-infrastructure-auth-service-boilerplate:
     - $TB_ROOT/infrastructure-auth-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *node-service
-    << : *postgres-connect
+    <<: *node-service
+    <<: *postgres-connect
   ports:
     - "8073:8080"
   depends_on:
     - postgres
 
-x-loyalty-gateway-service-boilerplate:
-  &loyalty-gateway-service-boilerplate
+x-loyalty-gateway-service-boilerplate: &loyalty-gateway-service-boilerplate
   env_file:
     - $TB_ROOT/loyalty-gateway-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
-    << : *node-service
-    << : *postgres-connect
+    <<: *node-service
+    <<: *postgres-connect
   ports:
     - "8600:8080"
   depends_on:
@@ -667,8 +651,8 @@ x-backoffice-customer-service-boilerplate:
   env_file:
     - $TB_ROOT/backoffice-customer-service/.env.example
   environment:
-    << : *postgres-connect
-    << : *node-service
+    <<: *postgres-connect
+    <<: *node-service
     JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
     TASK_PROVIDER: inmemory
   ports:
@@ -718,23 +702,23 @@ services:
       - "$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
 
   mokta:
-    << : *mokta-boilerplate
+    <<: *mokta-boilerplate
     build:
       target: dev
       context: $TB_ROOT/mokta
       args:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: mokta
-    << : *command-start
+    <<: *command-start
 
   mokta-ecr:
-    << : *mokta-boilerplate
+    <<: *mokta-boilerplate
     image: $MOKTA_IMAGE_URI
     container_name: mokta-ecr
-    << : *command-serve
+    <<: *command-serve
 
   identity-user-service:
-    << : *identity-user-service-boilerplate
+    <<: *identity-user-service-boilerplate
     build:
       target: dev
       context: $TB_ROOT/identity-user-service
@@ -742,21 +726,21 @@ services:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: identity-user-service
     environment:
-      << : *node-service
+      <<: *node-service
       OKTA_BASE_URL: https://mokta:8080
-      INSECURE_DISABLE_SSL_VALIDATION: 'true'
+      INSECURE_DISABLE_SSL_VALIDATION: "true"
 
   identity-user-service-ecr:
-    << : *identity-user-service-boilerplate
+    <<: *identity-user-service-boilerplate
     image: $IDENTITY_USER_SERVICE_IMAGE_URI
     container_name: identity-user-service-ecr
     environment:
-      << : *node-service
+      <<: *node-service
       OKTA_BASE_URL: https://mokta-ecr:8080
-      INSECURE_DISABLE_SSL_VALIDATION: 'true'
+      INSECURE_DISABLE_SSL_VALIDATION: "true"
 
   legacy-database:
-    << : *legacy-database-boilerplate
+    <<: *legacy-database-boilerplate
     build:
       target: db-migrate-with-seeds
       context: $TB_ROOT/legacy-database
@@ -768,30 +752,30 @@ services:
       - legacy-database:/var/opt/mssql/data
 
   legacy-database-ecr:
-    << : *legacy-database-boilerplate
+    <<: *legacy-database-boilerplate
     image: $LEGACY_DATABASE_IMAGE_URI
     container_name: legacy-database-ecr
     volumes:
       - legacy-database:/var/opt/mssql/data
 
   cloud-server:
-    << : *cloud-server-boilerplate
+    <<: *cloud-server-boilerplate
     build:
       context: $TB_ROOT/cloud-server
     container_name: cloud-server
 
   cloud-server-ecr:
-    << : *cloud-server-boilerplate
+    <<: *cloud-server-boilerplate
     image: $CLOUD_SERVER_IMAGE_URI
     container_name: cloud-server-ecr
 
   cloud-server-frontend-ecr:
-    << : *cloud-server-frontend-boilerplate
+    <<: *cloud-server-frontend-boilerplate
     container_name: cloud-server-frontend-ecr
     image: $CLOUD_SERVER_FRONTEND_IMAGE_URI
 
   cloud-server-frontend:
-    << : *cloud-server-frontend-boilerplate
+    <<: *cloud-server-frontend-boilerplate
     build:
       context: $TB_ROOT/cloud-server-frontend/packages/frontend
       args:
@@ -801,7 +785,7 @@ services:
     container_name: cloud-server-frontend
 
   venue-core-service-ecr:
-    << : *venue-core-service-boilerplate
+    <<: *venue-core-service-boilerplate
     image: $VENUE_CORE_SERVICE_IMAGE_URI
     command: >
       bash -c '
@@ -816,7 +800,7 @@ services:
     container_name: venue-core-service-ecr
 
   venue-core-service:
-    << : *venue-core-service-boilerplate
+    <<: *venue-core-service-boilerplate
     build:
       target: dev
       context: $TB_ROOT/venue-core-service
@@ -839,28 +823,28 @@ services:
       - venue-core-service-node_modules:/home/node/app/node_modules:delegated
 
   venue-provisioning-service-ecr:
-    << : *venue-provisioning-service-boilerplate
+    <<: *venue-provisioning-service-boilerplate
     image: $VENUE_PROVISIONING_SERVICE_IMAGE_URI
     container_name: venue-provisioning-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   venue-provisioning-service:
-    << : *venue-provisioning-service-boilerplate
+    <<: *venue-provisioning-service-boilerplate
     build:
       context: $TB_ROOT/venue-provisioning-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
     container_name: \venue-provisioning-service
-    << : *command-start
+    <<: *command-start
 
   health-clinic-ecr:
-    << : *health-clinic-boilerplate
+    <<: *health-clinic-boilerplate
     image: $HEALTH_CLINIC_IMAGE_URI
     container_name: health-clinic-ecr
 
   health-clinic:
-    << : *health-clinic-boilerplate
+    <<: *health-clinic-boilerplate
     build:
       context: $TB_ROOT/health-clinic
     container_name: tb_health-clinic_container
@@ -868,7 +852,7 @@ services:
       - $TB_ROOT/health-clinic:/home/python/app
 
   dotnet-manage:
-    << : *dotnet-boilerplate
+    <<: *dotnet-boilerplate
     container_name: tb_dotnet-manage_container
     ports:
       - "9000:80"
@@ -876,7 +860,7 @@ services:
       - $TB_ROOT/dotnet-depot/manage:/app:delegated
 
   dotnet-api:
-    << : *dotnet-boilerplate
+    <<: *dotnet-boilerplate
     container_name: tb_dotnet-api_container
     ports:
       - "9001:80"
@@ -884,7 +868,7 @@ services:
       - $TB_ROOT/dotnet-depot/api:/app:delegated
 
   legacy-bridge-manage-service:
-    << : *legacy-bridge-manage-service-boilerplate
+    <<: *legacy-bridge-manage-service-boilerplate
     build:
       target: dev
       context: $TB_ROOT/legacy-bridge-manage-service
@@ -892,76 +876,76 @@ services:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
     container_name: legacy-bridge-manage-service
-    << : *command-start
+    <<: *command-start
 
   legacy-bridge-manage-service-ecr:
-    << : *legacy-bridge-manage-service-boilerplate
+    <<: *legacy-bridge-manage-service-boilerplate
     image: $LEGACY_BRIDGE_MANAGE_SERVICE_IMAGE_URI
     container_name: legacy-bridge-manage-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   legacy-bridge-cloud-service:
-    << : *legacy-bridge-cloud-service-boilerplate
+    <<: *legacy-bridge-cloud-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/legacy-bridge-cloud-service
-    << : *command-start
+    <<: *command-start
     container_name: legacy-bridge-cloud-service
     volumes:
       - $TB_ROOT/legacy-bridge-cloud-service:/home/node/app:delegated
       - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
 
   legacy-bridge-cloud-service-ecr:
-    << : *legacy-bridge-cloud-service-boilerplate
+    <<: *legacy-bridge-cloud-service-boilerplate
     image: $LEGACY_BRIDGE_CLOUD_SERVICE_IMAGE_URI
     container_name: legacy-bridge-cloud-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-ooa-service-ecr:
-    << : *ordering-ooa-service-boilerplate
+    <<: *ordering-ooa-service-boilerplate
     image: $ORDERING_OOA_SERVICE_IMAGE_URI
     container_name: ordering-ooa-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-ooa-service:
-    << : *ordering-ooa-service-boilerplate
+    <<: *ordering-ooa-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-ooa-service
     container_name: ordering-ooa-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/ordering-ooa-service:/home/node/app:delegated
       - ordering-ooa-service-node_modules:/home/node/app/node_modules
 
   ordering-demo-frontend-ecr:
-    << : *ordering-demo-frontend-boilerplate
+    <<: *ordering-demo-frontend-boilerplate
     image: $ORDERING_DEMO_FRONTEND_IMAGE_URI
     container_name: ordering-demo-frontend-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-demo-frontend:
-    << : *ordering-demo-frontend-boilerplate
+    <<: *ordering-demo-frontend-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-demo-frontend
     container_name: ordering-demo-frontend
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
       - ordering-demo-frontend-node_modules:/home/node/app/node_modules
 
   ordering-demo-frontend-venue:
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-demo-frontend
     container_name: ordering-demo-frontend-venue
-    << : *command-start
+    <<: *command-start
     env_file:
       - $TB_ROOT/ordering-demo-frontend/.env.example
     environment:
-      << : *postgres-connect
-      << : *node-service
+      <<: *postgres-connect
+      <<: *node-service
       INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
       MODE: venue
     volumes:
@@ -973,52 +957,52 @@ services:
       - postgres
 
   ordering-gateways-frontend-ecr:
-    << : *ordering-gateways-frontend-boilerplate
+    <<: *ordering-gateways-frontend-boilerplate
     image: $ORDERING_GATEWAYS_FRONTEND_IMAGE_URI
     container_name: ordering-gateways-frontend-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-gateways-frontend:
-    << : *ordering-gateways-frontend-boilerplate
+    <<: *ordering-gateways-frontend-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-gateways-frontend
     container_name: ordering-gateways-frontend
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/ordering-gateways-frontend:/home/node/app:delegated
       - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
 
   ordering-deliveroo-service-ecr:
-    << : *ordering-deliveroo-service-boilerplate
+    <<: *ordering-deliveroo-service-boilerplate
     image: $ORDERING_DELIVEROO_SERVICE_IMAGE_URI
     container_name: _ordering-deliveroo-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-deliveroo-service:
-    << : *ordering-deliveroo-service-boilerplate
+    <<: *ordering-deliveroo-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-deliveroo-service
     container_name: ordering-deliveroo-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/ordering-deliveroo-service:/home/node/app:delegated
       - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
 
   ordering-engine-service-ecr:
-    << : *ordering-engine-service-boilerplate
+    <<: *ordering-engine-service-boilerplate
     image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
     container_name: ordering-engine-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   ordering-engine-service:
-    << : *ordering-engine-service-boilerplate
+    <<: *ordering-engine-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/ordering-engine-service
     container_name: ordering-engine-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
       - ordering-engine-service-node_modules:/home/node/app/node_modules
@@ -1041,75 +1025,75 @@ services:
       - ordering-online-frontend-node_modules:/home/node/app/node_modules
 
   partners-etl-service-ecr:
-    << : *partners-etl-service-boilerplate
+    <<: *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
     container_name: partners-etl-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   partners-etl-service:
-    << : *partners-etl-service-boilerplate
+    <<: *partners-etl-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/partners-etl-service
     container_name: partners-etl-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/partners-etl-service:/home/node/app:delegated
       - partners-etl-service-node_modules:/home/node/app/node_modules
 
   partners-config-service-ecr:
-    << : *partners-config-service-boilerplate
+    <<: *partners-config-service-boilerplate
     image: $PARTNERS_CONFIG_SERVICE_IMAGE_URI
     container_name: partners-config-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   partners-config-service:
-    << : *partners-config-service-boilerplate
+    <<: *partners-config-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/partners-config-service
     container_name: partners-config-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/partners-config-service:/home/node/app:delegated
       - partners-config-service-node_modules:/home/node/app/node_modules
 
   partners-orchestration-service-ecr:
-    << : *partners-orchestration-service-boilerplate
+    <<: *partners-orchestration-service-boilerplate
     image: $PARTNERS_ORCHESTRATION_SERVICE_IMAGE_URI
     container_name: partners-orchestration-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   partners-orchestration-service:
-    << : *partners-orchestration-service-boilerplate
+    <<: *partners-orchestration-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/partners-orchestration-service
     container_name: partners-orchestration-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/partners-orchestration-service:/home/node/app:delegated
       - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
   partners-reservations-service-ecr:
-    << : *partners-reservations-service-boilerplate
+    <<: *partners-reservations-service-boilerplate
     image: $PARTNERS_RESERVATIONS_SERVICE_IMAGE_URI
     container_name: partners-reservations-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   partners-reservations-service:
-    << : *partners-reservations-service-boilerplate
+    <<: *partners-reservations-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/partners-reservations-service
     container_name: partners-reservations-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/partners-reservations-service:/home/node/app:delegated
       - partners-reservations-service-node_modules:/home/node/app/node_modules
 
   singleapp-database:
-    << : *singleapp-database-boilerplate
+    <<: *singleapp-database-boilerplate
     build:
       context: $TB_ROOT/singleapp-database
     container_name: singleapp-database
@@ -1117,37 +1101,37 @@ services:
       - singleapp-database:/var/lib/mysql/
 
   singleapp-database-ecr:
-    << : *singleapp-database-boilerplate
+    <<: *singleapp-database-boilerplate
     image: $SINGLEAPP_DATABASE_IMAGE_URI
     container_name: singleapp-database-ecr
     volumes:
       - singleapp-database:/var/lib/mysql/
 
   venue-upload-service-ecr:
-    << : *venue-upload-service-boilerplate
+    <<: *venue-upload-service-boilerplate
     image: $VENUE_UPLOAD_SERVICE_IMAGE_URI
     container_name: venue-devtools_venue-upload-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   venue-upload-service:
-    << : *venue-upload-service-boilerplate
+    <<: *venue-upload-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/venue-upload-service
     container_name: venue-upload-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/venue-upload-service:/home/node/app:delegated
       - venue-upload-service-node_modules:/home/node/app/node_modules
 
   venue-admin-frontend-ecr:
-    << : *venue-admin-frontend-boilerplate
+    <<: *venue-admin-frontend-boilerplate
     image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
     container_name: venue-admin-frontend-ecr
-    << : *command-serve
+    <<: *command-serve
 
   venue-admin-frontend:
-    << : *venue-admin-frontend-boilerplate
+    <<: *venue-admin-frontend-boilerplate
     build:
       target: release
       context: $TB_ROOT/venue-admin-frontend
@@ -1160,50 +1144,50 @@ services:
     container_name: venue-admin-frontend
 
   infrastructure-auth-service-ecr:
-    << : *infrastructure-auth-service-boilerplate
+    <<: *infrastructure-auth-service-boilerplate
     image: $INFRASTRUCTURE_AUTH_SERVICE_IMAGE_URI
     container_name: infrastructure-auth-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   infrastructure-auth-service:
-    << : *infrastructure-auth-service-boilerplate
+    <<: *infrastructure-auth-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/infrastructure-auth-service
     container_name: infrastructure-auth-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/infrastructure-auth-service:/home/node/app:delegated
 
   loyalty-gateway-service-ecr:
-    << : *loyalty-gateway-service-boilerplate
+    <<: *loyalty-gateway-service-boilerplate
     image: $LOYALTY_GATEWAY_SERVICE_IMAGE_URI
     container_name: loyalty-gateway-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   loyalty-gateway-service:
-    << : *loyalty-gateway-service-boilerplate
+    <<: *loyalty-gateway-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/loyalty-gateway-service
     container_name: devtools_loyalty-gateway-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
 
   backoffice-customer-service-ecr:
-    << : *backoffice-customer-service-boilerplate
+    <<: *backoffice-customer-service-boilerplate
     image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
     container_name: backoffice-customer-service-ecr
-    << : *command-serve
+    <<: *command-serve
 
   backoffice-customer-service:
-    << : *backoffice-customer-service-boilerplate
+    <<: *backoffice-customer-service-boilerplate
     build:
-      << : *build-node-dev
+      <<: *build-node-dev
       context: $TB_ROOT/backoffice-customer-service
     container_name: backoffice-customer-service
-    << : *command-start
+    <<: *command-start
     volumes:
       - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
