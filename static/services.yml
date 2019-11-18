@@ -92,6 +92,11 @@ ordering-engine-service:
   migrations: false
   ecr: true
   ecrTag: master
+ordering-online-frontend:
+  repo: ordering-online-frontend
+  migrations: false
+  ecr: true
+  ecrTag: master
 ordering-gateways-frontend:
   repo: ordering-gateways-frontend
   migrations: false
