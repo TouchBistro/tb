@@ -41,6 +41,7 @@ online-ordering:
   services:
     - singleapp-database
     - ordering-engine-service
+    - ordering-online-frontend
 partners:
   services:
     - postgres
