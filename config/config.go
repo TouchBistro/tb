@@ -178,16 +178,6 @@ func Playlists() map[string]Playlist {
 	return playlists
 }
 
-func BaseImages() []string {
-	return []string{
-		"touchbistro/alpine-node:10-build",
-		"touchbistro/alpine-node:10-runtime",
-		"touchbistro/alpine-node:12-build",
-		"touchbistro/alpine-node:12-runtime",
-		"touchbistro/ubuntu16-ruby:2.5.7-build",
-	}
-}
-
 func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
 	// TODO: Make this less yolo if Init() wasn't called
 	if playlists == nil {

@@ -60,29 +60,6 @@ func cleanupPrevDocker() {
 	}
 }
 
-func pullTBBaseImages() {
-	log.Info("☐ pulling latest touchbistro base images")
-
-	successCh := make(chan string)
-	failedCh := make(chan error)
-
-	for _, b := range config.BaseImages() {
-		log.Infof("\t☐ pulling %s\n", b)
-		go func(successCh chan string, failedCh chan error, b string) {
-			err := docker.Pull(b)
-			if err != nil {
-				failedCh <- err
-				return
-			}
-			successCh <- b
-		}(successCh, failedCh, b)
-	}
-
-	util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
-
-	log.Info("☑ finished pulling latest touchbistro base images")
-}
-
 func dockerComposeBuild() {
 	log.Info("☐ building images for non-ecr / remote services")
 
@@ -262,11 +239,6 @@ Examples:
 			} else {
 				log.Infoln("Continuing, but unexpected behavior is possible if docker usage isn't cleaned.")
 			}
-		}
-
-		if !opts.shouldSkipDockerPull {
-			pullTBBaseImages()
-			fmt.Println()
 		}
 
 		if !opts.shouldSkipDockerPull {
