@@ -441,7 +441,7 @@ x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:
     - $TB_ROOT/ordering-online-frontend/.env.example
   environment:
-    - ORDERING_ENGINE_URL=http://${ORDERING_ENGINE_SERVICE_NAME}:8610/v1
+    - ORDERING_ENGINE_URL=http://${ORDERING_ENGINE_SERVICE_NAME}:8080/v1
     - CONFIG_PROXY_APP_URL=http://localhost:8080
     - CONFIG_PROXY_PORT=8080
   ports:
