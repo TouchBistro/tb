@@ -447,8 +447,20 @@ x-ordering-engine-service-boilerplate:
   depends_on:
     - $SINGLEAPP_DATABASE_NAME
 
-x-partners-etl-service-boilerplate:
+x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   &partners-etl-service-boilerplate
+  env_file:
+    - $TB_ROOT/ordering-online-frontend/.env.example
+  environment:
+    - ORDERING_ENGINE_URL=http://${ORDERING_ENGINE_SERVICE_NAME}:8610/v1
+    - CONFIG_PROXY_APP_URL=http://localhost:8080
+    - CONFIG_PROXY_PORT=8080
+  ports:
+    - "8611:8080"
+  depends_on:
+    - $ORDERING_ENGINE_SERVICE_NAME
+
+x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
   env_file:
     - $TB_ROOT/partners-etl-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
@@ -1011,6 +1023,23 @@ services:
       - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
       - ordering-engine-service-node_modules:/home/node/app/node_modules
 
+  ordering-online-frontend-ecr:
+    <<: *ordering-online-frontend-boilerplate
+    image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
+    container_name: ordering-online-frontend-ecr
+    <<: *command-serve
+
+  ordering-online-frontend:
+    <<: *ordering-online-frontend-boilerplate
+    build:
+      <<: *build-node-dev
+      context: $TB_ROOT/ordering-online-frontend
+    container_name: ordering-online-frontend
+    <<: *command-start
+    volumes:
+      - $TB_ROOT/ordering-online-frontend:/home/node/app:delegated
+      - ordering-online-frontend-node_modules:/home/node/app/node_modules
+
   partners-etl-service-ecr:
     << : *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
@@ -1193,6 +1222,7 @@ volumes:
   ordering-deliveroo-service-node_modules:
   ordering-gateways-frontend-node_modules:
   ordering-engine-service-node_modules:
+  ordering-online-frontend-node_modules:
   partners-etl-service-node_modules:
   partners-config-service-node_modules:
   partners-orchestration-service-node_modules:
