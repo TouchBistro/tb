@@ -1009,7 +1009,7 @@ services:
 
   ordering-online-frontend-ecr:
     <<: *ordering-online-frontend-boilerplate
-    image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
+    image: $ORDERING_ONLINE_FRONTEND_IMAGE_URI
     container_name: ordering-online-frontend-ecr
     <<: *command-serve
 
