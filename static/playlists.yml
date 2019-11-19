@@ -28,6 +28,13 @@ pos-core:
     - dotnet-api
     - cloud-server
     - redis
+pos-core-vaf:
+  extends: pos-core
+  services:
+    - venue-admin-frontend
+    - cloud-server-frontend
+    - legacy-bridge-cloud-service
+    - partners-config-service
 ordering:
   services:
     - postgres
