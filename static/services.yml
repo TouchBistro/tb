@@ -152,3 +152,8 @@ venue-upload-service:
   migrations: false
   ecr: true
   ecrTag: master
+legacy-upload-service:
+  repo: legacy-upload-service
+  migrations: false
+  ecr: true
+  ecrTag: master

@@ -661,6 +661,18 @@ x-backoffice-customer-service-boilerplate:
     - postgres
     - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
+x-legacy-upload-service-boilerplate:
+  &legacy-upload-service-boilerplate
+  env_file:
+    - $TB_ROOT/legacy-upload-service/.env.example
+  environment:
+    <<: *postgres-connect
+    <<: *node-service
+  ports:
+    - "8009:8080"
+  depends_on:
+    - postgres
+
 ###### SERVICES ######
 
 services:
@@ -1175,6 +1187,23 @@ services:
     volumes:
       - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
 
+  legacy-upload-service-ecr:
+    <<: *legacy-upload-service-boilerplate
+    image: $LEGACY_UPLOAD_SERVICE_IMAGE_URI
+    container_name: legacy-upload-service-ecr
+    <<: *command-serve
+
+  legacy-upload-service:
+    <<: *legacy-upload-service-boilerplate
+    build:
+      <<: *build-node-dev
+      context: $TB_ROOT/legacy-upload-service
+    container_name: legacy-upload-service
+    <<: *command-start
+    volumes:
+      - $TB_ROOT/legacy-upload-service:/home/node/app:delegated
+      - legacy-upload-service-node_modules:/home/node/app/node_modules
+
   backoffice-customer-service-ecr:
     <<: *backoffice-customer-service-boilerplate
     image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
@@ -1191,6 +1220,7 @@ services:
     volumes:
       - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
+
 
 ###### VOLUMES ######
 
@@ -1215,3 +1245,5 @@ volumes:
   infrastructure-auth-service-node_modules:
   loyalty-gateway-service-node_modules:
   backoffice-customer-service-node_modules:
+  legacy-upload-service-node_modules:
+  
