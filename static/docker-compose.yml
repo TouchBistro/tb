@@ -672,6 +672,7 @@ x-legacy-upload-service-boilerplate:
     - "8009:8080"
   depends_on:
     - postgres
+    - localstack
 
 ###### SERVICES ######
 
