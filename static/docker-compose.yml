@@ -1204,6 +1204,22 @@ services:
       - $TB_ROOT/legacy-upload-service:/home/node/app:delegated
       - legacy-upload-service-node_modules:/home/node/app/node_modules
 
+  backoffice-customer-service-ecr:
+    <<: *backoffice-customer-service-boilerplate
+    image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
+    container_name: backoffice-customer-service-ecr
+    <<: *command-serve
+
+  backoffice-customer-service:
+    <<: *backoffice-customer-service-boilerplate
+    build:
+      <<: *build-node-dev
+      context: $TB_ROOT/backoffice-customer-service
+    container_name: backoffice-customer-service
+    <<: *command-start
+    volumes:
+      - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
+      - backoffice-customer-service-node_modules:/home/node/app/node_modules
 
 
 ###### VOLUMES ######
