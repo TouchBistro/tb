@@ -410,22 +410,6 @@ x-ordering-gateways-frontend-boilerplate:
   ports:
     - "8030:8080"
 
-x-ordering-deliveroo-service-boilerplate:
-  &ordering-deliveroo-service-boilerplate
-  env_file:
-    - $TB_ROOT/ordering-deliveroo-service/.env.example
-  entrypoint: ["bash", "./docker-entrypoint.sh"]
-  environment:
-    <<: *postgres-connect
-    <<: *node-service
-    DELIVEROO_BASE_URL: http://${ORDERING_DEMO_FRONTEND_NAME}:8080/deliveroo
-    ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
-    URL_BASE_URL: http://${ORDERING_DELIVEROO_SERVICE_NAME}:8080
-  ports:
-    - "8015:8080"
-  depends_on:
-    - postgres
-
 x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
   env_file:
     - $TB_ROOT/ordering-engine-service/.env.example
@@ -985,23 +969,6 @@ services:
     volumes:
       - $TB_ROOT/ordering-gateways-frontend:/home/node/app:delegated
       - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
-
-  ordering-deliveroo-service-ecr:
-    <<: *ordering-deliveroo-service-boilerplate
-    image: $ORDERING_DELIVEROO_SERVICE_IMAGE_URI
-    container_name: _ordering-deliveroo-service-ecr
-    <<: *command-serve
-
-  ordering-deliveroo-service:
-    <<: *ordering-deliveroo-service-boilerplate
-    build:
-      <<: *build-node-dev
-      context: $TB_ROOT/ordering-deliveroo-service
-    container_name: ordering-deliveroo-service
-    <<: *command-start
-    volumes:
-      - $TB_ROOT/ordering-deliveroo-service:/home/node/app:delegated
-      - ordering-deliveroo-service-node_modules:/home/node/app/node_modules
 
   ordering-engine-service-ecr:
     <<: *ordering-engine-service-boilerplate
