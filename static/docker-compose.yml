@@ -1248,4 +1248,3 @@ volumes:
   loyalty-gateway-service-node_modules:
   backoffice-customer-service-node_modules:
   legacy-upload-service-node_modules:
-
