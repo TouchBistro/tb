@@ -189,7 +189,7 @@ x-venue-core-service-boilerplate: &venue-core-service-boilerplate
     USE_INSECURE_IMPERSONATE: insecure
     INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
     INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
-    TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service-ecr:8080
+    TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://{LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     TASK_AWS_SQS_CONFIG_JSON: >
       {"core.task.data.migration":{"queueURL":"http://localstack:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
     LOGGER_CONFIG_JSON: >
@@ -1248,4 +1248,4 @@ volumes:
   loyalty-gateway-service-node_modules:
   backoffice-customer-service-node_modules:
   legacy-upload-service-node_modules:
-  
+
