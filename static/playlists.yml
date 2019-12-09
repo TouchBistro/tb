@@ -41,7 +41,6 @@ ordering:
     - localstack
     - ordering-ooa-service
     - ordering-gateways-frontend
-    - ordering-deliveroo-service
     - ordering-demo-frontend
     - ordering-demo-frontend-venue
 online-ordering:

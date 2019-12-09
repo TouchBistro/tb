@@ -49,12 +49,15 @@ func attemptECRLogin() {
 
 func cleanupPrevDocker() {
 	log.Debug("stopping compose services...")
-	// Passing nothing to compose will shut everything down
-	err := docker.ComposeStop(make([]string, 0))
+	serviceNames := make([]string, 0)
+	for name := range selectedServices {
+		serviceNames = append(serviceNames, name)
+	}
+	err := docker.ComposeStop(serviceNames)
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
-	err = docker.RmContainers()
+	err = docker.ComposeRm(serviceNames)
 	if err != nil {
 		fatal.ExitErr(err, "failed removing containers")
 	}
