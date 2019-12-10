@@ -120,6 +120,9 @@ Let's try this out now:
 
 Try running `tb --help` or `tb up --help` to see what else you can do.
 
+## tb ios
+`tb` provides the ability to run iOS apps through the iOS Simulator. For more information see the [tb ios docs](docs/ios.md).
+
 ## Commands
 
 `tb` comes with a lot of convenient commands. See the documentation [here](docs/tb.md) for the command documentation.
