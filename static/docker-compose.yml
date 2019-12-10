@@ -363,6 +363,7 @@ x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
         }
       }
     TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
+    TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
   ports:
     - "8005:8080"
   depends_on:
