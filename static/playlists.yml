@@ -43,6 +43,7 @@ ordering:
     - ordering-gateways-frontend
     - ordering-demo-frontend
     - ordering-demo-frontend-venue
+    - legacy-bridge-cloud-service
 online-ordering:
   services:
     - singleapp-database
