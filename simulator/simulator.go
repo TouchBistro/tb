@@ -93,6 +93,8 @@ func GetLatestIOSVersion() string {
 		osVersions = append(osVersions, osVersion)
 	}
 
+	// Lexical order should be fine since iOS minor versions don't go past 4
+	// Also Xcode usually only installs simulators for the latest iOS version by default
 	sort.Strings(osVersions)
 	latestVersion := osVersions[len(osVersions)-1]
 
