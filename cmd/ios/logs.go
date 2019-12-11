@@ -27,6 +27,11 @@ Examples:
 - displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator
 	tb logs --number 20 --ios-version 12.4 --device iPad Air 2`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if iosVersion == "" {
+			iosVersion = simulator.GetLatestIOSVersion()
+			log.Infof("No iOS version provided, defaulting to version %s\n", iosVersion)
+		}
+
 		log.Debugln("☐ Finding device UDID")
 
 		deviceUDID, err := simulator.GetDeviceUDID("iOS "+iosVersion, deviceName)
@@ -52,7 +57,7 @@ Examples:
 
 func init() {
 	iosCmd.AddCommand(logsCmd)
-	logsCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
+	logsCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "", "The iOS version to use")
 	logsCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
 	logsCmd.Flags().StringVarP(&numberOfLines, "number", "n", "10", "The number of lines to display")
 }

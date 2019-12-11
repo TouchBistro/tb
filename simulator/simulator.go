@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -83,4 +84,19 @@ func GetDeviceUDID(osVersion, name string) (string, error) {
 	}
 
 	return devices[0].UDID, nil
+}
+
+func GetLatestIOSVersion() string {
+	osVersions := make([]string, len(deviceMap))
+
+	for osVersion := range deviceMap {
+		osVersions = append(osVersions, osVersion)
+	}
+
+	sort.Strings(osVersions)
+	latestVersion := osVersions[len(osVersions)-1]
+
+	// Un-normalize the iOS version so it matches user input
+	trimmed := strings.TrimLeft(latestVersion, "iOS-")
+	return strings.ReplaceAll(trimmed, "-", ".")
 }
