@@ -46,6 +46,11 @@ Examples:
 			branch = app.Branch
 		}
 
+		if iosVersion == "" {
+			iosVersion = simulator.GetLatestIOSVersion()
+			log.Infof("No iOS version provided, defaulting to version %s\n", iosVersion)
+		}
+
 		downloadDest := config.IOSBuildPath()
 
 		// Check disk utilisation by ios directory
@@ -223,7 +228,7 @@ Examples:
 
 func init() {
 	iosCmd.AddCommand(runCmd)
-	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "13.1", "The iOS version to use")
+	runCmd.Flags().StringVarP(&iosVersion, "ios-version", "i", "", "The iOS version to use")
 	runCmd.Flags().StringVarP(&deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
 	runCmd.Flags().StringVarP(&appName, "app", "a", "TouchBistro", "The name of the application to run, eg TouchBistro")
 	runCmd.Flags().StringVarP(&branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
