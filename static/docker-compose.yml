@@ -90,6 +90,8 @@ x-identity-user-service-boilerplate: &identity-user-service-boilerplate
     INSECURE_DISABLE_SSL_VALIDATION: 'true'
   ports:
     - '8777:8080'
+  depends_on:
+    - $MOKTA_NAME
 
 x-identity-home-frontend-boilerplate: &identity-home-frontend-boilerplate
   env_file:
