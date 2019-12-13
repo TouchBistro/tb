@@ -38,14 +38,14 @@ x-postgresconnect: &postgres-connect
   DB_DISABLE_SSL: "true"
 
 x-mssqlconnect: &mssql-connect
-  DB_HOST: legacy-database-ecr
+  DB_HOST: $LEGACY_DATABASE_NAME
   DB_PORT: 1433
   DB_USER: SA
   DB_PASSWORD: Password123
   DB_DISABLE_SSL: "true"
 
 x-mysqlconnect: &mysql-connect
-  DB_HOST: singleapp-database-ecr
+  DB_HOST: $SINGLEAPP_DATABASE_NAME
   DB_PORT: 3306
   DB_USER: root
   DB_PASSWORD: root
@@ -84,6 +84,10 @@ x-mokta-boilerplate: &mokta-boilerplate
 x-identity-user-service-boilerplate: &identity-user-service-boilerplate
   env_file:
     - $TB_ROOT/identity-user-service/.env.example
+  environment:
+      <<: *node-service
+      OKTA_BASE_URL: https://${MOKTA_NAME}:8080
+      INSECURE_DISABLE_SSL_VALIDATION: "true"
   ports:
     - "8777:8080"
 
@@ -115,7 +119,7 @@ x-cloud-server-boilerplate: &cloud-server-boilerplate
   env_file:
     - $TB_ROOT/cloud-server/.env.compose
   environment:
-    - MSSQL_HOST=legacy-database-ecr
+    - MSSQL_HOST=$LEGACY_DATABASE_NAME
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   command: >
     bash -c '
@@ -724,19 +728,11 @@ services:
       args:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: identity-user-service
-    environment:
-      <<: *node-service
-      OKTA_BASE_URL: https://mokta:8080
-      INSECURE_DISABLE_SSL_VALIDATION: "true"
 
   identity-user-service-ecr:
     <<: *identity-user-service-boilerplate
     image: $IDENTITY_USER_SERVICE_IMAGE_URI
     container_name: identity-user-service-ecr
-    environment:
-      <<: *node-service
-      OKTA_BASE_URL: https://mokta-ecr:8080
-      INSECURE_DISABLE_SSL_VALIDATION: "true"
 
   legacy-database:
     <<: *legacy-database-boilerplate
