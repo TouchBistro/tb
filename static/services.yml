@@ -127,6 +127,11 @@ partners-reservations-service:
   migrations: true
   ecr: true
   ecrTag: master
+payments-gateway-service:
+  repo: payments-gateway-service
+  migrations: true
+  ecr: true
+  ecrTag: master  
 singleapp-database:
   repo: singleapp-database
   migrations: false

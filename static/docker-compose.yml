@@ -651,6 +651,19 @@ x-backoffice-customer-service-boilerplate:
     - postgres
     - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
+x-payments-gateway-service-boilerplate:
+  &payments-gateway-service-boilerplate
+  env_file:
+    - $TB_ROOT/payments-gateway-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    <<: *postgres-connect
+    <<: *node-service
+  ports:
+    - "8008:8080"
+  depends_on:
+    - postgres
+
 x-legacy-upload-service-boilerplate:
   &legacy-upload-service-boilerplate
   env_file:
@@ -1187,6 +1200,23 @@ services:
       - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
 
+  payments-gateway-service-ecr:
+    <<: *payments-gateway-service-boilerplate
+    image: $PAYMENTS_GATEWAY_SERVICE_IMAGE_URI
+    container_name: payments-gateway-service-ecr
+    <<: *command-serve
+
+  payments-gateway-service:
+    <<: *payments-gateway-service-boilerplate
+    build:
+      <<: *build-node-dev
+      context: $TB_ROOT/payments-gateway-service
+    container_name: payments-gateway-service
+    <<: *command-start
+    volumes:
+      - $TB_ROOT/payments-gateway-service:/home/node/app:delegated
+      - payments-gateway-service-node_modules:/home/node/app/node_modules
+    
 
 ###### VOLUMES ######
 
@@ -1212,3 +1242,4 @@ volumes:
   loyalty-gateway-service-node_modules:
   backoffice-customer-service-node_modules:
   legacy-upload-service-node_modules:
+  payments-gateway-service-node_modules:
