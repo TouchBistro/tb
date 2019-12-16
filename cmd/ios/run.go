@@ -189,13 +189,13 @@ Examples:
 
 		log.Infof("☑ Installed app %s on %s\n", app.BundleID, deviceName)
 
+		appDataPath, err := simulator.GetAppDataPath(deviceUDID, app.BundleID)
+		if err != nil {
+			fatal.ExitErrf(err, "Failed to get path to data for app %s", app.BundleID)
+		}
+
 		if dataPath != "" {
 			log.Infoln("☐ Injecting data files into simulator")
-
-			appDataPath, err := simulator.GetAppDataPath(deviceUDID, app.BundleID)
-			if err != nil {
-				fatal.ExitErrf(err, "Failed to get path to data for app %s", app.BundleID)
-			}
 
 			err = util.CopyDirContents(dataPath, appDataPath)
 			if err != nil {
@@ -222,6 +222,7 @@ Examples:
 		}
 
 		log.Infof("☑ Launched app %s on %s\n", app.BundleID, deviceName)
+		log.Infof("App data directory is located at: %s\n", appDataPath)
 		log.Info("🎉🎉🎉 Enjoy!")
 	},
 }
