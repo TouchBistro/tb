@@ -102,6 +102,7 @@ x-identity-home-frontend-boilerplate: &identity-home-frontend-boilerplate
     - TOUCHBISTRO_PROFILE_SERVICE_URL_BASE=https://${IDENTITY_USER_SERVICE_NAME}:8080/internal
   ports:
     - '9090:8080'
+  entrypoint: ['bash', '../docker-entrypoint.sh']
   <<: *command-serve
   depends_on:
     - $IDENTITY_USER_SERVICE_NAME
