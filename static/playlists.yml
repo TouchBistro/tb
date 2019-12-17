@@ -100,3 +100,8 @@ cs-portal-deps:
   services:
     - backoffice-customer-service
     - infrastructure-auth-service
+payments-gateway:
+  services:
+    - payments-gateway-service
+    - postgres
+    - venue-provisioning-service
