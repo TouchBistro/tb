@@ -422,6 +422,8 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
   environment:
     <<: *node-service
     <<: *mysql-connect
+    JWT_AUTH_ISSUER_JWKS_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
+    ORDERING_INTERNAL_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal
   ports:
     - "8610:8080"
   depends_on:
@@ -431,9 +433,8 @@ x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:
     - $TB_ROOT/ordering-online-frontend/.env.example
   environment:
-    - ORDERING_ENGINE_URL=http://${ORDERING_ENGINE_SERVICE_NAME}:8080/v1
-    - CONFIG_PROXY_APP_URL=http://localhost:8080
-    - CONFIG_PROXY_PORT=8080
+    INFRASTRUCTURE_AUTH_BASE_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080 
+    ORDERING_ENGINE_URL: http://${ORDERING_ENGINE_SERVICE_NAME}:8080/v1
   ports:
     - "8611:8080"
   depends_on:
