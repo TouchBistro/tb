@@ -428,6 +428,7 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
     - "8610:8080"
   depends_on:
     - $SINGLEAPP_DATABASE_NAME
+    - $ORDERING_OOA_SERVICE_NAME
 
 x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:

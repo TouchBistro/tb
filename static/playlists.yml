@@ -46,6 +46,9 @@ ordering:
     - legacy-bridge-cloud-service
 online-ordering:
   services:
+    - postgres
+    - localstack
+    - ordering-ooa-service
     - singleapp-database
     - ordering-engine-service
     - ordering-online-frontend
