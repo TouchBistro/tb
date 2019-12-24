@@ -144,6 +144,8 @@ x-venue-provisioning-service-boilerplate:
   environment:
     <<: *postgres-connect
     <<: *node-service
+    TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://${CLOUD_SERVER_NAME}:3000
+    TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   ports:
     - "8666:8080"
