@@ -24,6 +24,7 @@ pos-core:
   extends: core
   services:
     - legacy-database
+    - legacy-bridge-manage-service
     - dotnet-manage
     - dotnet-api
     - cloud-server
