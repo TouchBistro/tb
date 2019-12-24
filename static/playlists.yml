@@ -24,7 +24,7 @@ pos-core:
   extends: core
   services:
     - legacy-database
-    - legacy-bridge-manage-service
+    - legacy-bridge-cloud-service
     - dotnet-manage
     - dotnet-api
     - cloud-server
@@ -34,7 +34,6 @@ pos-core-vaf:
   services:
     - venue-admin-frontend
     - cloud-server-frontend
-    - legacy-bridge-cloud-service
     - partners-config-service
 ordering:
   services:
