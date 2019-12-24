@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 )
 
 type IOSApp struct {
@@ -32,5 +31,5 @@ func Apps() map[string]IOSApp {
 }
 
 func IOSBuildPath() string {
-	return fmt.Sprintf("%s/.tb/ios", os.Getenv("HOME"))
+	return fmt.Sprintf("%s/%s", tbRoot, "ios")
 }

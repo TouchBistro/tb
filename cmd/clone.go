@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"strings"
+
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
@@ -29,7 +31,8 @@ var cloneCmd = &cobra.Command{
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		err := git.Clone(service.GithubRepo, "./")
+		repoName := strings.Split(service.GithubRepo, "/")[1]
+		err := git.Clone(service.GithubRepo, "./"+repoName)
 		if err != nil {
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}
