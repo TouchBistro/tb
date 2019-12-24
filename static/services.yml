@@ -1,53 +1,53 @@
 backoffice-customer-service:
-  repo: backoffice-customer-service
+  repo: TouchBistro/backoffice-customer-service
   migrations: true
   ecr: true
   ecrTag: master
 cloud-server:
-  repo: cloud-server
+  repo: TouchBistro/cloud-server
   migrations: false
   ecr: true
   ecrTag: develop
 cloud-server-frontend:
-  repo: cloud-server-frontend
+  repo: TouchBistro/cloud-server-frontend
   migrations: false
   ecr: true
   ecrTag: develop
 dotnet-api:
-  repo: dotnet-depot
+  repo: TouchBistro/dotnet-depot
   migrations: false
   ecr: false
 dotnet-manage:
-  repo: dotnet-depot
+  repo: TouchBistro/dotnet-depot
   migrations: false
   ecr: false
 health-clinic:
-  repo: health-clinic
+  repo: TouchBistro/health-clinic
   migrations: false
   ecr: true
   ecrTag: master
 identity-user-service:
-  repo: identity-user-service
+  repo: TouchBistro/identity-user-service
   migrations: false
   ecr: true
   ecrTag: master
 infrastructure-auth-service:
-  repo: infrastructure-auth-service
+  repo: TouchBistro/infrastructure-auth-service
   migrations: true
   ecr: true
   ecrTag: master
 legacy-bridge-cloud-service:
-  repo: legacy-bridge-cloud-service
+  repo: TouchBistro/legacy-bridge-cloud-service
   migrations: false
   ecr: true
   ecrTag: master
 legacy-bridge-manage-service:
-  repo: legacy-bridge-manage-service
+  repo: TouchBistro/legacy-bridge-manage-service
   migrations: false
   ecr: true
   ecrTag: develop
 legacy-database:
-  repo: legacy-database
+  repo: TouchBistro/legacy-database
   migrations: true
   ecr: true
   ecrTag: master-db-migrate-with-seeds
@@ -56,7 +56,7 @@ localstack:
   ecr: false
   dockerhubImage: localstack/localstack
 loyalty-gateway-service:
-  repo: loyalty-gateway-service
+  repo: TouchBistro/loyalty-gateway-service
   migrations: true
   ecr: true
   ecrTag: master
@@ -69,96 +69,96 @@ redis:
   ecr: false
   dockerhubImage: redis:4-alpine
 mokta:
-  repo: mokta
+  repo: TouchBistro/mokta
   migrations: true
   ecr: true
   ecrTag: master
 ordering-deliveroo-service:
-  repo: ordering-deliveroo-service
+  repo: TouchBistro/ordering-deliveroo-service
   migrations: true
   ecr: true
   ecrTag: master
 ordering-demo-frontend:
-  repo: ordering-demo-frontend
+  repo: TouchBistro/ordering-demo-frontend
   migrations: true
   ecr: true
   ecrTag: master
 ordering-demo-frontend-venue:
-  repo: ordering-demo-frontend
+  repo: TouchBistro/ordering-demo-frontend
   migrations: false
   ecr: false
 ordering-engine-service:
-  repo: ordering-engine-service
+  repo: TouchBistro/ordering-engine-service
   migrations: false
   ecr: true
   ecrTag: master
 ordering-online-frontend:
-  repo: ordering-online-frontend
+  repo: TouchBistro/ordering-online-frontend
   migrations: false
   ecr: true
   ecrTag: master
 ordering-gateways-frontend:
-  repo: ordering-gateways-frontend
+  repo: TouchBistro/ordering-gateways-frontend
   migrations: false
   ecr: true
   ecrTag: master
 ordering-ooa-service:
-  repo: ordering-ooa-service
+  repo: TouchBistro/ordering-ooa-service
   migrations: true
   ecr: true
   ecrTag: master
 partners-config-service:
-  repo: partners-config-service
+  repo: TouchBistro/partners-config-service
   migrations: true
   ecr: true
   ecrTag: master
 partners-etl-service:
-  repo: partners-etl-service
+  repo: TouchBistro/partners-etl-service
   migrations: true
   ecr: true
   ecrTag: master
 partners-orchestration-service:
-  repo: partners-orchestration-service
+  repo: TouchBistro/partners-orchestration-service
   migrations: true
   ecr: true
   ecrTag: master
 partners-reservations-service:
-  repo: partners-reservations-service
+  repo: TouchBistro/partners-reservations-service
   migrations: true
   ecr: true
   ecrTag: master
 payments-gateway-service:
-  repo: payments-gateway-service
+  repo: TouchBistro/payments-gateway-service
   migrations: true
   ecr: true
   ecrTag: master  
 singleapp-database:
-  repo: singleapp-database
+  repo: TouchBistro/singleapp-database
   migrations: false
   ecr: true
   ecrTag: master
 venue-admin-frontend:
-  repo: venue-admin-frontend
+  repo: TouchBistro/venue-admin-frontend
   migrations: false
   ecr: true
   ecrTag: master
 venue-core-service:
-  repo: venue-core-service
+  repo: TouchBistro/venue-core-service
   migrations: true
   ecr: true
   ecrTag: master
 venue-provisioning-service:
-  repo: venue-provisioning-service
+  repo: TouchBistro/venue-provisioning-service
   migrations: true
   ecr: true
   ecrTag: master
 venue-upload-service:
-  repo: venue-upload-service
+  repo: TouchBistro/venue-upload-service
   migrations: false
   ecr: true
   ecrTag: master
 legacy-upload-service:
-  repo: legacy-upload-service
+  repo: TouchBistro/legacy-upload-service
   migrations: false
   ecr: true
   ecrTag: master
