@@ -23,6 +23,23 @@ type Service struct {
 		Image   string `yaml:"image"`
 		Tag     string `yaml:"tag"`
 	} `yaml:"remote"`
+	// DSL
+	Build struct {
+		Args           map[string]string `yaml:"args"`
+		Command        string            `yaml:"command"`
+		DockerfilePath string            `yaml:"dockerfilePath"`
+		Target         string            `yaml:"target"`
+	} `yaml:"build"`
+	Command    string            `yaml:"command"`
+	Entrypoint []string          `yaml:"entrypoint"`
+	EnvFile    string            `yaml:"envFile"`
+	EnvVars    map[string]string `yaml:"envVars"`
+	Ports      []string          `yaml:"ports"`
+	Volumes    []struct {
+		Value       string `yaml:"value"`
+		IsNamed     bool   `yaml:"named"`
+		IsForRemote bool   `yaml:"remote"`
+	} `yaml:"volumes"`
 }
 
 type ServiceMap map[string]Service
@@ -73,8 +90,18 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 			return nil, errors.New(msg)
 		}
 
-		// Expand any docker registry vars
-		service.Remote.Image = util.ExpandVars(service.Remote.Image, config.Global.Variables)
+		// Set special service specific vars
+		vars := config.Global.Variables
+		vars["@REPOPATH"] = fmt.Sprintf("%s/%s", ReposPath(), service.GithubRepo)
+
+		// Expand any vars
+		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
+		service.EnvFile = util.ExpandVars(service.EnvFile, vars)
+		service.Remote.Image = util.ExpandVars(service.Remote.Image, vars)
+
+		for key, value := range service.EnvVars {
+			service.EnvVars[key] = util.ExpandVars(value, vars)
+		}
 
 		parsedServices[name] = service
 	}

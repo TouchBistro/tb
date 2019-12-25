@@ -1159,7 +1159,7 @@ services:
 ###### VOLUMES ######
 
 volumes:
-  postgres:
+  postgres: null
   legacy-database:
   singleapp-database:
   venue-core-service-node_modules:

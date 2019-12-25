@@ -1,3 +1,48 @@
+anchors:
+  node-service: &node-service
+    LOGGER_CONFIG_JSON: >
+      {
+        "transports": {
+          "devConsole": {
+            "provider": "winston.transports.Console",
+            "config": {
+              "colorize": true,
+              "timestamp": true,
+              "json": false
+            }
+          }
+        },
+        "env": {
+          "development": {
+            "rules": [
+              {
+                "pattern": "*",
+                "binding": {
+                  "transport": ["devConsole"],
+                  "level": "info"
+                }
+              }
+            ]
+          }
+        }
+      }
+    HTTP_PORT: 8080
+  postgres-connect: &postgres-connect
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_USER: core
+    DB_PASSWORD: localdev
+    DB_DISABLE_SSL: "true"
+  command-serve: &command-serve |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+  command-start: &command-start |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+  build-node-dev: &build-node-dev
+    target: dev
+    args:
+      NODE_ENV: development
+      NPM_TOKEN: $NPM_TOKEN
+
 global:
   baseImages:
     - touchbistro/alpine-node:10-build
@@ -13,13 +58,47 @@ global:
 
 services:
   backoffice-customer-service:
+    build:
+      <<: *build-node-dev
+      command: *command-start
+      dockerfilePath: ${@REPOPATH}
+    command: *command-serve
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      <<: [ *node-service, *postgres-connect ]
+      JWT_AUTH_ISSUER_JWKS_URL: http://${@INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
+      TASK_PROVIDER: inmemory
+    ports:
+      - '8700:8080'
     preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
     repo: TouchBistro/backoffice-customer-service
+    volumes:
+      - value: $TB_ROOT/repos/TouchBistro/backoffice-customer-service:/home/node/app:delegated
+      - value: backoffice-customer-service-node_modules:/home/node/app/node_modules
+        named: true
   cloud-server:
+    build:
+      dockerfilePath: ${@REPOPATH}
+    command: >
+      bash -c '
+        echo '...done'
+        if [ "$START_SERVER" = "true" ]; then
+          echo "Starting server.."
+          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+        else
+          echo "Not starting server.."
+          tail -f /dev/null
+        fi'
+    entrypoint: ["bash", "./docker-entrypoint.sh"]
+    envFile: ${@REPOPATH}/.env.compose
+    envVars:
+      MSSQL_HOST: ${@LEGACY_DATABASE_NAME}
+    ports:
+      - '3000:3000'
     remote:
       enabled: true
       image: ${ecr}/cloud-server

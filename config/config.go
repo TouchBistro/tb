@@ -165,6 +165,12 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
+	for name := range serviceConfig.Services {
+		// serviceNameVar := fmt.Sprintf("@%s_NAME", util.StringToUpperAndSnake(name))
+		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
+		serviceConfig.Global.Variables["@"+serviceNameVar] = fmt.Sprintf("${%s}", serviceNameVar)
+	}
+
 	services, err := parseServices(serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load services")
@@ -185,6 +191,11 @@ func Init() error {
 			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
 			os.Setenv(uriVar, s.ImageURI())
 		}
+	}
+
+	err = generateComposeFile(services)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate docker-compose file")
 	}
 
 	serviceConfig.Services = services
