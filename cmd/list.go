@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"bufio"
+	"context"
 	"fmt"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
+	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/spf13/cobra"
+	"os"
 	"sort"
 )
 
@@ -12,8 +17,25 @@ var (
 	shouldListServices        bool
 	shouldListPlaylists       bool
 	shouldListCustomPlaylists bool
+	shouldListECRImages		  bool
 	isTreeMode                bool
+	repoName 			  	  string
+	maxResult 				  int64
 )
+
+type imgDetail []ecr.ImageDetail
+
+func (img imgDetail) Len() int {
+	return len(img)
+}
+
+func (img imgDetail) Less(i, j int) bool {
+	return img[i].ImagePushedAt.Before(*img[j].ImagePushedAt)
+}
+
+func (img imgDetail) Swap(i, j int) {
+	img[i], img[j] = img[j], img[i]
+}
 
 var listCmd = &cobra.Command{
 	Use:     "list",
@@ -24,7 +46,8 @@ var listCmd = &cobra.Command{
 		// If no flags provided show everything
 		if !shouldListServices &&
 			!shouldListPlaylists &&
-			!shouldListCustomPlaylists {
+			!shouldListCustomPlaylists &&
+			!shouldListECRImages {
 			shouldListServices = true
 			shouldListPlaylists = true
 			shouldListCustomPlaylists = true
@@ -44,6 +67,14 @@ var listCmd = &cobra.Command{
 			fmt.Println("Custom Playlists:")
 			listPlaylists(config.TBRC().Playlists, isTreeMode)
 		}
+
+		if shouldListECRImages && len(repoName) < 1 {
+			fatal.Exit("ecr repo name is required")
+		}
+
+		if shouldListECRImages && len(repoName) > 1 {
+			listECRImages(repoName, maxResult)
+		}
 	},
 }
 
@@ -52,7 +83,10 @@ func init() {
 	listCmd.Flags().BoolVarP(&shouldListServices, "services", "s", false, "list services")
 	listCmd.Flags().BoolVarP(&shouldListPlaylists, "playlists", "p", false, "list playlists")
 	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
+	listCmd.Flags().BoolVarP(&shouldListECRImages, "ecr-images", "e", false, "list ecr images")
 	listCmd.Flags().BoolVarP(&isTreeMode, "tree", "t", false, "tree mode, show playlist services")
+	listCmd.Flags().StringVarP(&repoName, "repo", "r", "", "ecr repo name")
+	listCmd.Flags().Int64VarP(&maxResult, "max", "m", 10, "ecr image list max result")
 }
 
 func listServices(services config.ServiceMap) {
@@ -91,4 +125,59 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 			fmt.Printf("    - %s\n", s)
 		}
 	}
+}
+
+
+func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.Context) {
+	req := client.DescribeImagesRequest(&input)
+
+	res, err := req.Send(ctx)
+	if err != nil {
+		fatal.ExitErr(err, "☒ failed load ecr images")
+	}
+
+	sortedImages := make(imgDetail, 0, len(res.ImageDetails))
+
+	for i := 0; i < len(res.ImageDetails); i++ {
+		sortedImages = append(sortedImages, res.ImageDetails[i])
+	}
+
+	sort.Sort(sortedImages)
+
+	for i := 0; i < len(sortedImages); i++ {
+		img := sortedImages[i]
+		fmt.Println(img.ImagePushedAt, img.ImageTags)
+	}
+
+	if res.NextToken != nil {
+		reader := bufio.NewReader(os.Stdin)
+		_, s, err := reader.ReadRune()
+		fmt.Println(":")
+
+		if err != nil {
+			fatal.ExitErr(err, "☒ failed to read input")
+		}
+
+		if s == 1 {
+			input.NextToken = res.NextToken
+			fetchImages(client, input, ctx)
+		}
+	}
+}
+
+func listECRImages(repoName string, maxResult int64) {
+	var input ecr.DescribeImagesInput
+	var ctx = context.Background()
+
+	input.RepositoryName = &repoName
+	input.MaxResults = &maxResult
+
+	conf, err := external.LoadDefaultAWSConfig()
+	client := ecr.New(conf)
+
+	if err != nil {
+		fatal.ExitErr(err, "☒ failed load ecr images")
+	}
+
+	fetchImages(client, input, ctx)
 }
