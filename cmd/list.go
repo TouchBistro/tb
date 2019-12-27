@@ -17,10 +17,10 @@ var (
 	shouldListServices        bool
 	shouldListPlaylists       bool
 	shouldListCustomPlaylists bool
-	shouldListECRImages		  bool
+	shouldListECRImages       bool
 	isTreeMode                bool
-	repoName 			  	  string
-	maxResult 				  int64
+	repoName                  string
+	maxResult                 int64
 )
 
 type imgDetail []ecr.ImageDetail
@@ -126,7 +126,6 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 		}
 	}
 }
-
 
 func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.Context) {
 	req := client.DescribeImagesRequest(&input)
