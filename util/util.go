@@ -56,7 +56,15 @@ func ExpandVars(str string, vars map[string]string) string {
 		endIndexGroup := match[3]
 
 		varName := str[startIndexGroup:endIndexGroup]
-		expandedStr = expandedStr[:startIndex] + vars[varName] + expandedStr[endIndex:]
+		const envPrefix = "@env:"
+		var varValue string
+		if strings.HasPrefix(varName, envPrefix) {
+			varValue = fmt.Sprintf("${%s}", strings.TrimPrefix(varName, envPrefix))
+		} else {
+			varValue = vars[varName]
+		}
+
+		expandedStr = expandedStr[:startIndex] + varValue + expandedStr[endIndex:]
 	}
 
 	return expandedStr

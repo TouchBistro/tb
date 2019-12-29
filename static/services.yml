@@ -66,7 +66,7 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: [ *node-service, *postgres-connect ]
-      JWT_AUTH_ISSUER_JWKS_URL: http://${@INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
+      JWT_AUTH_ISSUER_JWKS_URL: http://${@env:INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080/jwks
       TASK_PROVIDER: inmemory
     ports:
       - '8700:8080'
@@ -105,6 +105,13 @@ services:
       tag: develop
     repo: TouchBistro/cloud-server
   cloud-server-frontend:
+    build:
+      args:
+        USE_INSECURE_COOKIE: insecure
+      dockerfilePath: ${@REPOPATH}/packages/frontend
+    envFile: ${@REPOPATH}/.env.example
+    ports:
+      - '8080:80'
     remote:
       enabled: true
       image: ${ecr}/cloud-server-frontend
