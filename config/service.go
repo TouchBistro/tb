@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/pkg/errors"
 
@@ -11,12 +12,16 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/* Types */
+
 type Service struct {
-	GithubRepo     string `yaml:"repo"`
-	Migrations     bool   `yaml:"migrations"`
-	ECR            bool   `yaml:"ecr"`
-	ECRTag         string `yaml:"ecrTag"`
-	DockerhubImage string `yaml:"dockerhubImage"`
+	GithubRepo string `yaml:"repo"`
+	Migrations bool   `yaml:"migrations"`
+	Remote     struct {
+		Enabled bool   `yaml:"enabled"`
+		Image   string `yaml:"image"`
+		Tag     string `yaml:"tag"`
+	} `yaml:"remote"`
 }
 
 type ServiceOverride struct {
@@ -24,22 +29,127 @@ type ServiceOverride struct {
 	ECRTag string `yaml:"ecrTag"`
 }
 
-type ServiceMap = map[string]Service
+type ServiceMap map[string]Service
+
+type ServiceConfig struct {
+	Global struct {
+		Variables map[string]string `yaml:"variables"`
+	} `yaml:"global"`
+	Services ServiceMap `yaml:"services"`
+}
+
+/* Methods & computed properties */
 
 func (s Service) IsGithubRepo() bool {
 	return s.GithubRepo != ""
 }
 
+func (s Service) UseRemote() bool {
+	return s.Remote.Enabled
+}
+
+func (s Service) ImageURI() string {
+	if s.Remote.Tag == "" {
+		return s.Remote.Image
+	}
+
+	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
+}
+
+/* Private helpers */
+
+func expandVars(str string, vars map[string]string) string {
+	// Regex to match variable substitution
+	regex := regexp.MustCompile(`\$\{([\w-]+)\}`)
+	indices := regex.FindAllStringSubmatchIndex(str, -1)
+
+	// Go through the string in reverse order and replace all variables with their value
+	expandedStr := str
+	for i := len(indices) - 1; i >= 0; i-- {
+		match := indices[i]
+		// match[0] is the start index of the whole match
+		startIndex := match[0]
+		// match[1] is the end index of the whole match (exclusive)
+		endIndex := match[1]
+		// match[2] is start index of group
+		startIndexGroup := match[2]
+		// match[3] is end index of group (exclusive)
+		endIndexGroup := match[3]
+
+		varName := str[startIndexGroup:endIndexGroup]
+		expandedStr = expandedStr[:startIndex] + vars[varName] + expandedStr[endIndex:]
+	}
+
+	return expandedStr
+}
+
+func parseServices(config ServiceConfig) (ServiceMap, error) {
+	parsedServices := make(ServiceMap)
+
+	// Validate each service and perform any necessary actions
+	for name, service := range config.Services {
+		// Make sure either local or remote usage is specified
+		if !service.IsGithubRepo() && service.Remote.Image == "" {
+			msg := fmt.Sprintf("Must specify at least one of 'repo' or 'remote.image' for service %s", name)
+			return nil, errors.New(msg)
+		}
+
+		// Make sure repo is specified if not using remote
+		if !service.UseRemote() && !service.IsGithubRepo() {
+			msg := fmt.Sprintf("'enabled: false' is set but 'repo' was not provided for service %s", name)
+			return nil, errors.New(msg)
+		}
+
+		// Expand any docker registry vars
+		service.Remote.Image = expandVars(service.Remote.Image, config.Global.Variables)
+
+		parsedServices[name] = service
+	}
+
+	return parsedServices, nil
+}
+
+func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (ServiceMap, error) {
+	newServices := make(ServiceMap)
+	for name, s := range services {
+		newServices[name] = s
+	}
+
+	for name, override := range overrides {
+		s, ok := services[name]
+		if !ok {
+			return nil, fmt.Errorf("%s is not a valid service", name)
+		}
+
+		// Validate overrides
+		if override.ECR && !s.UseRemote() {
+			msg := fmt.Sprintf("ecr is overridden to true for %s but it is not available from a remote source", name)
+			return nil, errors.New(msg)
+		} else if !override.ECR && !s.IsGithubRepo() {
+			msg := fmt.Sprintf("ecr is overridden to false but %s cannot be built locally", name)
+			return nil, errors.New(msg)
+		}
+
+		// Apply overrides to service
+		s.Remote.Enabled = override.ECR
+		if override.ECRTag != "" {
+			s.Remote.Tag = override.ECRTag
+		}
+
+		newServices[name] = s
+	}
+
+	return newServices, nil
+}
+
+/* Public funtions */
+
 func ComposeName(name string, s Service) string {
-	if s.ECR {
-		return name + "-ecr"
+	if s.UseRemote() && s.IsGithubRepo() {
+		return name + "-remote"
 	}
 
 	return name
-}
-
-func ResolveEcrURI(service, tag string) string {
-	return fmt.Sprintf("%s/%s:%s", ecrURIRoot, service, tag)
 }
 
 func CloneMissingRepos(services ServiceMap) error {
@@ -117,22 +227,4 @@ func Repos(services ServiceMap) []string {
 	}
 
 	return repos
-}
-
-func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) error {
-	for name, override := range overrides {
-		s, ok := services[name]
-		if !ok {
-			return fmt.Errorf("%s is not a valid service", name)
-		}
-
-		s.ECR = override.ECR
-		if override.ECRTag != "" {
-			s.ECRTag = override.ECRTag
-		}
-
-		services[name] = s
-	}
-
-	return nil
 }
