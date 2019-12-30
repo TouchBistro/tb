@@ -128,6 +128,8 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 }
 
 func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.Context) {
+	var enterKeyCode int = 1
+
 	req := client.DescribeImagesRequest(&input)
 
 	res, err := req.Send(ctx)
@@ -151,13 +153,13 @@ func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.
 	if res.NextToken != nil {
 		reader := bufio.NewReader(os.Stdin)
 		_, s, err := reader.ReadRune()
-		fmt.Println(":")
+		fmt.Println("Hit enter to load more:")
 
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed to read input")
 		}
 
-		if s == 1 {
+		if s == enterKeyCode {
 			input.NextToken = res.NextToken
 			fetchImages(client, input, ctx)
 		}
