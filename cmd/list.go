@@ -139,21 +139,21 @@ func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.
 
 	sortedImages := make(imgDetail, 0, len(res.ImageDetails))
 
-	for i := 0; i < len(res.ImageDetails); i++ {
-		sortedImages = append(sortedImages, res.ImageDetails[i])
+	for _, img := range  res.ImageDetails {
+		sortedImages = append(sortedImages, img)
 	}
 
 	sort.Sort(sortedImages)
 
-	for i := 0; i < len(sortedImages); i++ {
-		img := sortedImages[i]
+	for _, img := range sortedImages {
 		fmt.Println(img.ImagePushedAt, img.ImageTags)
 	}
 
 	if res.NextToken != nil {
 		reader := bufio.NewReader(os.Stdin)
-		_, s, err := reader.ReadRune()
 		fmt.Println("Hit enter to load more:")
+
+		_, s, err := reader.ReadRune()
 
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed to read input")
