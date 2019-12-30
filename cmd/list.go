@@ -70,9 +70,8 @@ var listCmd = &cobra.Command{
 
 		if shouldListECRImages && len(repoName) < 1 {
 			fatal.Exit("ecr repo name is required")
-		}
-
-		if shouldListECRImages && len(repoName) > 1 {
+		} else {
+			fmt.Println("ECR Images:")
 			listECRImages(repoName, maxResult)
 		}
 	},
