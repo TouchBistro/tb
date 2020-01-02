@@ -119,7 +119,8 @@ x-cloud-server-boilerplate: &cloud-server-boilerplate
   env_file:
     - $TB_ROOT/cloud-server/.env.compose
   environment:
-    - MSSQL_HOST=$LEGACY_DATABASE_NAME
+    MSSQL_HOST: $LEGACY_DATABASE_NAME
+    ORDERING_SERVICE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal/config/v1/venues
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   command: >
     bash -c '
