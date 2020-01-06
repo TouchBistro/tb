@@ -25,11 +25,6 @@ type Service struct {
 	} `yaml:"remote"`
 }
 
-type ServiceOverride struct {
-	ECR    bool   `yaml:"ecr"`
-	ECRTag string `yaml:"ecrTag"`
-}
-
 type ServiceMap map[string]Service
 
 type ServiceConfig struct {
@@ -98,18 +93,18 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 		}
 
 		// Validate overrides
-		if override.ECR && !s.UseRemote() {
-			msg := fmt.Sprintf("ecr is overridden to true for %s but it is not available from a remote source", name)
+		if override.Remote.Enabled && s.Remote.Image == "" {
+			msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", name)
 			return nil, errors.New(msg)
-		} else if !override.ECR && !s.IsGithubRepo() {
-			msg := fmt.Sprintf("ecr is overridden to false but %s cannot be built locally", name)
+		} else if !override.Remote.Enabled && !s.IsGithubRepo() {
+			msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", name)
 			return nil, errors.New(msg)
 		}
 
 		// Apply overrides to service
-		s.Remote.Enabled = override.ECR
-		if override.ECRTag != "" {
-			s.Remote.Tag = override.ECRTag
+		s.Remote.Enabled = override.Remote.Enabled
+		if override.Remote.Tag != "" {
+			s.Remote.Tag = override.Remote.Tag
 		}
 
 		newServices[name] = s
