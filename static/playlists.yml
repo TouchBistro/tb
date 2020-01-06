@@ -94,6 +94,7 @@ pos-loyalty:
   extends: loyalty
   services:
     - venue-provisioning-service
+    - legacy-bridge-cloud-service
     - legacy-database
     - dotnet-manage
     - dotnet-api
