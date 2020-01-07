@@ -13,6 +13,12 @@ cloud:
     - dotnet-manage
     - dotnet-api
     - legacy-bridge-manage-service
+pos-cloud:
+  extends: cloud
+  services:
+    - postgres
+    - venue-provisioning-service
+    - legacy-bridge-cloud-service
 core:
   services:
     - venue-core-service
