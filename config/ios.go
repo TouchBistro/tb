@@ -31,5 +31,5 @@ func Apps() map[string]IOSApp {
 }
 
 func IOSBuildPath() string {
-	return fmt.Sprintf("%s/%s", tbRoot, "ios")
+	return fmt.Sprintf("%s/ios", tbRoot)
 }
