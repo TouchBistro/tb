@@ -26,6 +26,36 @@ const (
 	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
+/* Getters for private & computed vars */
+
+func TBRootPath() string {
+	return tbRoot
+}
+
+func ReposPath() string {
+	return fmt.Sprintf("%s/%s", tbRoot, "repos")
+}
+
+func Services() ServiceMap {
+	return services
+}
+
+func Playlists() map[string]Playlist {
+	return playlists
+}
+
+func BaseImages() []string {
+	return []string{
+		"touchbistro/alpine-node:10-build",
+		"touchbistro/alpine-node:10-runtime",
+		"touchbistro/alpine-node:12-build",
+		"touchbistro/alpine-node:12-runtime",
+		"touchbistro/ubuntu16-ruby:2.5.7-build",
+	}
+}
+
+/* Private functions */
+
 func setupEnv() error {
 	// Set $TB_ROOT so it works in the docker-compose file
 	tbRoot = fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
@@ -84,10 +114,6 @@ func dumpFile(from, to, dir string, box *packr.Box) error {
 
 	err = ioutil.WriteFile(path, buf, 0644)
 	return errors.Wrapf(err, "failed to write contents of %s to %s", from, path)
-}
-
-func TBRootPath() string {
-	return tbRoot
 }
 
 func Init() error {
@@ -168,24 +194,6 @@ func Init() error {
 	}
 
 	return nil
-}
-
-func Services() ServiceMap {
-	return services
-}
-
-func Playlists() map[string]Playlist {
-	return playlists
-}
-
-func BaseImages() []string {
-	return []string{
-		"touchbistro/alpine-node:10-build",
-		"touchbistro/alpine-node:10-runtime",
-		"touchbistro/alpine-node:12-build",
-		"touchbistro/alpine-node:12-runtime",
-		"touchbistro/ubuntu16-ruby:2.5.7-build",
-	}
 }
 
 func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
