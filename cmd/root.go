@@ -9,7 +9,7 @@ import (
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
-	semver "github.com/blang/semver"
+	"github.com/blang/semver"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -102,6 +102,12 @@ func checkVersion() {
 	log.Info(color.Yellow("Current version: "), color.Cyan(version))
 	log.Info(color.Yellow("Latest version: "), color.Cyan(latestRelease))
 	log.Info(color.Yellow("Please consider upgrading by running: "), color.Cyan("brew update && brew upgrade tb"))
+
+	// Tell people to stay safe if major version
+	if latestVersion.Major > currentVersion.Major {
+		log.Info(color.Red("🚨🚨🚨 WARNING: This is a major version upgrade 🚨🚨🚨"))
+		log.Info(color.Red("Please upgrade with caution."))
+	}
 }
 
 func Root() *cobra.Command {
