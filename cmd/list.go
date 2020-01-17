@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"github.com/TouchBistro/tb/config"
@@ -9,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/spf13/cobra"
-	"os"
 	"sort"
 )
 
@@ -23,17 +21,17 @@ var (
 	maxResult                 int64
 )
 
-type imgDetail []ecr.ImageDetail
+type ImgDetail []ecr.ImageDetail
 
-func (img imgDetail) Len() int {
+func (img ImgDetail) Len() int {
 	return len(img)
 }
 
-func (img imgDetail) Less(i, j int) bool {
-	return img[i].ImagePushedAt.Before(*img[j].ImagePushedAt)
+func (img ImgDetail) Less(i, j int) bool {
+	return img[i].ImagePushedAt.After(*img[j].ImagePushedAt)
 }
 
-func (img imgDetail) Swap(i, j int) {
+func (img ImgDetail) Swap(i, j int) {
 	img[i], img[j] = img[j], img[i]
 }
 
@@ -126,51 +124,34 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 	}
 }
 
-func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.Context) {
-	var enterKeyCode int = 1
-
+func fetchImages(client *ecr.Client, input ecr.DescribeImagesInput, ctx context.Context, images ImgDetail) ImgDetail {
 	req := client.DescribeImagesRequest(&input)
-
 	res, err := req.Send(ctx)
+
 	if err != nil {
 		fatal.ExitErr(err, "☒ failed load ecr images")
 	}
 
-	sortedImages := make(imgDetail, 0, len(res.ImageDetails))
-
-	for _, img := range  res.ImageDetails {
-		sortedImages = append(sortedImages, img)
-	}
-
-	sort.Sort(sortedImages)
-
-	for _, img := range sortedImages {
-		fmt.Println(img.ImagePushedAt, img.ImageTags)
+	for _, img := range res.ImageDetails {
+		images = append(images, img)
 	}
 
 	if res.NextToken != nil {
-		reader := bufio.NewReader(os.Stdin)
-		fmt.Println("Hit enter to load more:")
-
-		_, s, err := reader.ReadRune()
-
-		if err != nil {
-			fatal.ExitErr(err, "☒ failed to read input")
-		}
-
-		if s == enterKeyCode {
-			input.NextToken = res.NextToken
-			fetchImages(client, input, ctx)
-		}
+		input.NextToken = res.NextToken
+		return fetchImages(client, input, ctx, images)
 	}
+
+	return images
 }
 
-func listECRImages(repoName string, maxResult int64) {
+func fetchAllImages(repoName string) ImgDetail {
 	var input ecr.DescribeImagesInput
 	var ctx = context.Background()
+	var allImages ImgDetail
+	var max int64 = 1000
 
 	input.RepositoryName = &repoName
-	input.MaxResults = &maxResult
+	input.MaxResults = &max
 
 	conf, err := external.LoadDefaultAWSConfig()
 	client := ecr.New(conf)
@@ -179,5 +160,17 @@ func listECRImages(repoName string, maxResult int64) {
 		fatal.ExitErr(err, "☒ failed load ecr images")
 	}
 
-	fetchImages(client, input, ctx)
+	allUnsortedImages := fetchImages(client, input, ctx, allImages)
+
+	sort.Sort(allUnsortedImages)
+
+	return allUnsortedImages
+}
+
+func listECRImages(repoName string, maxResult int64) {
+	sortedImages := fetchAllImages(repoName)
+
+	for i := 0; i < int(maxResult) - 1; i++ {
+		fmt.Println(sortedImages[i].ImagePushedAt, sortedImages[i].ImageTags)
+	}
 }
