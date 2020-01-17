@@ -4,12 +4,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
-
-	"github.com/pkg/errors"
-
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
