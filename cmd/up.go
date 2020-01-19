@@ -19,7 +19,7 @@ import (
 )
 
 type options struct {
-	shouldSkipDBPrepare   bool
+	shouldSkipPreRun      bool
 	shouldSkipServerStart bool
 	shouldSkipGitPull     bool
 	shouldSkipDockerPull  bool
@@ -327,18 +327,18 @@ Examples:
 		dockerComposeBuild()
 		fmt.Println()
 
-		if !opts.shouldSkipDBPrepare {
-			log.Info("☐ performing database migrations and seeds")
+		if !opts.shouldSkipPreRun {
+			log.Info("☐ performing preRun step for services")
 			successCh = make(chan string)
 			failedCh = make(chan error)
 			count := 0
 			for name, s := range selectedServices {
-				if !s.Migrations {
+				if s.PreRun == "" {
 					continue
 				}
 
 				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
-				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
+				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, config.ComposeName(name, s), s.PreRun)
 				go func(successCh chan string, failedCh chan error, name string, args ...string) {
 					err := util.Exec(name, "docker-compose", args...)
 					if err != nil {
@@ -354,14 +354,14 @@ Examples:
 			}
 			util.SpinnerWait(successCh, failedCh, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
 
-			log.Info("☑ finished performing all migrations and seeds")
+			log.Info("☑ finished performing all preRun steps")
 			fmt.Println()
 		}
 
 		dockerComposeUp()
 		fmt.Println()
 
-		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
+		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
 		err = util.Exec("lazydocker", "lazydocker")
 		if err != nil {
@@ -377,7 +377,7 @@ Examples:
 
 func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipPreRun, "no-pre-run", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")

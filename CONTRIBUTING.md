@@ -71,7 +71,7 @@ To add a new service do the following:
     The format is as follows:
     ```yaml
     <service-name>:
-      migrations: boolean # Does it have migrations that need to be run?
+      preRun: string # Script to run before starting services
       remote:
         enabled: boolean  # Whether or not to use the remote version
         image: string     # The image name or a valid URI pointing to a remote docker registry.

@@ -14,7 +14,7 @@ import (
 
 type Service struct {
 	GithubRepo string `yaml:"repo"`
-	Migrations bool   `yaml:"migrations"`
+	PreRun     string `yaml:"preRun"`
 	Remote     struct {
 		Enabled bool   `yaml:"enabled"`
 		Image   string `yaml:"image"`
