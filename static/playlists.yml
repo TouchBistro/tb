@@ -58,6 +58,7 @@ online-ordering:
     - singleapp-database
     - ordering-engine-service
     - ordering-online-frontend
+    - infrastructure-auth-service
 partners:
   services:
     - postgres
