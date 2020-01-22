@@ -54,8 +54,8 @@ online-ordering:
   services:
     - postgres
     - localstack
-    - ordering-ooa-service
     - singleapp-database
+    - ordering-ooa-service
     - ordering-engine-service
     - ordering-online-frontend
     - infrastructure-auth-service
