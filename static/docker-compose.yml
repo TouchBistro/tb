@@ -160,24 +160,6 @@ x-health-clinic-boilerplate: &health-clinic-boilerplate
   ports:
     - "8089:8089"
 
-x-dotnet-boilerplate: &dotnet-boilerplate
-  image: hpgy/mono-xsp4
-  environment:
-    MONO_OPTIONS: --debug
-  entrypoint:
-    [
-      "xsp4",
-      "--port",
-      "80",
-      "--nonstop",
-      "--verbose",
-      "--printlog",
-      "--loglevels",
-      "All",
-    ]
-  depends_on:
-    - $LEGACY_DATABASE_NAME
-
 x-venue-core-service-boilerplate: &venue-core-service-boilerplate
   command: ["tail", "-f", "/dev/null"]
   entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
@@ -866,20 +848,26 @@ services:
       - $TB_ROOT/repos/TouchBistro/health-clinic:/home/python/app
 
   dotnet-manage:
-    <<: *dotnet-boilerplate
+    build:
+      context: $TB_ROOT/repos/TouchBistro/dotnet-depot/Manage
     container_name: tb_dotnet-manage_container
+    environment:
+      MONO_OPTIONS: --debug
     ports:
       - "9000:80"
-    volumes:
-      - $TB_ROOT/repos/TouchBistro/dotnet-depot/manage:/app:delegated
+    depends_on:
+      - $LEGACY_DATABASE_NAME
 
   dotnet-api:
-    <<: *dotnet-boilerplate
+    build:
+      context: $TB_ROOT/repos/TouchBistro/dotnet-depot/api
     container_name: tb_dotnet-api_container
+    environment:
+      MONO_OPTIONS: --debug
     ports:
       - "9001:80"
-    volumes:
-      - $TB_ROOT/repos/TouchBistro/dotnet-depot/api:/app:delegated
+    depends_on:
+      - $LEGACY_DATABASE_NAME
 
   legacy-bridge-manage-service:
     <<: *legacy-bridge-manage-service-boilerplate
