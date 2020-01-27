@@ -311,8 +311,8 @@ Examples:
 			failedCh = make(chan error)
 			count := 0
 
-			for _, repoName := range config.RepoNames(selectedServices) {
-				log.Infof("\t☐ pulling %s\n", repoName)
+			for _, repo := range config.Repos(selectedServices) {
+				log.Infof("\t☐ pulling %s\n", repo)
 				go func(successCh chan string, failedCh chan error, name, root string) {
 					err := git.Pull(name, root)
 					if err != nil {
@@ -320,7 +320,7 @@ Examples:
 						return
 					}
 					successCh <- name
-				}(successCh, failedCh, repoName, config.TBRootPath())
+				}(successCh, failedCh, repo, config.ReposPath())
 				count++
 			}
 

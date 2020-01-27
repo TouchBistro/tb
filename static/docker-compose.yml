@@ -71,7 +71,7 @@ x-build-node-dev: &build-node-dev
 
 x-mokta-boilerplate: &mokta-boilerplate
   env_file:
-    - $TB_ROOT/mokta/.env.example
+    - $TB_ROOT/repos/TouchBistro/mokta/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *node-service
@@ -83,7 +83,7 @@ x-mokta-boilerplate: &mokta-boilerplate
 
 x-identity-user-service-boilerplate: &identity-user-service-boilerplate
   env_file:
-    - $TB_ROOT/identity-user-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/identity-user-service/.env.example
   environment:
       <<: *node-service
       OKTA_BASE_URL: https://${MOKTA_NAME}:8080
@@ -94,7 +94,7 @@ x-identity-user-service-boilerplate: &identity-user-service-boilerplate
 x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
   init: true
   env_file:
-    - $TB_ROOT/cloud-server-frontend/packages/frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/cloud-server-frontend/packages/frontend/.env.example
   ports:
     - "8080:80"
   depends_on:
@@ -102,7 +102,7 @@ x-cloud-server-frontend-boilerplate: &cloud-server-frontend-boilerplate
 
 x-legacy-database-boilerplate: &legacy-database-boilerplate
   env_file:
-    - $TB_ROOT/legacy-database/.env.example
+    - $TB_ROOT/repos/TouchBistro/legacy-database/.env.example
   environment:
     DB_PORT: 1433
     DB_USER: SA
@@ -117,9 +117,10 @@ x-legacy-database-boilerplate: &legacy-database-boilerplate
 
 x-cloud-server-boilerplate: &cloud-server-boilerplate
   env_file:
-    - $TB_ROOT/cloud-server/.env.compose
+    - $TB_ROOT/repos/TouchBistro/cloud-server/.env.compose
   environment:
-    - MSSQL_HOST=$LEGACY_DATABASE_NAME
+    MSSQL_HOST: $LEGACY_DATABASE_NAME
+    ORDERING_SERVICE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/internal/config/v1/venues
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   command: >
     bash -c '
@@ -140,7 +141,7 @@ x-cloud-server-boilerplate: &cloud-server-boilerplate
 x-venue-provisioning-service-boilerplate:
   &venue-provisioning-service-boilerplate
   env_file:
-    - $TB_ROOT/venue-provisioning-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/venue-provisioning-service/.env.example
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -155,33 +156,15 @@ x-venue-provisioning-service-boilerplate:
 x-health-clinic-boilerplate: &health-clinic-boilerplate
   command: ["tail", "-f", "/dev/null"]
   env_file:
-    - $TB_ROOT/health-clinic/.env.compose
+    - $TB_ROOT/repos/TouchBistro/health-clinic/.env.compose
   ports:
     - "8089:8089"
-
-x-dotnet-boilerplate: &dotnet-boilerplate
-  image: hpgy/mono-xsp4
-  environment:
-    MONO_OPTIONS: --debug
-  entrypoint:
-    [
-      "xsp4",
-      "--port",
-      "80",
-      "--nonstop",
-      "--verbose",
-      "--printlog",
-      "--loglevels",
-      "All",
-    ]
-  depends_on:
-    - $LEGACY_DATABASE_NAME
 
 x-venue-core-service-boilerplate: &venue-core-service-boilerplate
   command: ["tail", "-f", "/dev/null"]
   entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
   env_file:
-    - $TB_ROOT/venue-core-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/venue-core-service/.env.example
   environment:
     <<: *node-service
     DB_HOST: postgres
@@ -291,7 +274,7 @@ x-legacy-bridge-manage-service-boilerplate:
   &legacy-bridge-manage-service-boilerplate
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   env_file:
-    - $TB_ROOT/legacy-bridge-manage-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/legacy-bridge-manage-service/.env.example
   environment:
     <<: *mssql-connect
     DB_NAME: cloud_db
@@ -305,7 +288,7 @@ x-legacy-bridge-cloud-service-boilerplate:
   &legacy-bridge-cloud-service-boilerplate
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   env_file:
-    - $TB_ROOT/legacy-bridge-cloud-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/legacy-bridge-cloud-service/.env.example
   environment:
     <<: *mssql-connect
     <<: *node-service
@@ -317,7 +300,7 @@ x-legacy-bridge-cloud-service-boilerplate:
 
 x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
   env_file:
-    - $TB_ROOT/ordering-ooa-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-ooa-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -378,7 +361,7 @@ x-ordering-ooa-service-boilerplate: &ordering-ooa-service-boilerplate
 
 x-ordering-demo-frontend-boilerplate: &ordering-demo-frontend-boilerplate
   env_file:
-    - $TB_ROOT/ordering-demo-frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -395,7 +378,7 @@ x-ordering-demo-frontend-boilerplate: &ordering-demo-frontend-boilerplate
 x-ordering-demo-frontend-venue-boilerplate:
   &ordering-demo-frontend-venue-boilerplate
   env_file:
-    - $TB_ROOT/ordering-demo-frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-demo-frontend/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -410,7 +393,7 @@ x-ordering-demo-frontend-venue-boilerplate:
 x-ordering-gateways-frontend-boilerplate:
   &ordering-gateways-frontend-boilerplate
   env_file:
-    - $TB_ROOT/ordering-gateways-frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-gateways-frontend/.env.example
   environment:
     <<: *node-service
     ORDERING_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
@@ -420,7 +403,7 @@ x-ordering-gateways-frontend-boilerplate:
 
 x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
   env_file:
-    - $TB_ROOT/ordering-engine-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-engine-service/.env.example
   environment:
     <<: *node-service
     <<: *mysql-connect
@@ -434,8 +417,9 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
 
 x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:
-    - $TB_ROOT/ordering-online-frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/ordering-online-frontend/.env.example
   environment:
+    <<: *node-service
     INFRASTRUCTURE_AUTH_BASE_URL: http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080 
     ORDERING_ENGINE_URL: http://${ORDERING_ENGINE_SERVICE_NAME}:8080/v1
   ports:
@@ -445,7 +429,7 @@ x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
 
 x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
   env_file:
-    - $TB_ROOT/partners-etl-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/partners-etl-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *node-service
@@ -473,7 +457,7 @@ x-partners-etl-service-boilerplate: &partners-etl-service-boilerplate
 
 x-partners-config-service-boilerplate: &partners-config-service-boilerplate
   env_file:
-    - $TB_ROOT/partners-config-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/partners-config-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -498,7 +482,7 @@ x-partners-config-service-boilerplate: &partners-config-service-boilerplate
 x-partners-orchestration-service-boilerplate:
   &partners-orchestration-service-boilerplate
   env_file:
-    - $TB_ROOT/partners-orchestration-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/partners-orchestration-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -534,7 +518,7 @@ x-partners-orchestration-service-boilerplate:
 x-partners-reservations-service-boilerplate:
   &partners-reservations-service-boilerplate
   env_file:
-    - $TB_ROOT/partners-reservations-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/partners-reservations-service/.env.example
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -566,7 +550,7 @@ x-singleapp-database-boilerplate: &singleapp-database-boilerplate
 
 x-venue-upload-service-boilerplate: &venue-upload-service-boilerplate
   env_file:
-    - $TB_ROOT/venue-upload-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/venue-upload-service/.env.example
   environment:
     <<: *node-service
     AWS_S3_ENDPOINT: http://localstack:4572
@@ -596,7 +580,7 @@ x-venue-upload-service-boilerplate: &venue-upload-service-boilerplate
 
 x-venue-admin-frontend-boilerplate: &venue-admin-frontend-boilerplate
   env_file:
-    - $TB_ROOT/venue-admin-frontend/.env.example
+    - $TB_ROOT/repos/TouchBistro/venue-admin-frontend/.env.example
   environment:
     - CORE_BACKEND_URL_BASE=http://${VENUE_CORE_SERVICE_NAME}:8080
     - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
@@ -618,7 +602,7 @@ x-venue-admin-frontend-boilerplate: &venue-admin-frontend-boilerplate
 x-infrastructure-auth-service-boilerplate:
   &infrastructure-auth-service-boilerplate
   env_file:
-    - $TB_ROOT/infrastructure-auth-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/infrastructure-auth-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *node-service
@@ -630,7 +614,7 @@ x-infrastructure-auth-service-boilerplate:
 
 x-loyalty-gateway-service-boilerplate: &loyalty-gateway-service-boilerplate
   env_file:
-    - $TB_ROOT/loyalty-gateway-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/loyalty-gateway-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *node-service
@@ -643,7 +627,7 @@ x-loyalty-gateway-service-boilerplate: &loyalty-gateway-service-boilerplate
 x-backoffice-customer-service-boilerplate:
   &backoffice-customer-service-boilerplate
   env_file:
-    - $TB_ROOT/backoffice-customer-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/backoffice-customer-service/.env.example
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -658,7 +642,7 @@ x-backoffice-customer-service-boilerplate:
 x-payments-gateway-service-boilerplate:
   &payments-gateway-service-boilerplate
   env_file:
-    - $TB_ROOT/payments-gateway-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/payments-gateway-service/.env.example
   entrypoint: ["bash", "./docker-entrypoint.sh"]
   environment:
     <<: *postgres-connect
@@ -671,7 +655,7 @@ x-payments-gateway-service-boilerplate:
 x-legacy-upload-service-boilerplate:
   &legacy-upload-service-boilerplate
   env_file:
-    - $TB_ROOT/legacy-upload-service/.env.example
+    - $TB_ROOT/repos/TouchBistro/legacy-upload-service/.env.example
   environment:
     <<: *postgres-connect
     <<: *node-service
@@ -713,19 +697,19 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
-      - "$TB_ROOT/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
-      - "$TB_ROOT/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
-      - "$TB_ROOT/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
-      - "$TB_ROOT/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
-      - "$TB_ROOT/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
-      - "$TB_ROOT/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
+      - "$TB_ROOT/repos/TouchBistro/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+      - "$TB_ROOT/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
+      - "$TB_ROOT/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
+      - "$TB_ROOT/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
+      - "$TB_ROOT/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
+      - "$TB_ROOT/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
+      - "$TB_ROOT/repos/TouchBistro/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
 
   mokta:
     <<: *mokta-boilerplate
     build:
       target: dev
-      context: $TB_ROOT/mokta
+      context: $TB_ROOT/repos/TouchBistro/mokta
       args:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: mokta
@@ -741,7 +725,7 @@ services:
     <<: *identity-user-service-boilerplate
     build:
       target: dev
-      context: $TB_ROOT/identity-user-service
+      context: $TB_ROOT/repos/TouchBistro/identity-user-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: identity-user-service
@@ -755,7 +739,7 @@ services:
     <<: *legacy-database-boilerplate
     build:
       target: db-migrate-with-seeds
-      context: $TB_ROOT/legacy-database
+      context: $TB_ROOT/repos/TouchBistro/legacy-database
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
@@ -773,7 +757,7 @@ services:
   cloud-server:
     <<: *cloud-server-boilerplate
     build:
-      context: $TB_ROOT/cloud-server
+      context: $TB_ROOT/repos/TouchBistro/cloud-server
     container_name: cloud-server
 
   cloud-server-ecr:
@@ -789,7 +773,7 @@ services:
   cloud-server-frontend:
     <<: *cloud-server-frontend-boilerplate
     build:
-      context: $TB_ROOT/cloud-server-frontend/packages/frontend
+      context: $TB_ROOT/repos/TouchBistro/cloud-server-frontend/packages/frontend
       args:
         # This is for running a prod build of the frontend locally
         # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
@@ -815,7 +799,7 @@ services:
     <<: *venue-core-service-boilerplate
     build:
       target: dev
-      context: $TB_ROOT/venue-core-service
+      context: $TB_ROOT/repos/TouchBistro/venue-core-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
@@ -831,7 +815,7 @@ services:
           tail -f /dev/null
         fi'
     volumes:
-      - $TB_ROOT/venue-core-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/venue-core-service:/home/node/app:delegated
       - venue-core-service-node_modules:/home/node/app/node_modules:delegated
 
   venue-provisioning-service-ecr:
@@ -843,7 +827,7 @@ services:
   venue-provisioning-service:
     <<: *venue-provisioning-service-boilerplate
     build:
-      context: $TB_ROOT/venue-provisioning-service
+      context: $TB_ROOT/repos/TouchBistro/venue-provisioning-service
       args:
         - NODE_ENV=development
         - NPM_TOKEN=$NPM_TOKEN
@@ -858,32 +842,38 @@ services:
   health-clinic:
     <<: *health-clinic-boilerplate
     build:
-      context: $TB_ROOT/health-clinic
+      context: $TB_ROOT/repos/TouchBistro/health-clinic
     container_name: tb_health-clinic_container
     volumes:
-      - $TB_ROOT/health-clinic:/home/python/app
+      - $TB_ROOT/repos/TouchBistro/health-clinic:/home/python/app
 
   dotnet-manage:
-    <<: *dotnet-boilerplate
+    build:
+      context: $TB_ROOT/repos/TouchBistro/dotnet-depot/Manage
     container_name: tb_dotnet-manage_container
+    environment:
+      MONO_OPTIONS: --debug
     ports:
       - "9000:80"
-    volumes:
-      - $TB_ROOT/dotnet-depot/manage:/app:delegated
+    depends_on:
+      - $LEGACY_DATABASE_NAME
 
   dotnet-api:
-    <<: *dotnet-boilerplate
+    build:
+      context: $TB_ROOT/repos/TouchBistro/dotnet-depot/api
     container_name: tb_dotnet-api_container
+    environment:
+      MONO_OPTIONS: --debug
     ports:
       - "9001:80"
-    volumes:
-      - $TB_ROOT/dotnet-depot/api:/app:delegated
+    depends_on:
+      - $LEGACY_DATABASE_NAME
 
   legacy-bridge-manage-service:
     <<: *legacy-bridge-manage-service-boilerplate
     build:
       target: dev
-      context: $TB_ROOT/legacy-bridge-manage-service
+      context: $TB_ROOT/repos/TouchBistro/legacy-bridge-manage-service
       args:
         - NPM_TOKEN=$NPM_TOKEN
         - GITSHA=TESTME
@@ -900,11 +890,11 @@ services:
     <<: *legacy-bridge-cloud-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/legacy-bridge-cloud-service
+      context: $TB_ROOT/repos/TouchBistro/legacy-bridge-cloud-service
     <<: *command-start
     container_name: legacy-bridge-cloud-service
     volumes:
-      - $TB_ROOT/legacy-bridge-cloud-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/legacy-bridge-cloud-service:/home/node/app:delegated
       - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
 
   legacy-bridge-cloud-service-ecr:
@@ -923,11 +913,11 @@ services:
     <<: *ordering-ooa-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-ooa-service
+      context: $TB_ROOT/repos/TouchBistro/ordering-ooa-service
     container_name: ordering-ooa-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/ordering-ooa-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-ooa-service:/home/node/app:delegated
       - ordering-ooa-service-node_modules:/home/node/app/node_modules
 
   ordering-demo-frontend-ecr:
@@ -940,28 +930,28 @@ services:
     <<: *ordering-demo-frontend-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-demo-frontend
+      context: $TB_ROOT/repos/TouchBistro/ordering-demo-frontend
     container_name: ordering-demo-frontend
     <<: *command-start
     volumes:
-      - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-demo-frontend:/home/node/app:delegated
       - ordering-demo-frontend-node_modules:/home/node/app/node_modules
 
   ordering-demo-frontend-venue:
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-demo-frontend
+      context: $TB_ROOT/repos/TouchBistro/ordering-demo-frontend
     container_name: ordering-demo-frontend-venue
     <<: *command-start
     env_file:
-      - $TB_ROOT/ordering-demo-frontend/.env.example
+      - $TB_ROOT/repos/TouchBistro/ordering-demo-frontend/.env.example
     environment:
       <<: *postgres-connect
       <<: *node-service
       INVENUE_BASE_URL: http://${ORDERING_OOA_SERVICE_NAME}:8080/external
       MODE: venue
     volumes:
-      - $TB_ROOT/ordering-demo-frontend:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-demo-frontend:/home/node/app:delegated
       - ordering-demo-frontend-venue-node_modules:/home/node/app/node_modules
     ports:
       - "8020:8080"
@@ -978,11 +968,11 @@ services:
     <<: *ordering-gateways-frontend-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-gateways-frontend
+      context: $TB_ROOT/repos/TouchBistro/ordering-gateways-frontend
     container_name: ordering-gateways-frontend
     <<: *command-start
     volumes:
-      - $TB_ROOT/ordering-gateways-frontend:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-gateways-frontend:/home/node/app:delegated
       - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
 
   ordering-engine-service-ecr:
@@ -995,11 +985,11 @@ services:
     <<: *ordering-engine-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-engine-service
+      context: $TB_ROOT/repos/TouchBistro/ordering-engine-service
     container_name: ordering-engine-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/ordering-engine-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-engine-service:/home/node/app:delegated
       - ordering-engine-service-node_modules:/home/node/app/node_modules
 
   ordering-online-frontend-ecr:
@@ -1012,11 +1002,11 @@ services:
     <<: *ordering-online-frontend-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/ordering-online-frontend
+      context: $TB_ROOT/repos/TouchBistro/ordering-online-frontend
     container_name: ordering-online-frontend
     <<: *command-start
     volumes:
-      - $TB_ROOT/ordering-online-frontend:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/ordering-online-frontend:/home/node/app:delegated
       - ordering-online-frontend-node_modules:/home/node/app/node_modules
 
   partners-etl-service-ecr:
@@ -1029,11 +1019,11 @@ services:
     <<: *partners-etl-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/partners-etl-service
+      context: $TB_ROOT/repos/TouchBistro/partners-etl-service
     container_name: partners-etl-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/partners-etl-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/partners-etl-service:/home/node/app:delegated
       - partners-etl-service-node_modules:/home/node/app/node_modules
 
   partners-config-service-ecr:
@@ -1046,11 +1036,11 @@ services:
     <<: *partners-config-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/partners-config-service
+      context: $TB_ROOT/repos/TouchBistro/partners-config-service
     container_name: partners-config-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/partners-config-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/partners-config-service:/home/node/app:delegated
       - partners-config-service-node_modules:/home/node/app/node_modules
 
   partners-orchestration-service-ecr:
@@ -1063,11 +1053,11 @@ services:
     <<: *partners-orchestration-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/partners-orchestration-service
+      context: $TB_ROOT/repos/TouchBistro/partners-orchestration-service
     container_name: partners-orchestration-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/partners-orchestration-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/partners-orchestration-service:/home/node/app:delegated
       - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
   partners-reservations-service-ecr:
@@ -1080,17 +1070,17 @@ services:
     <<: *partners-reservations-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/partners-reservations-service
+      context: $TB_ROOT/repos/TouchBistro/partners-reservations-service
     container_name: partners-reservations-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/partners-reservations-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/partners-reservations-service:/home/node/app:delegated
       - partners-reservations-service-node_modules:/home/node/app/node_modules
 
   singleapp-database:
     <<: *singleapp-database-boilerplate
     build:
-      context: $TB_ROOT/singleapp-database
+      context: $TB_ROOT/repos/TouchBistro/singleapp-database
     container_name: singleapp-database
     volumes:
       - singleapp-database:/var/lib/mysql/
@@ -1112,11 +1102,11 @@ services:
     <<: *venue-upload-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/venue-upload-service
+      context: $TB_ROOT/repos/TouchBistro/venue-upload-service
     container_name: venue-upload-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/venue-upload-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/venue-upload-service:/home/node/app:delegated
       - venue-upload-service-node_modules:/home/node/app/node_modules
 
   venue-admin-frontend-ecr:
@@ -1129,7 +1119,7 @@ services:
     <<: *venue-admin-frontend-boilerplate
     build:
       target: release
-      context: $TB_ROOT/venue-admin-frontend
+      context: $TB_ROOT/repos/TouchBistro/venue-admin-frontend
       args:
         - NPM_TOKEN=$NPM_TOKEN
         # ** DO NOT SET THIS IN CI OR PRODUCTION-LIKE ENVIRONMENTS. **
@@ -1148,11 +1138,11 @@ services:
     <<: *infrastructure-auth-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/infrastructure-auth-service
+      context: $TB_ROOT/repos/TouchBistro/infrastructure-auth-service
     container_name: infrastructure-auth-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/infrastructure-auth-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/infrastructure-auth-service:/home/node/app:delegated
 
   loyalty-gateway-service-ecr:
     <<: *loyalty-gateway-service-boilerplate
@@ -1164,11 +1154,11 @@ services:
     <<: *loyalty-gateway-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/loyalty-gateway-service
+      context: $TB_ROOT/repos/TouchBistro/loyalty-gateway-service
     container_name: devtools_loyalty-gateway-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/loyalty-gateway-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/loyalty-gateway-service:/home/node/app:delegated
 
   legacy-upload-service-ecr:
     <<: *legacy-upload-service-boilerplate
@@ -1180,11 +1170,11 @@ services:
     <<: *legacy-upload-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/legacy-upload-service
+      context: $TB_ROOT/repos/TouchBistro/legacy-upload-service
     container_name: legacy-upload-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/legacy-upload-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/legacy-upload-service:/home/node/app:delegated
       - legacy-upload-service-node_modules:/home/node/app/node_modules
 
   backoffice-customer-service-ecr:
@@ -1197,11 +1187,11 @@ services:
     <<: *backoffice-customer-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/backoffice-customer-service
+      context: $TB_ROOT/repos/TouchBistro/backoffice-customer-service
     container_name: backoffice-customer-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/backoffice-customer-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
 
   payments-gateway-service-ecr:
@@ -1214,11 +1204,11 @@ services:
     <<: *payments-gateway-service-boilerplate
     build:
       <<: *build-node-dev
-      context: $TB_ROOT/payments-gateway-service
+      context: $TB_ROOT/repos/TouchBistro/payments-gateway-service
     container_name: payments-gateway-service
     <<: *command-start
     volumes:
-      - $TB_ROOT/payments-gateway-service:/home/node/app:delegated
+      - $TB_ROOT/repos/TouchBistro/payments-gateway-service:/home/node/app:delegated
       - payments-gateway-service-node_modules:/home/node/app/node_modules
     
 

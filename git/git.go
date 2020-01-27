@@ -7,21 +7,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-func repoURL(repoName string) string {
-	return fmt.Sprintf("git@github.com:TouchBistro/%s.git", repoName)
+func Clone(repo, destPath string) error {
+	repoURL := fmt.Sprintf("git@github.com:%s.git", repo)
+	err := util.Exec(repo, "git", "clone", repoURL, destPath)
+
+	return errors.Wrapf(err, "exec failed to clone %s to %s", repo, destPath)
 }
 
-func Clone(repoName, destDir string) error {
-	repoURL := repoURL(repoName)
-	destPath := fmt.Sprintf("%s/%s", destDir, repoName)
-	err := util.Exec(repoName, "git", "clone", repoURL, destPath)
+func Pull(repo, repoDir string) error {
+	repoPath := fmt.Sprintf("%s/%s", repoDir, repo)
+	err := util.Exec(repo, "git", "-C", repoPath, "pull")
 
-	return errors.Wrapf(err, "exec failed to clone %s to %s", repoName, destDir)
-}
-
-func Pull(repoName, repoDir string) error {
-	repoPath := fmt.Sprintf("%s/%s", repoDir, repoName)
-	err := util.Exec(repoName, "git", "-C", repoPath, "pull")
-
-	return errors.Wrapf(err, "exec failed to pull %s", repoName)
+	return errors.Wrapf(err, "exec failed to pull %s", repo)
 }

@@ -13,6 +13,12 @@ cloud:
     - dotnet-manage
     - dotnet-api
     - legacy-bridge-manage-service
+pos-cloud:
+  extends: cloud
+  services:
+    - postgres
+    - venue-provisioning-service
+    - legacy-bridge-cloud-service
 core:
   services:
     - venue-core-service
@@ -52,6 +58,7 @@ online-ordering:
     - singleapp-database
     - ordering-engine-service
     - ordering-online-frontend
+    - infrastructure-auth-service
 partners:
   services:
     - postgres
@@ -94,6 +101,7 @@ pos-loyalty:
   extends: loyalty
   services:
     - venue-provisioning-service
+    - legacy-bridge-cloud-service
     - legacy-database
     - dotnet-manage
     - dotnet-api
