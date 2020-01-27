@@ -131,12 +131,16 @@ payments-gateway-service:
   repo: TouchBistro/payments-gateway-service
   migrations: true
   ecr: true
-  ecrTag: master  
+  ecrTag: master
 singleapp-database:
   repo: TouchBistro/singleapp-database
   migrations: false
   ecr: true
   ecrTag: master
+yp-singleapp-api:
+  repo: TouchBistro/yp-singleapp-api
+  migrations: false
+  ecr: false
 venue-admin-frontend:
   repo: TouchBistro/venue-admin-frontend
   migrations: false
