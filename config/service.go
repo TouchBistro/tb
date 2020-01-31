@@ -2,8 +2,9 @@ package config
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"os"
+
+	"github.com/pkg/errors"
 
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
@@ -44,7 +45,7 @@ func ResolveEcrURI(service, tag string) string {
 func CloneMissingRepos(services ServiceMap) error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
-	repos := RepoNames(services)
+	repos := Repos(services)
 
 	successCh := make(chan string)
 	failedCh := make(chan error)
@@ -52,7 +53,7 @@ func CloneMissingRepos(services ServiceMap) error {
 	count := 0
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
 	for _, repo := range repos {
-		path := fmt.Sprintf("%s/%s", TBRootPath(), repo)
+		path := fmt.Sprintf("%s/%s", ReposPath(), repo)
 
 		if util.FileOrDirExists(path) {
 			dirlen, err := util.DirLen(path)
@@ -70,14 +71,14 @@ func CloneMissingRepos(services ServiceMap) error {
 		}
 
 		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
-		go func(successCh chan string, failedCh chan error, repo, root string) {
-			err := git.Clone(repo, root)
+		go func(successCh chan string, failedCh chan error, repo, destPath string) {
+			err := git.Clone(repo, destPath)
 			if err != nil {
 				failedCh <- err
 			} else {
 				successCh <- repo
 			}
-		}(successCh, failedCh, repo, TBRootPath())
+		}(successCh, failedCh, repo, path)
 		count++
 	}
 
@@ -96,23 +97,23 @@ func ComposeNames(configs ServiceMap) []string {
 	return names
 }
 
-func RepoNames(services ServiceMap) []string {
+func Repos(services ServiceMap) []string {
 	var repos []string
-	repoNames := make(map[string]bool)
+	seenRepos := make(map[string]bool)
 
 	for _, s := range services {
-		repoName := s.GithubRepo
 		if !s.IsGithubRepo() {
 			continue
 		}
+		repo := s.GithubRepo
 
-		// repoName has already been added to the list, don't add it again
-		if repoNames[repoName] {
+		// repo has already been added to the list, don't add it again
+		if seenRepos[repo] {
 			continue
 		}
 
-		repos = append(repos, repoName)
-		repoNames[repoName] = true
+		repos = append(repos, repo)
+		seenRepos[repo] = true
 	}
 
 	return repos

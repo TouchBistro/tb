@@ -90,13 +90,19 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing repos...")
-			for _, repo := range config.RepoNames(config.Services()) {
+			for _, repo := range config.Repos(config.Services()) {
 				log.Debugf("Removing repo %s...", repo)
-				repoPath := fmt.Sprintf("%s/%s", config.TBRootPath(), repo)
-				err = os.RemoveAll(repoPath)
+				repoPath := fmt.Sprintf("%s/%s", config.ReposPath(), repo)
+				err := os.RemoveAll(repoPath)
 				if err != nil {
-					fatal.ExitErr(err, "Failed removing repos.")
+					fatal.ExitErrf(err, "Failed removing repo %s.", repo)
 				}
+			}
+
+			log.Infoln("Removing any remaining repo directorys...")
+			err := os.RemoveAll(config.ReposPath())
+			if err != nil {
+				fatal.ExitErr(err, "Failed removing repos.")
 			}
 			log.Infoln("...done")
 		}
