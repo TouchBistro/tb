@@ -87,11 +87,11 @@ func pullTBBaseImages() {
 }
 
 func dockerComposeBuild() {
-	log.Info("☐ building images for non-ecr / remote services")
+	log.Info("☐ building images for non-remote services")
 
 	var builder strings.Builder
 	for name, s := range selectedServices {
-		if !s.ECR && s.DockerhubImage == "" {
+		if !s.UseRemote() {
 			builder.WriteString(name)
 			builder.WriteString(" ")
 		}
@@ -277,15 +277,9 @@ Examples:
 			successCh = make(chan string)
 			failedCh = make(chan error)
 			count := 0
-			for name, s := range selectedServices {
-				if s.ECR || s.DockerhubImage != "" {
-					var uri string
-					if s.ECR {
-						uri = config.ResolveEcrURI(name, s.ECRTag)
-					} else {
-						uri = s.DockerhubImage
-					}
-
+			for _, s := range selectedServices {
+				if s.UseRemote() {
+					uri := s.ImageURI()
 					log.Infof("\t☐ pulling image %s\n", uri)
 					go func() {
 						err := docker.Pull(uri)
@@ -385,7 +379,7 @@ func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "dont get new ecr images")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
