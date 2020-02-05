@@ -63,6 +63,10 @@ func (s Service) UseRemote() bool {
 	return s.Remote.Enabled
 }
 
+func (s Service) CanBuild() bool {
+	return s.Build.DockerfilePath != ""
+}
+
 func (s Service) ImageURI() string {
 	if s.Remote.Tag == "" {
 		return s.Remote.Image
@@ -145,7 +149,7 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 /* Public funtions */
 
 func ComposeName(name string, s Service) string {
-	if s.UseRemote() && s.IsGithubRepo() {
+	if s.UseRemote() && s.CanBuild() {
 		return name + "-remote"
 	}
 

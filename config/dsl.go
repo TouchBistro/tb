@@ -83,7 +83,7 @@ func generateComposeFile(services ServiceMap) error {
 			composeServices[ComposeName(name, service)] = generateComposeService(name, service, true)
 		}
 
-		if service.IsGithubRepo() {
+		if service.CanBuild() {
 			composeServices[name] = generateComposeService(name, service, false)
 		}
 
