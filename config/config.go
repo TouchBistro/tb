@@ -44,13 +44,7 @@ func Playlists() map[string]Playlist {
 }
 
 func BaseImages() []string {
-	return []string{
-		"touchbistro/alpine-node:10-build",
-		"touchbistro/alpine-node:10-runtime",
-		"touchbistro/alpine-node:12-build",
-		"touchbistro/alpine-node:12-runtime",
-		"touchbistro/ubuntu16-ruby:2.5.7-build",
-	}
+	return serviceConfig.Global.BaseImages
 }
 
 /* Private functions */

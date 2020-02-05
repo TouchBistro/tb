@@ -14,7 +14,7 @@ import (
 
 type Service struct {
 	GithubRepo string `yaml:"repo"`
-	Migrations bool   `yaml:"migrations"`
+	PreRun     string `yaml:"preRun"`
 	Remote     struct {
 		Enabled bool   `yaml:"enabled"`
 		Image   string `yaml:"image"`
@@ -26,7 +26,8 @@ type ServiceMap map[string]Service
 
 type ServiceConfig struct {
 	Global struct {
-		Variables map[string]string `yaml:"variables"`
+		BaseImages []string          `yaml:"baseImages"`
+		Variables  map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services ServiceMap `yaml:"services"`
 }

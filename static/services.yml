@@ -1,225 +1,213 @@
 global:
+  baseImages:
+    - touchbistro/alpine-node:10-build
+    - touchbistro/alpine-node:10-runtime
+    - touchbistro/alpine-node:12-build
+    - touchbistro/alpine-node:12-runtime
+    - touchbistro/ubuntu16-ruby:2.5.7-build
   variables:
     ecr: 651264383976.dkr.ecr.us-east-1.amazonaws.com
 
 services:
   backoffice-customer-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
     repo: TouchBistro/backoffice-customer-service
   cloud-server:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/cloud-server
       tag: develop
     repo: TouchBistro/cloud-server
   cloud-server-frontend:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/cloud-server-frontend
       tag: develop
     repo: TouchBistro/cloud-server-frontend
   dotnet-api:
-    migrations: false
     repo: TouchBistro/dotnet-depot
   dotnet-manage:
     repo: TouchBistro/dotnet-depot
-    migrations: false
   health-clinic:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/health-clinic
       tag: master
     repo: TouchBistro/health-clinic
   identity-user-service:
-    migrations: false
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/identity-user-service
       tag: master
     repo: TouchBistro/identity-user-service
   infrastructure-auth-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/infrastructure-auth-service
       tag: master
     repo: TouchBistro/infrastructure-auth-service
   legacy-bridge-cloud-service:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/legacy-bridge-cloud-service
       tag: master
     repo: TouchBistro/legacy-bridge-cloud-service
   legacy-bridge-manage-service:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/legacy-bridge-manage-service
       tag: master
     repo: TouchBistro/legacy-bridge-manage-service
   legacy-database:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
     repo: TouchBistro/legacy-database
   localstack:
-    migrations: false
     remote:
       enabled: true
       image: localstack/localstack
   loyalty-gateway-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
     repo: TouchBistro/loyalty-gateway-service
   postgres:
-    migrations: false
     remote:
       enabled: true
       image: postgres
       tag: 10.6-alpine
   redis:
-    migrations: false
     remote:
       enabled: true
       image: redis
       tag: 4-alpine
   mokta:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/mokta
       tag: master
     repo: TouchBistro/mokta
   ordering-deliveroo-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/ordering-deliveroo-service
       tag: master
     repo: TouchBistro/ordering-deliveroo-service
   ordering-demo-frontend:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/ordering-demo-frontend
       tag: master
     repo: TouchBistro/ordering-demo-frontend
   ordering-demo-frontend-venue:
-    migrations: false
     repo: TouchBistro/ordering-demo-frontend
   ordering-engine-service:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/ordering-engine-service
       tag: master
     repo: TouchBistro/ordering-engine-service
   ordering-online-frontend:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/ordering-online-frontend
       tag: master
     repo: TouchBistro/ordering-online-frontend
   ordering-gateways-frontend:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/ordering-gateways-frontend
       tag: master
     repo: TouchBistro/ordering-gateways-frontend
   ordering-ooa-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/ordering-ooa-service
       tag: master
     repo: TouchBistro/ordering-ooa-service
   partners-config-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/partners-config-service
       tag: master
     repo: TouchBistro/partners-config-service
   partners-etl-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
     repo: TouchBistro/partners-etl-service
   partners-orchestration-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/partners-orchestration-service
       tag: master
     repo: TouchBistro/partners-orchestration-service
   partners-reservations-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/partners-reservations-service
       tag: master
     repo: TouchBistro/partners-reservations-service
   payments-gateway-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/payments-gateway-service
       tag: master
     repo: TouchBistro/payments-gateway-service
   singleapp-database:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/singleapp-database
       tag: master
     repo: TouchBistro/singleapp-database
   venue-admin-frontend:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/venue-admin-frontend
       tag: master
     repo: TouchBistro/venue-admin-frontend
   venue-core-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/venue-core-service
       tag: master
     repo: TouchBistro/venue-core-service
   venue-provisioning-service:
-    migrations: true
+    preRun: yarn db:prepare
     remote:
       enabled: true
       image: ${ecr}/venue-provisioning-service
       tag: master
     repo: TouchBistro/venue-provisioning-service
   venue-upload-service:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
     repo: TouchBistro/venue-upload-service
   legacy-upload-service:
-    migrations: false
     remote:
       enabled: true
       image: ${ecr}/legacy-upload-service
