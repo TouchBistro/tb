@@ -214,5 +214,4 @@ services:
       tag: master
     repo: TouchBistro/legacy-upload-service
   yp-singleapp-api:
-    migrations: false
     repo: TouchBistro/yp-singleapp-api
