@@ -416,6 +416,7 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
     - $ORDERING_OOA_SERVICE_NAME
     - $SINGLEAPP_DATABASE_NAME
     - $YP_SINGLEAPP_API_NAME
+    - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
 x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:
