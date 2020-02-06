@@ -1,8 +1,6 @@
 package config
 
-import (
-	"fmt"
-)
+import "path/filepath"
 
 type IOSApp struct {
 	BundleID     string
@@ -31,5 +29,5 @@ func Apps() map[string]IOSApp {
 }
 
 func IOSBuildPath() string {
-	return fmt.Sprintf("%s/ios", tbRoot)
+	return filepath.Join(tbRoot, "ios")
 }

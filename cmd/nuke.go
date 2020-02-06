@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
@@ -92,7 +92,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing repos...")
 			for _, repo := range config.Repos(config.Services()) {
 				log.Debugf("Removing repo %s...", repo)
-				repoPath := fmt.Sprintf("%s/%s", config.ReposPath(), repo)
+				repoPath := filepath.Join(config.ReposPath(), repo)
 				err := os.RemoveAll(repoPath)
 				if err != nil {
 					fatal.ExitErrf(err, "Failed removing repo %s.", repo)

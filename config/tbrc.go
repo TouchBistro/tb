@@ -1,8 +1,8 @@
 package config
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -29,7 +29,7 @@ type UserConfig struct {
 }
 
 func InitRC() error {
-	rcPath := fmt.Sprintf("%s/.tbrc.yml", os.Getenv("HOME"))
+	rcPath := filepath.Join(os.Getenv("HOME"), ".tbrc.yml")
 
 	// Create default tbrc if it doesn't exist
 	if !util.FileOrDirExists(rcPath) {

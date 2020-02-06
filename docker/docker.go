@@ -1,9 +1,9 @@
 package docker
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -173,12 +173,12 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 	}
 
 	// TODO: This needs to be cleaned up
-	dockerVmPath := fmt.Sprintf("%s/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw", os.Getenv("HOME"))
+	dockerVmPath := filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
 	fs, err := os.Stat(dockerVmPath)
 	if err != nil {
 		// The location of the Docker.raw file was moved between docker releases, but only new installations are affected.
 		// Here we check the original path oto support users with the old location.
-		dockerVmPath = fmt.Sprintf("%s/Library/Containers/com.docker.docker/Data/vms/0/Docker.raw", os.Getenv("HOME"))
+		dockerVmPath = filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw")
 		fs, err = os.Stat(dockerVmPath)
 		if err != nil {
 			return false, usage, errors.Wrap(err, "could not retreive system disk usage")

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/cmd"
 	"github.com/TouchBistro/tb/fatal"
@@ -20,13 +20,13 @@ func main() {
 		}
 	}
 
-	zshCompPath := fmt.Sprintf("%s/_tb", dir)
+	zshCompPath := filepath.Join(dir, "_tb")
 	err := rootCmd.GenZshCompletionFile(zshCompPath)
 	if err != nil {
 		fatal.ExitErr(err, "Failed to create zsh completions")
 	}
 
-	bashCompPath := fmt.Sprintf("%s/tb.bash", dir)
+	bashCompPath := filepath.Join(dir, "tb.bash")
 	err = rootCmd.GenBashCompletionFile(bashCompPath)
 	if err != nil {
 		fatal.ExitErr(err, "Failed to create bash completions")
@@ -37,7 +37,7 @@ func main() {
 		Section: "1",
 	}
 
-	manDir := dir + "/man1"
+	manDir := filepath.Join(dir, "man1")
 	if !util.FileOrDirExists(manDir) {
 		err := os.Mkdir(manDir, 0755)
 		if err != nil {

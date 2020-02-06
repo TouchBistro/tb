@@ -162,8 +162,8 @@ func CopyDirContents(srcPath, destPath string) error {
 	}
 
 	for _, item := range contents {
-		srcItemPath := fmt.Sprintf("%s/%s", srcPath, item.Name())
-		destItemPath := fmt.Sprintf("%s/%s", destPath, item.Name())
+		srcItemPath := filepath.Join(srcPath, item.Name())
+		destItemPath := filepath.Join(destPath, item.Name())
 
 		if !item.IsDir() {
 			err = CopyFile(srcItemPath, destItemPath)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -32,7 +33,7 @@ func TBRootPath() string {
 }
 
 func ReposPath() string {
-	return fmt.Sprintf("%s/%s", tbRoot, "repos")
+	return filepath.Join(tbRoot, "repos")
 }
 
 func Services() ServiceMap {
@@ -51,7 +52,7 @@ func BaseImages() []string {
 
 func setupEnv() error {
 	// Set $TB_ROOT so it works in the docker-compose file
-	tbRoot = fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
+	tbRoot = filepath.Join(os.Getenv("HOME"), ".tb")
 	os.Setenv("TB_ROOT", tbRoot)
 
 	// Create $TB_ROOT directory if it doesn't exist
@@ -65,7 +66,7 @@ func setupEnv() error {
 }
 
 func dumpFile(from, to, dir string, box *packr.Box) error {
-	path := fmt.Sprintf("%s/%s", dir, to)
+	path := filepath.Join(dir, to)
 	buf, err := box.Find(from)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", from)
@@ -146,7 +147,7 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
-	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
+	ldPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
 	err = os.MkdirAll(ldPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldPath)
@@ -227,7 +228,7 @@ func RmFiles() error {
 
 	for _, file := range files {
 		log.Debugf("Removing %s...\n", file)
-		path := fmt.Sprintf("%s/%s", tbRoot, file)
+		path := filepath.Join(tbRoot, file)
 		err := os.Remove(path)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove file at %s", path)
