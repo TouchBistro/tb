@@ -28,7 +28,7 @@ var cloneCmd = &cobra.Command{
 			fatal.Exitf("%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
 		}
 
-		if !service.IsGithubRepo() {
+		if !service.HasRepo() {
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 

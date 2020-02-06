@@ -55,7 +55,7 @@ type ServiceConfig struct {
 
 /* Methods & computed properties */
 
-func (s Service) IsGithubRepo() bool {
+func (s Service) HasRepo() bool {
 	return s.Repo != ""
 }
 
@@ -92,14 +92,14 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 	// Validate each service and perform any necessary actions
 	for name, service := range config.Services {
 		// Make sure either local or remote usage is specified
-		if !service.IsGithubRepo() && service.Remote.Image == "" {
-			msg := fmt.Sprintf("Must specify at least one of 'repo' or 'remote.image' for service %s", name)
+		if !service.CanBuild() && service.Remote.Image == "" {
+			msg := fmt.Sprintf("Must specify at least one of 'build.dockerfilePath' or 'remote.image' for service %s", name)
 			return nil, errors.New(msg)
 		}
 
 		// Make sure repo is specified if not using remote
-		if !service.UseRemote() && !service.IsGithubRepo() {
-			msg := fmt.Sprintf("'enabled: false' is set but 'repo' was not provided for service %s", name)
+		if !service.UseRemote() && !service.CanBuild() {
+			msg := fmt.Sprintf("'remote.enabled: false' is set but 'build.dockerfilePath' was not provided for service %s", name)
 			return nil, errors.New(msg)
 		}
 
@@ -138,7 +138,7 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 		if override.Remote.Enabled && s.Remote.Image == "" {
 			msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", name)
 			return nil, errors.New(msg)
-		} else if !override.Remote.Enabled && !s.IsGithubRepo() {
+		} else if !override.Remote.Enabled && !s.HasRepo() {
 			msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", name)
 			return nil, errors.New(msg)
 		}
@@ -208,7 +208,7 @@ func Repos(services ServiceMap) []string {
 	seenRepos := make(map[string]bool)
 
 	for _, s := range services {
-		if !s.IsGithubRepo() {
+		if !s.HasRepo() {
 			continue
 		}
 		repo := s.Repo
