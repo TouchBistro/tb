@@ -29,7 +29,7 @@ Examples:
 			fatal.Exit("service name is required")
 		}
 
-		fmt.Println("List Images:")
+		fmt.Println("Fetching Images For "+serviceName+":")
 		listImages(serviceName, max)
 	},
 }
@@ -38,7 +38,7 @@ func listImages(serviceName string, max int64) {
 	images, err := awsecr.FetchRepoImages(serviceName)
 
 	if err != nil {
-		fatal.ExitErr(err, "☒ failed load ecr images")
+		fatal.ExitErr(err, "☒ failed load images for service "+serviceName)
 	}
 
 	for i := 0; i < int(max)-1; i++ {
