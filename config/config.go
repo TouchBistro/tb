@@ -187,9 +187,11 @@ func Init() error {
 		}
 	}
 
-	err = generateComposeFile(services)
+	composeFile := generateComposeFile(services)
+	composePath := filepath.Join(tbRoot, "docker-compose.dsl.yml")
+	err = util.WriteYaml(composePath, &composeFile)
 	if err != nil {
-		return errors.Wrap(err, "failed to generate docker-compose file")
+		return errors.Wrapf(err, "failed to write generated docker-compose file to %s", composePath)
 	}
 
 	serviceConfig.Services = services

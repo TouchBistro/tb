@@ -1,11 +1,7 @@
 package config
 
 import (
-	"fmt"
 	"strings"
-
-	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
 )
 
 type composeBuild struct {
@@ -18,6 +14,7 @@ type composeService struct {
 	Build         composeBuild      `yaml:"build,omitempty"` // non-remote
 	Command       string            `yaml:"command,omitempty"`
 	ContainerName string            `yaml:"container_name"`
+	DependsOn     []string          `yaml:"depends_on,omitempty"`
 	Entrypoint    []string          `yaml:"entrypoint,omitempty"`
 	EnvFile       []string          `yaml:"env_file,omitempty"`
 	Environment   map[string]string `yaml:"environment,omitempty"`
@@ -32,21 +29,21 @@ type composeFile struct {
 	Volumes  map[string]interface{}    `yaml:"volumes,omitempty"`
 }
 
-func generateComposeService(name string, service Service, isRemote bool) composeService {
+func generateComposeService(name string, service Service) composeService {
 	s := composeService{
-		Command:     service.Command,
-		Entrypoint:  service.Entrypoint,
-		EnvFile:     []string{},
-		Environment: service.EnvVars,
-		Ports:       service.Ports,
+		Command:       service.Command,
+		ContainerName: name,
+		Entrypoint:    service.Entrypoint,
+		EnvFile:       []string{},
+		Environment:   service.EnvVars,
+		Ports:         service.Ports,
 	}
 
 	if service.EnvFile != "" {
 		s.EnvFile = append(s.EnvFile, service.EnvFile)
 	}
 
-	if isRemote {
-		s.ContainerName = ComposeName(name, service)
+	if service.UseRemote() {
 		s.Image = service.ImageURI()
 	} else {
 		s.Build = composeBuild{
@@ -54,7 +51,6 @@ func generateComposeService(name string, service Service, isRemote bool) compose
 			Context: service.Build.DockerfilePath,
 			Target:  service.Build.Target,
 		}
-		s.ContainerName = name
 
 		// Override command if custom command is set for build
 		if service.Build.Command != "" {
@@ -63,7 +59,7 @@ func generateComposeService(name string, service Service, isRemote bool) compose
 	}
 
 	for _, volume := range service.Volumes {
-		if isRemote && !volume.IsForRemote {
+		if service.UseRemote() && !volume.IsForRemote {
 			continue
 		}
 
@@ -73,19 +69,12 @@ func generateComposeService(name string, service Service, isRemote bool) compose
 	return s
 }
 
-func generateComposeFile(services ServiceMap) error {
+func generateComposeFile(services ServiceMap) composeFile {
 	composeServices := make(map[string]composeService)
 	volumes := make(map[string]interface{})
 
 	for name, service := range services {
-		// Generate remote and non-remote docker-compose services
-		if service.UseRemote() {
-			composeServices[ComposeName(name, service)] = generateComposeService(name, service, true)
-		}
-
-		if service.CanBuild() {
-			composeServices[name] = generateComposeService(name, service, false)
-		}
+		composeServices[name] = generateComposeService(name, service)
 
 		// Add named volumes
 		for _, volume := range service.Volumes {
@@ -98,13 +87,9 @@ func generateComposeFile(services ServiceMap) error {
 		}
 	}
 
-	composeFile := composeFile{
+	return composeFile{
 		Version:  "3.7",
 		Services: composeServices,
 		Volumes:  volumes,
 	}
-
-	composePath := fmt.Sprintf("%s/%s", tbRoot, "docker-compose.dsl.yml")
-	err := util.WriteYaml(composePath, &composeFile)
-	return errors.Wrapf(err, "failed to write generated docker-compose file to %s", composePath)
 }
