@@ -27,11 +27,7 @@ type options struct {
 	playlistName            string
 }
 
-var (
-	composeFile      string
-	selectedServices config.ServiceMap
-	opts             options
-)
+var opts options
 
 func attemptNPMLogin() {
 	err := npm.Login()
@@ -47,10 +43,10 @@ func attemptECRLogin() {
 	}
 }
 
-func cleanupPrevDocker() {
+func cleanupPrevDocker(services config.ServiceMap) {
 	log.Debug("stopping compose services...")
 	serviceNames := make([]string, 0)
-	for name := range selectedServices {
+	for name := range services {
 		serviceNames = append(serviceNames, name)
 	}
 	err := docker.ComposeStop(serviceNames)
@@ -86,11 +82,11 @@ func pullTBBaseImages() {
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
-func dockerComposeBuild() {
+func dockerComposeBuild(services config.ServiceMap, composeFile string) {
 	log.Info("☐ building images for non-remote services")
 
 	var builder strings.Builder
-	for name, s := range selectedServices {
+	for name, s := range services {
 		if !s.UseRemote() {
 			builder.WriteString(name)
 			builder.WriteString(" ")
@@ -114,8 +110,8 @@ func dockerComposeBuild() {
 	fmt.Println()
 }
 
-func dockerComposeUp() {
-	serviceNames := config.ComposeNames(selectedServices)
+func dockerComposeUp(services config.ServiceMap, composeFile string) {
+	serviceNames := config.ComposeNames(services)
 
 	log.Info("☐ starting docker-compose up in detached mode")
 
@@ -128,7 +124,7 @@ func dockerComposeUp() {
 	log.Info("☑ finished starting docker-compose up in detached mode")
 }
 
-func selectServices() {
+func selectServices() config.ServiceMap {
 	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
 		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
 	}
@@ -157,7 +153,7 @@ func selectServices() {
 	}
 
 	services := config.Services()
-	selectedServices = make(config.ServiceMap, len(names))
+	selectedServices := make(config.ServiceMap, len(names))
 	for _, name := range names {
 		if _, ok := services[name]; !ok {
 			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
@@ -168,6 +164,8 @@ func selectServices() {
 	if len(selectedServices) == 0 {
 		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
 	}
+
+	return selectedServices
 }
 
 var upCmd = &cobra.Command{
@@ -189,11 +187,6 @@ Examples:
 			os.Setenv("START_SERVER", "true")
 		}
 
-		selectServices()
-
-		composeNames := config.ComposeNames(selectedServices)
-		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
-
 		err := deps.Resolve(
 			deps.Brew,
 			deps.Aws,
@@ -207,12 +200,13 @@ Examples:
 		fmt.Println()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		composeFile = docker.ComposeFile()
+		selectedServices := selectServices()
+		composeNames := config.ComposeNames(selectedServices)
+		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths
-		err = config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
 		}
@@ -233,7 +227,7 @@ Examples:
 			successCh <- "ECR Login"
 		}()
 		go func() {
-			cleanupPrevDocker()
+			cleanupPrevDocker(selectedServices)
 			successCh <- "Docker Cleanup"
 		}()
 
@@ -324,7 +318,8 @@ Examples:
 			fmt.Println()
 		}
 
-		dockerComposeBuild()
+		composeFile := docker.ComposeFile()
+		dockerComposeBuild(selectedServices, composeFile)
 		fmt.Println()
 
 		if !opts.shouldSkipServicePreRun {
@@ -358,7 +353,7 @@ Examples:
 			fmt.Println()
 		}
 
-		dockerComposeUp()
+		dockerComposeUp(selectedServices, composeFile)
 		fmt.Println()
 
 		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?
