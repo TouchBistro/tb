@@ -20,7 +20,7 @@ var imagesCmd = &cobra.Command{
 	Long: `List latest available images for a service.
 	
 Examples:
-- List the last 10 images deployed to the venue-core-service container repository
+- List the last 10 images available for venue-core-service in the container registry
 	tb images --service venue-core-service --max 10
 `,
 	Run: func(cmd *cobra.Command, args []string) {
