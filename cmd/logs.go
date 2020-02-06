@@ -34,7 +34,7 @@ var logsCmd = &cobra.Command{
 					fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 				}
 
-				b.WriteString(config.ComposeName(serviceName, s))
+				b.WriteString(serviceName)
 				b.WriteString(" ")
 			}
 

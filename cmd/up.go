@@ -121,8 +121,6 @@ func dockerComposeBuild(services config.ServiceMap, composeFile string) {
 }
 
 func dockerComposeUp(services config.ServiceMap, composeFile string) {
-	serviceNames := config.ComposeNames(services)
-
 	log.Info("☐ starting docker-compose up in detached mode")
 
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
@@ -211,8 +209,7 @@ Examples:
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedServices := selectServices()
-		composeNames := config.ComposeNames(selectedServices)
-		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
+		log.Infof("running the following services: %s", strings.Join(selectedServices.Names(), ", "))
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths

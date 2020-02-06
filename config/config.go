@@ -175,18 +175,6 @@ func Init() error {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	// Set env vars used in compose file
-	for name, s := range services {
-		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
-		os.Setenv(serviceNameVar, ComposeName(name, s))
-
-		// Set imageURIs for remote images.
-		if s.UseRemote() {
-			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, s.ImageURI())
-		}
-	}
-
 	composeFile := generateComposeFile(services)
 	composePath := filepath.Join(tbRoot, "docker-compose.dsl.yml")
 	err = util.WriteYaml(composePath, &composeFile)

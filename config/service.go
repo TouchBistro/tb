@@ -75,6 +75,15 @@ func (s Service) ImageURI() string {
 	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
 }
 
+func (sm ServiceMap) Names() []string {
+	names := make([]string, len(sm))
+	for name := range sm {
+		names = append(names, name)
+	}
+
+	return names
+}
+
 /* Private helpers */
 
 func parseServices(config ServiceConfig) (ServiceMap, error) {
@@ -148,14 +157,6 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 
 /* Public funtions */
 
-func ComposeName(name string, s Service) string {
-	if s.UseRemote() && s.CanBuild() {
-		return name + "-remote"
-	}
-
-	return name
-}
-
 func CloneMissingRepos(services ServiceMap) error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
@@ -200,15 +201,6 @@ func CloneMissingRepos(services ServiceMap) error {
 
 	log.Info("☑ finished checking git repos")
 	return nil
-}
-
-func ComposeNames(configs ServiceMap) []string {
-	names := make([]string, 0)
-	for name, s := range configs {
-		names = append(names, ComposeName(name, s))
-	}
-
-	return names
 }
 
 func Repos(services ServiceMap) []string {
