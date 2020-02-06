@@ -120,7 +120,7 @@ urllib3.exceptions.NewConnectionError: <urllib3.connection.HTTPConnection object
 [...snip, stacktrace continues...]
 ```
 
-This is also a false positive. Services depending on localstack have a [similar retry loop](https://github.com/TouchBistro/partners-etl-service/blob/develop/entrypoints/localstack-entrypoint.sh)
+This is also a false positive. Services depending on localstack have a [similar retry loop](https://github.com/TouchBistro/partners-etl-service/blob/master/entrypoints/localstack-entrypoint.sh)
 
 If it is a real error, it will say:
 
