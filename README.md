@@ -162,17 +162,19 @@ Example:
 ```yaml
 overrides:
   mokta:
-    ecr: false
+    remote:
+      enabled: false
   venue-admin-frontend:
-    ecr: true
-    ecrTag: <branch or commit SHA>
+    remote:
+      enabled: true
+      tag: <tag name>
 ```
 
-You can disable ECR by setting `ecr: false`, which will cause an image to be built from the local repo instead of pulling an image from ECR.
+You can disable using the remote version by setting `remote.enabled: false`, which will cause an image to be built from the local repo instead of pulling an image from the remote registry.
 
-You can also use a specific ECR tag by setting the `ecrTag` property. This can be the name of a branch on GitHub or a commit SHA (must be the full SHA not the shortened one).
+You can also use a specific image tag by setting the `remote.tag` property. This can be the name of a branch on GitHub or a commit SHA (must be the full SHA not the shortened one).
 
-**IMPORTANT:** If you set `ecrTag` you must also set `ecr: true` for everything to work properly!
+**IMPORTANT:** If you set `remote.tag` you must also set `remote.enabled: true` for everything to work properly!
 
 ## Contributing
 
