@@ -20,7 +20,7 @@ var imagesCmd = &cobra.Command{
 	Long: `List latest available images for a service.
 	
 Examples:
-- List the last 10 deployments made to the venue-core-service container repository
+- List the last 10 images deployed to the venue-core-service container repository
 	tb images --service venue-core-service --max 10
 `,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -29,7 +29,7 @@ Examples:
 			fatal.Exit("service name is required")
 		}
 
-		fmt.Println("Fetching Images For "+serviceName+":")
+		fmt.Println("Fetching images for "+serviceName+":")
 		listImages(serviceName, max)
 	},
 }
@@ -41,7 +41,7 @@ func listImages(serviceName string, max int64) {
 		fatal.ExitErr(err, "☒ failed load images for service "+serviceName)
 	}
 
-	for i := 0; i < int(max)-1; i++ {
+	for i := 0; i < int(max); i++ {
 		fmt.Println(images[i].ImagePushedAt, images[i].ImageTags)
 	}
 }
