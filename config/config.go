@@ -13,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var services ServiceMap
+var serviceConfig ServiceConfig
 var playlists map[string]Playlist
 var tbRoot string
 
@@ -23,7 +23,6 @@ const (
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
 	lazydockerConfigPath     = "lazydocker.yml"
-	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
 /* Getters for private & computed vars */
@@ -37,7 +36,7 @@ func ReposPath() string {
 }
 
 func Services() ServiceMap {
-	return services
+	return serviceConfig.Services
 }
 
 func Playlists() map[string]Playlist {
@@ -45,13 +44,7 @@ func Playlists() map[string]Playlist {
 }
 
 func BaseImages() []string {
-	return []string{
-		"touchbistro/alpine-node:10-build",
-		"touchbistro/alpine-node:10-runtime",
-		"touchbistro/alpine-node:12-build",
-		"touchbistro/alpine-node:12-runtime",
-		"touchbistro/ubuntu16-ruby:2.5.7-build",
-	}
+	return serviceConfig.Global.BaseImages
 }
 
 /* Private functions */
@@ -129,7 +122,7 @@ func Init() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
-	err = util.DecodeYaml(bytes.NewReader(sBuf), &services)
+	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
@@ -164,34 +157,29 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
-	err = applyOverrides(services, tbrc.Overrides)
+	services, err := parseServices(serviceConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load services")
+	}
+
+	services, err = applyOverrides(services, tbrc.Overrides)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	// Setup service names image URI env vars for docker-compose
+	// Set env vars used in compose file
 	for name, s := range services {
-		serviceName := name
 		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
-		if s.ECR {
-			serviceName += "-ecr"
-		}
-		os.Setenv(serviceNameVar, serviceName)
+		os.Setenv(serviceNameVar, ComposeName(name, s))
 
-		// Set imageURIs for ECR and Dockerhub hosted images.
-		// non-ecr images. eg: postgres, redis, localstack
-		if !s.ECR && s.DockerhubImage != "" {
+		// Set imageURIs for remote images.
+		if s.UseRemote() {
 			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, s.DockerhubImage)
-		}
-
-		// ecr images. eg: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master-e09270363e044e37c430c7997359d55697e6b165
-		if s.ECR && s.ECRTag != "" {
-			uri := ResolveEcrURI(name, s.ECRTag)
-			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, uri)
+			os.Setenv(uriVar, s.ImageURI())
 		}
 	}
+
+	serviceConfig.Services = services
 
 	return nil
 }
