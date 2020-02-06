@@ -92,4 +92,3 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 		}
 	}
 }
-

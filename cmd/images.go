@@ -14,7 +14,7 @@ var (
 
 var imagesCmd = &cobra.Command{
 	Use:     "images",
-	Aliases: []string{"image"},
+	Aliases: []string{"img"},
 	Args:    cobra.NoArgs,
 	Short:   "List latest available images for a service",
 	Long: `List latest available images for a service.
