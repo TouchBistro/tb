@@ -33,6 +33,7 @@ func generateComposeService(name string, service Service) composeService {
 	s := composeService{
 		Command:       service.Command,
 		ContainerName: name,
+		DependsOn:     service.Dependencies,
 		Entrypoint:    service.Entrypoint,
 		EnvFile:       []string{},
 		Environment:   service.EnvVars,

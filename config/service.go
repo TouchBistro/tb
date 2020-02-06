@@ -16,26 +16,26 @@ import (
 /* Types */
 
 type Service struct {
-	GithubRepo string `yaml:"repo"`
-	PreRun     string `yaml:"preRun"`
-	Remote     struct {
-		Enabled bool   `yaml:"enabled"`
-		Image   string `yaml:"image"`
-		Tag     string `yaml:"tag"`
-	} `yaml:"remote"`
-	// DSL
 	Build struct {
 		Args           map[string]string `yaml:"args"`
 		Command        string            `yaml:"command"`
 		DockerfilePath string            `yaml:"dockerfilePath"`
 		Target         string            `yaml:"target"`
 	} `yaml:"build"`
-	Command    string            `yaml:"command"`
-	Entrypoint []string          `yaml:"entrypoint"`
-	EnvFile    string            `yaml:"envFile"`
-	EnvVars    map[string]string `yaml:"envVars"`
-	Ports      []string          `yaml:"ports"`
-	Volumes    []struct {
+	Command      string            `yaml:"command"`
+	Dependencies []string          `yaml:"dependencies"`
+	Entrypoint   []string          `yaml:"entrypoint"`
+	EnvFile      string            `yaml:"envFile"`
+	EnvVars      map[string]string `yaml:"envVars"`
+	Ports        []string          `yaml:"ports"`
+	PreRun       string            `yaml:"preRun"`
+	Remote       struct {
+		Enabled bool   `yaml:"enabled"`
+		Image   string `yaml:"image"`
+		Tag     string `yaml:"tag"`
+	} `yaml:"remote"`
+	Repo    string `yaml:"repo"`
+	Volumes []struct {
 		Value       string `yaml:"value"`
 		IsNamed     bool   `yaml:"named"`
 		IsForRemote bool   `yaml:"remote"`
@@ -56,7 +56,7 @@ type ServiceConfig struct {
 /* Methods & computed properties */
 
 func (s Service) IsGithubRepo() bool {
-	return s.GithubRepo != ""
+	return s.Repo != ""
 }
 
 func (s Service) UseRemote() bool {
@@ -105,7 +105,7 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 
 		// Set special service specific vars
 		vars := config.Global.Variables
-		vars["@REPOPATH"] = fmt.Sprintf("%s/%s", ReposPath(), service.GithubRepo)
+		vars["@REPOPATH"] = fmt.Sprintf("%s/%s", ReposPath(), service.Repo)
 
 		// Expand any vars
 		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
@@ -211,7 +211,7 @@ func Repos(services ServiceMap) []string {
 		if !s.IsGithubRepo() {
 			continue
 		}
-		repo := s.GithubRepo
+		repo := s.Repo
 
 		// repo has already been added to the list, don't add it again
 		if seenRepos[repo] {
