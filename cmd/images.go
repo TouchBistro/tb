@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/TouchBistro/tb/awsecr"
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
 )
@@ -27,6 +28,10 @@ Examples:
 		// If no flags provided show everything
 		if len(serviceName) < 1 {
 			fatal.Exit("service name is required")
+		}
+
+		if _, ok := config.Services()[serviceName]; !ok {
+			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
 		fmt.Println("Fetching images for "+serviceName+":")
