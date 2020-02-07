@@ -2,6 +2,7 @@ package git
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -15,7 +16,7 @@ func Clone(repo, destPath string) error {
 }
 
 func Pull(repo, repoDir string) error {
-	repoPath := fmt.Sprintf("%s/%s", repoDir, repo)
+	repoPath := filepath.Join(repoDir, repo)
 	err := util.Exec(repo, "git", "-C", repoPath, "pull")
 
 	return errors.Wrapf(err, "exec failed to pull %s", repo)

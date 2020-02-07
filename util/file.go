@@ -2,7 +2,6 @@ package util
 
 import (
 	"bufio"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -118,7 +117,7 @@ func CopyFile(srcPath, destPath string) error {
 	}
 
 	if !srcStat.Mode().IsRegular() {
-		return errors.New(fmt.Sprintf("%s is not a file", srcPath))
+		return errors.Errorf("%s is not a file", srcPath)
 	}
 
 	srcFile, err := os.Open(srcPath)
@@ -148,7 +147,7 @@ func CopyDirContents(srcPath, destPath string) error {
 	}
 
 	if !stat.IsDir() {
-		return errors.New(fmt.Sprintf("%s is not a directory", srcPath))
+		return errors.Errorf("%s is not a directory", srcPath)
 	}
 
 	err = os.MkdirAll(destPath, stat.Mode())
@@ -162,8 +161,8 @@ func CopyDirContents(srcPath, destPath string) error {
 	}
 
 	for _, item := range contents {
-		srcItemPath := fmt.Sprintf("%s/%s", srcPath, item.Name())
-		destItemPath := fmt.Sprintf("%s/%s", destPath, item.Name())
+		srcItemPath := filepath.Join(srcPath, item.Name())
+		destItemPath := filepath.Join(destPath, item.Name())
 
 		if !item.IsDir() {
 			err = CopyFile(srcItemPath, destItemPath)

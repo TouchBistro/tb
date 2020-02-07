@@ -61,7 +61,7 @@ Examples:
 		log.Infof("Current ios build disk usage: %.2fGB", float64(usageBytes)/1024.0/1024.0/1024.0)
 
 		// Look up the latest build sha for user-specified branch and app.
-		s3Dir := fmt.Sprintf("%s/%s", appName, branch)
+		s3Dir := filepath.Join(appName, branch)
 		log.Infof("Checking objects on aws in bucket %s matching prefix %s...", config.Bucket, s3Dir)
 		s3Builds, err := awss3.ListObjectKeysByPrefix(config.Bucket, s3Dir)
 		if err != nil {

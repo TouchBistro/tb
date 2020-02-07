@@ -1,9 +1,9 @@
 package ios
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/simulator"
@@ -41,7 +41,7 @@ Examples:
 
 		log.Debugf("☑ Found device UDID: %s\n", deviceUDID)
 
-		logsPath := fmt.Sprintf("%s/Library/Logs/CoreSimulator/%s/system.log", os.Getenv("HOME"), deviceUDID)
+		logsPath := filepath.Join(os.Getenv("HOME"), "Library/Logs/CoreSimulator", deviceUDID, "system.log")
 		log.Infof("Attaching to logs for simulator %s\n\n", deviceName)
 
 		execCmd := exec.Command("tail", "-f", "-n", numberOfLines, logsPath)
