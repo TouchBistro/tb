@@ -50,5 +50,8 @@ func init() {
 	rootCmd.AddCommand(imagesCmd)
 	imagesCmd.Flags().StringVarP(&serviceName, "service", "s", "", "name of service")
 	imagesCmd.Flags().Int64VarP(&max, "max", "m", 10, "maximum results to display")
-	imagesCmd.MarkFlagRequired("service")
+
+	if err := imagesCmd.MarkFlagRequired("service"); err != nil {
+		fatal.ExitErr(err, "☒ cannot mark service flag as required")
+	}
 }
