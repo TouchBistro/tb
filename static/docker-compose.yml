@@ -466,6 +466,10 @@ x-partners-config-service-boilerplate: &partners-config-service-boilerplate
   environment:
     <<: *postgres-connect
     <<: *node-service
+    LEGACY_CLOUD_SERVICE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
+    PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
+    PARTNERS_RESERVATIONS_SERVICE_URL: http://${PARTNERS_RESERVATIONS_SERVICE_NAME}:8080
+    VENUE_PROVISIONING_SERVICE_URL: http://${VENUE_PROVISIONING_SERVICE_NAME}:8080/internal
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
