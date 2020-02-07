@@ -39,7 +39,7 @@ func Prompt(msg string) bool {
 
 func ExpandVars(str string, vars map[string]string) string {
 	// Regex to match variable substitution of the form ${VAR}
-	regex := regexp.MustCompile(`\$\{([\w-]+)\}`)
+	regex := regexp.MustCompile(`\$\{([\w-@]+)\}`)
 	indices := regex.FindAllStringSubmatchIndex(str, -1)
 
 	// Go through the string in reverse order and replace all variables with their value

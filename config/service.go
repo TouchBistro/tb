@@ -105,7 +105,11 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 
 		// Set special service specific vars
 		vars := config.Global.Variables
-		vars["@REPOPATH"] = fmt.Sprintf("%s/%s", ReposPath(), service.Repo)
+		vars["@ROOTPATH"] = TBRootPath()
+
+		if service.HasRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.Repo)
+		}
 
 		// Expand any vars
 		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
@@ -114,6 +118,10 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 
 		for key, value := range service.EnvVars {
 			service.EnvVars[key] = util.ExpandVars(value, vars)
+		}
+
+		for i, volume := range service.Volumes {
+			service.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
 		}
 
 		parsedServices[name] = service
