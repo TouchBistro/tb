@@ -124,7 +124,7 @@ services:
       dockerfilePath: ${@REPOPATH}/packages/frontend
     dependencies:
       - cloud-server
-    envFile: ${@REPOPATH}/.env.example
+    envFile: ${@REPOPATH}/packages/frontend/.env.example
     ports:
       - '8080:80'
     remote:
@@ -563,8 +563,19 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: [ *postgres-connect, *node-service ]
+      LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
+      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
+      PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
+      VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
         {
           "partners-config.task.venueIntegrationUpdate": {
             "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
@@ -629,7 +640,7 @@ services:
     dependencies:
       - postgres
       - localstack
-    envFile: ${@REPOPATH}
+    envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: [ *postgres-connect, *node-service ]
       LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
@@ -749,7 +760,7 @@ services:
       - partners-config-service
     # Note the `../`, since the Dockerfile executes from $HOME/app/dist
     entrypoint: ["bash", "../docker-entrypoint.sh"]
-    envFile: ${@REPOPATH}
+    envFile: ${@REPOPATH}/.env.example
     envVars:
       CORE_BACKEND_URL_BASE: http://venue-core-service:8080
       TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://partners-config-service:8080
@@ -888,7 +899,7 @@ services:
     command: *command-serve
     dependencies:
       - postgres
-    envFile: ${@REPOPATH}
+    envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: [ *postgres-connect, *node-service ]
       TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000

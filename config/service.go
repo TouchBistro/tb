@@ -76,7 +76,7 @@ func (s Service) ImageURI() string {
 }
 
 func (sm ServiceMap) Names() []string {
-	names := make([]string, len(sm))
+	names := make([]string, 0, len(sm))
 	for name := range sm {
 		names = append(names, name)
 	}
