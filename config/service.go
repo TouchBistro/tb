@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
@@ -132,7 +133,7 @@ func CloneMissingRepos(services ServiceMap) error {
 	count := 0
 	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
 	for _, repo := range repos {
-		path := fmt.Sprintf("%s/%s", ReposPath(), repo)
+		path := filepath.Join(ReposPath(), repo)
 
 		if util.FileOrDirExists(path) {
 			dirlen, err := util.DirLen(path)

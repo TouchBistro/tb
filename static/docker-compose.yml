@@ -699,7 +699,7 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "$TB_ROOT/repos/TouchBistro/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+      - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
       - "$TB_ROOT/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
       - "$TB_ROOT/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
       - "$TB_ROOT/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"

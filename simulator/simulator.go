@@ -2,7 +2,6 @@ package simulator
 
 import (
 	"encoding/json"
-	"fmt"
 	"regexp"
 	"sort"
 	"strings"
@@ -65,7 +64,7 @@ func GetDeviceUDID(osVersion, name string) (string, error) {
 
 	deviceList, ok := deviceMap[osKey]
 	if !ok {
-		return "", errors.New(fmt.Sprintf("Unknown OS: %s", osVersion))
+		return "", errors.Errorf("Unknown OS: %s", osVersion)
 	}
 
 	devices := make([]Device, 0)
@@ -78,9 +77,9 @@ func GetDeviceUDID(osVersion, name string) (string, error) {
 	numDevices := len(devices)
 
 	if numDevices == 0 {
-		return "", errors.New(fmt.Sprintf("No device with name %s and OS version %s", name, osVersion))
+		return "", errors.Errorf("No device with name %s and OS version %s", name, osVersion)
 	} else if numDevices > 1 {
-		return "", errors.New(fmt.Sprintf("More than 1 device with name %s and OS version %s", name, osVersion))
+		return "", errors.Errorf("More than 1 device with name %s and OS version %s", name, osVersion)
 	}
 
 	return devices[0].UDID, nil
