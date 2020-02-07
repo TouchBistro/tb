@@ -25,11 +25,6 @@ Examples:
 	tb images --service venue-core-service --max 10
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		// If no flags provided show everything
-		if len(serviceName) < 1 {
-			fatal.Exit("service name is required")
-		}
-
 		if _, ok := config.Services()[serviceName]; !ok {
 			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
@@ -55,4 +50,5 @@ func init() {
 	rootCmd.AddCommand(imagesCmd)
 	imagesCmd.Flags().StringVarP(&serviceName, "service", "s", "", "name of service")
 	imagesCmd.Flags().Int64VarP(&max, "max", "m", 10, "maximum results to display")
+	imagesCmd.MarkFlagRequired("service")
 }
