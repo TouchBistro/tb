@@ -469,6 +469,13 @@ x-partners-config-service-boilerplate: &partners-config-service-boilerplate
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
         "partners-config.task.venueIntegrationUpdate": {
           "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
           "messageThrottle": 1,
