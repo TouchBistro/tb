@@ -144,11 +144,6 @@ func Init() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	err = dumpFile(dockerComposePath, dockerComposePath, tbRoot, box)
-	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", dockerComposePath)
-	}
-
 	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
@@ -162,7 +157,7 @@ func Init() error {
 
 	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
+		return errors.Wrapf(err, "failed to dump file to %s", lazydockerConfigPath)
 	}
 
 	services, err := parseServices(serviceConfig)
@@ -176,7 +171,7 @@ func Init() error {
 	}
 
 	composeFile := generateComposeFile(services)
-	composePath := filepath.Join(tbRoot, "docker-compose.dsl.yml")
+	composePath := filepath.Join(tbRoot, dockerComposePath)
 	err = util.WriteYaml(composePath, &composeFile)
 	if err != nil {
 		return errors.Wrapf(err, "failed to write generated docker-compose file to %s", composePath)
