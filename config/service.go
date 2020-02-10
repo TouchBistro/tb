@@ -15,14 +15,19 @@ import (
 
 /* Types */
 
+type volume struct {
+	Value   string `yaml:"value"`
+	IsNamed bool   `yaml:"named"`
+}
+
 type Service struct {
 	Build struct {
 		Args           map[string]string `yaml:"args"`
 		Command        string            `yaml:"command"`
 		DockerfilePath string            `yaml:"dockerfilePath"`
 		Target         string            `yaml:"target"`
+		Volumes        []volume          `yaml:"volumes"`
 	} `yaml:"build"`
-	Command      string            `yaml:"command"`
 	Dependencies []string          `yaml:"dependencies"`
 	Entrypoint   []string          `yaml:"entrypoint"`
 	EnvFile      string            `yaml:"envFile"`
@@ -30,16 +35,13 @@ type Service struct {
 	Ports        []string          `yaml:"ports"`
 	PreRun       string            `yaml:"preRun"`
 	Remote       struct {
-		Enabled bool   `yaml:"enabled"`
-		Image   string `yaml:"image"`
-		Tag     string `yaml:"tag"`
+		Command string   `yaml:"command"`
+		Enabled bool     `yaml:"enabled"`
+		Image   string   `yaml:"image"`
+		Tag     string   `yaml:"tag"`
+		Volumes []volume `yaml:"volumes"`
 	} `yaml:"remote"`
-	Repo    string `yaml:"repo"`
-	Volumes []struct {
-		Value       string `yaml:"value"`
-		IsNamed     bool   `yaml:"named"`
-		IsForRemote bool   `yaml:"remote"`
-	} `yaml:"volumes"`
+	Repo string `yaml:"repo"`
 }
 
 type ServiceMap map[string]Service
@@ -120,8 +122,12 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 			service.EnvVars[key] = util.ExpandVars(value, vars)
 		}
 
-		for i, volume := range service.Volumes {
-			service.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		for i, volume := range service.Build.Volumes {
+			service.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		for i, volume := range service.Remote.Volumes {
+			service.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
 		}
 
 		parsedServices[name] = service

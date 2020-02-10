@@ -67,9 +67,6 @@ global:
 
 services:
   backoffice-customer-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - infrastructure-auth-service
@@ -81,28 +78,19 @@ services:
     ports:
       - '8700:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/backoffice-customer-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: backoffice-customer-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
-    repo: TouchBistro/backoffice-customer-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: backoffice-customer-service-node_modules:/home/node/app/node_modules
-        named: true
   cloud-server:
-    build:
-      dockerfilePath: ${@REPOPATH}
-    command: >
-      bash -c '
-        echo '...done'
-        if [ "$START_SERVER" = "true" ]; then
-          echo "Starting server.."
-          bundle exec unicorn -p 3000 -c ./config/unicorn.rb
-        else
-          echo "Not starting server.."
-          tail -f /dev/null
-        fi'
     dependencies:
       - redis
       - legacy-database
@@ -112,29 +100,39 @@ services:
       MSSQL_HOST: legacy-database
     ports:
       - '3000:3000'
+    repo: TouchBistro/cloud-server
+    build:
+      dockerfilePath: ${@REPOPATH}
     remote:
+      command: >
+        bash -c '
+          echo '...done'
+          if [ "$START_SERVER" = "true" ]; then
+            echo "Starting server.."
+            bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+          else
+            echo "Not starting server.."
+            tail -f /dev/null
+          fi'
       enabled: true
       image: ${ecr}/cloud-server
       tag: develop
-    repo: TouchBistro/cloud-server
   cloud-server-frontend:
-    build:
-      args:
-        USE_INSECURE_COOKIE: insecure
-      dockerfilePath: ${@REPOPATH}/packages/frontend
     dependencies:
       - cloud-server
     envFile: ${@REPOPATH}/packages/frontend/.env.example
     ports:
       - '8080:80'
+    repo: TouchBistro/cloud-server-frontend
+    build:
+      args:
+        USE_INSECURE_COOKIE: insecure
+      dockerfilePath: ${@REPOPATH}/packages/frontend
     remote:
       enabled: true
       image: ${ecr}/cloud-server-frontend
       tag: develop
-    repo: TouchBistro/cloud-server-frontend
   dotnet-api:
-    build:
-      dockerfilePath: ${@REPOPATH}/api
     dependencies:
       - legacy-database
     envVars:
@@ -142,9 +140,9 @@ services:
     ports:
       - '9001:80'
     repo: TouchBistro/dotnet-depot
-  dotnet-manage:
     build:
-      dockerfilePath: ${@REPOPATH}/Manage
+      dockerfilePath: ${@REPOPATH}/api
+  dotnet-manage:
     dependencies:
       - legacy-database
     envVars:
@@ -152,24 +150,24 @@ services:
     ports:
       - '9000:80'
     repo: TouchBistro/dotnet-depot
-  health-clinic:
     build:
-      dockerfilePath: ${@REPOPATH}
-    command: 'tail -f /dev/null'
+      dockerfilePath: ${@REPOPATH}/Manage
+  health-clinic:
     envFile: ${@REPOPATH}/.env.compose
     ports:
       - '8089:8089'
+    repo: TouchBistro/health-clinic
+    build:
+      command: 'tail -f /dev/null'
+      dockerfilePath: ${@REPOPATH}
+      volumes:
+        - value: ${@REPOPATH}:/home/python/app
     remote:
+      command: 'tail -f /dev/null'
       enabled: true
       image: ${ecr}/health-clinic
       tag: master
-    repo: TouchBistro/health-clinic
-    volumes:
-      - value: ${@REPOPATH}:/home/python/app
   identity-user-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -180,15 +178,15 @@ services:
     ports:
       - '8777:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/identity-user-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/identity-user-service
       tag: master
-    repo: TouchBistro/identity-user-service
   infrastructure-auth-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -197,18 +195,17 @@ services:
     ports:
       - '8073:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/infrastructure-auth-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-auth-service
       tag: master
-    repo: TouchBistro/infrastructure-auth-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
   infrastructure-scratchpad-service:
-    build:
-      <<: *build-node-dev
-      command: *command-start
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -217,17 +214,17 @@ services:
     ports:
       - '8181:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/infrastructure-scratchpad-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-scratchpad-service
       tag: master
-    repo: TouchBistro/infrastructure-scratchpad-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
   legacy-bridge-cloud-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - legacy-database
     envFile: ${@REPOPATH}/.env.example
@@ -235,19 +232,19 @@ services:
       <<: [ *mssql-connect, *node-service ]
     ports:
       - '8101:8080'
+    repo: TouchBistro/legacy-bridge-cloud-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-cloud-service
       tag: master
-    repo: TouchBistro/legacy-bridge-cloud-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
-        named: true
   legacy-bridge-manage-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - legacy-database
     envFile: ${@REPOPATH}/.env.compose
@@ -255,19 +252,15 @@ services:
       <<: [ *mssql-connect, *node-service ]
     ports:
       - '8999:8080'
+    repo: TouchBistro/legacy-bridge-manage-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-manage-service
       tag: master
-    repo: TouchBistro/legacy-bridge-manage-service
   legacy-database:
-    build:
-      args:
-        NODE_ENV: development
-        NPM_TOKEN: $NPM_TOKEN
-      dockerfilePath: ${@REPOPATH}
-      target: db-migrate-with-seeds
-    command: "tail -f /dev/null"
     entrypoint: ["bash", "./docker-entrypoint-db.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
@@ -276,14 +269,22 @@ services:
     ports:
       - '1433:1433'
     preRun: yarn db:prepare
+    repo: TouchBistro/legacy-database
+    build:
+      args:
+        NODE_ENV: development
+        NPM_TOKEN: $NPM_TOKEN
+      command: "tail -f /dev/null"
+      dockerfilePath: ${@REPOPATH}
+      target: db-migrate-with-seeds
+      volumes:
+        - value: legacy-database:/var/opt/mssql/data
+          named: true
     remote:
+      command: "tail -f /dev/null"
       enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
-    repo: TouchBistro/legacy-database
-    volumes:
-      - value: legacy-database:/var/opt/mssql/data
-        named: true
   localstack:
     envVars:
       SERVICES: s3,sqs,sns
@@ -295,27 +296,16 @@ services:
     remote:
       enabled: true
       image: localstack/localstack
-    volumes:
-      - value: "/var/run/docker.sock:/var/run/docker.sock"
-        remote: true
-      - value: "${@ROOTPATH}/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
-        remote: true
-      - value: "${@ROOTPATH}/repos/TouchBistro/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
-        remote: true
+      volumes:
+        - value: "/var/run/docker.sock:/var/run/docker.sock"
+        - value: "${@ROOTPATH}/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+        - value: "${@ROOTPATH}/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
   loyalty-gateway-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -324,13 +314,16 @@ services:
     ports:
       - '8600:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/loyalty-gateway-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
-    repo: TouchBistro/loyalty-gateway-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
   postgres:
     envVars:
       POSTGRES_USER: core
@@ -341,10 +334,9 @@ services:
       enabled: true
       image: postgres
       tag: 10.6-alpine
-    volumes:
-      - value: postgres:/var/lib/postgresql/data
-        named: true
-        remote: true
+      volumes:
+        - value: postgres:/var/lib/postgresql/data
+          named: true
   redis:
     ports:
       - '6379:6379'
@@ -353,9 +345,6 @@ services:
       image: redis
       tag: 4-alpine
   mokta:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -364,15 +353,15 @@ services:
     ports:
       - '9443:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/mokta
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/mokta
       tag: master
-    repo: TouchBistro/mokta
   ordering-demo-frontend:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -384,19 +373,19 @@ services:
     ports:
       - '8010:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/ordering-demo-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-demo-frontend-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-demo-frontend
       tag: master
-    repo: TouchBistro/ordering-demo-frontend
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-demo-frontend-node_modules:/home/node/app/node_modules
-        named: true
   ordering-demo-frontend-venue:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -407,14 +396,13 @@ services:
     ports:
       - '8020:8080'
     repo: TouchBistro/ordering-demo-frontend
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
-        named: true
-  ordering-engine-service:
     build:
       <<: *build-node-dev
-    command: *command-serve
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
+          named: true
+  ordering-engine-service:
     dependencies:
       - ordering-ooa-service
       - singleapp-database
@@ -432,19 +420,19 @@ services:
       SINGLEAPP_BASE_URL: http://yp-singleapp-api:80
     ports:
       - '8610:8080'
+    repo: TouchBistro/ordering-engine-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-engine-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-engine-service
       tag: master
-    repo: TouchBistro/ordering-engine-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-engine-service-node_modules:/home/node/app/node_modules
-        named: true
   ordering-online-frontend:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - infrastructure-auth-service
       - ordering-engine-service
@@ -455,18 +443,18 @@ services:
     ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
     ports:
       - '8611:8080'
+    repo: TouchBistro/ordering-online-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-online-frontend-node_modules:/home/node/app/node_module
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-online-frontend
       tag: master
-    repo: TouchBistro/ordering-online-frontend
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-online-frontend-node_modules:/home/node/app/node_module
   ordering-gateways-frontend:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: *node-service
@@ -474,19 +462,19 @@ services:
       ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
     ports:
       - '8030:8080'
+    repo: TouchBistro/ordering-gateways-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-gateways-frontend
       tag: master
-    repo: TouchBistro/ordering-gateways-frontend
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
-        named: true
   ordering-ooa-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     envFile: ${@REPOPATH}/.env.example
     envVars:
       <<: [ *postgres-connect, *node-service ]
@@ -544,19 +532,19 @@ services:
     ports:
       - '8005:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/ordering-ooa-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-ooa-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-ooa-service
       tag: master
-    repo: TouchBistro/ordering-ooa-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: ordering-ooa-service-node_modules:/home/node/app/node_modules
-        named: true
   partners-config-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -588,19 +576,19 @@ services:
     ports:
       - '8090:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-config-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-config-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-config-service
       tag: master
-    repo: TouchBistro/partners-config-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: partners-config-service-node_modules:/home/node/app/node_modules
-        named: true
   partners-etl-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -624,19 +612,19 @@ services:
     ports:
       - '8888:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-etl-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-etl-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
-    repo: TouchBistro/partners-etl-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: partners-etl-service-node_modules:/home/node/app/node_modules
-        named: true
   partners-orchestration-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -668,19 +656,19 @@ services:
     ports:
       - '8085:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-orchestration-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-orchestration-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-orchestration-service
       tag: master
-    repo: TouchBistro/partners-orchestration-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: partners-orchestration-service-node_modules:/home/node/app/node_modules
-        named: true
   partners-reservations-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -706,19 +694,19 @@ services:
     ports:
       - '8602:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-reservations-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-reservations-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-reservations-service
       tag: master
-    repo: TouchBistro/partners-reservations-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: partners-reservations-service-node_modules:/home/node/app/node_modules
-        named: true
   payments-gateway-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -727,32 +715,31 @@ services:
     ports:
       - '8008:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/payments-gateway-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/payments-gateway-service
       tag: master
-    repo: TouchBistro/payments-gateway-service
   singleapp-database:
-    build:
-      dockerfilePath: ${@REPOPATH}
     ports:
       - '3306:3306'
+    repo: TouchBistro/singleapp-database
+    build:
+      dockerfilePath: ${@REPOPATH}
+      volumes:
+        - value: singleapp-database:/var/lib/mysql/
+          named: true
     remote:
       enabled: true
       image: ${ecr}/singleapp-database
       tag: master
-    repo: TouchBistro/singleapp-database
-    volumes:
-      - value: singleapp-database:/var/lib/mysql/
-        named: true
-        remote: true
+      volumes:
+        - value: singleapp-database:/var/lib/mysql/
+          named: true
   venue-admin-frontend:
-    build:
-      args:
-        NPM_TOKEN: $NPM_TOKEN
-      dockerfilePath: ${@REPOPATH}
-      target: release
-    command: *command-serve
     dependencies:
       - venue-core-service
       - cloud-server
@@ -771,15 +758,18 @@ services:
       NODE_ENV: production
     ports:
       - '9002:9002'
+    repo: TouchBistro/venue-admin-frontend
+    build:
+      args:
+        NPM_TOKEN: $NPM_TOKEN
+      dockerfilePath: ${@REPOPATH}
+      target: release
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-admin-frontend
       tag: master
-    repo: TouchBistro/venue-admin-frontend
   venue-core-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -885,19 +875,19 @@ services:
       - '9903:8090' # rtail log server
       # - '8089:8089'   # Not used?
     preRun: yarn db:prepare
+    repo: TouchBistro/venue-core-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: venue-core-service-node_modules:/home/node/app/node_modules:delegated
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-core-service
       tag: master
-    repo: TouchBistro/venue-core-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: venue-core-service-node_modules:/home/node/app/node_modules:delegated
-        named: true
   venue-provisioning-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
     envFile: ${@REPOPATH}/.env.example
@@ -908,15 +898,15 @@ services:
     port:
       - '8666:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/venue-provisioning-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-provisioning-service
       tag: master
-    repo: TouchBistro/venue-provisioning-service
   venue-upload-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - localstack
     envFile: ${@REPOPATH}/.env.example
@@ -944,19 +934,19 @@ services:
         }
     ports:
       - '8601:8080'
+    repo: TouchBistro/venue-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: venue-upload-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
-    repo: TouchBistro/venue-upload-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: venue-upload-service-node_modules:/home/node/app/node_modules
-        named: true
   legacy-upload-service:
-    build:
-      <<: *build-node-dev
-    command: *command-serve
     dependencies:
       - postgres
       - localstack
@@ -965,22 +955,25 @@ services:
       <<: [ *postgres-connect, *node-service ]
     ports:
       - '8009:8080'
+    repo: TouchBistro/legacy-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-upload-service
       tag: master
-    repo: TouchBistro/legacy-upload-service
-    volumes:
-      - value: ${@REPOPATH}:/home/node/app:delegated
-      - value: legacy-upload-service-node_modules:/home/node/app/node_modules
-        named: true
   yp-singleapp-api:
-    build:
-      args:
-        HOMEBREW_GITHUB_API_TOKEN: $HOMEBREW_GITHUB_API_TOKEN
-      dockerfilePath: ${@REPOPATH}
     dependencies:
       - singleapp-database
     ports:
       - '8023:80'
     repo: TouchBistro/yp-singleapp-api
+    build:
+      args:
+        HOMEBREW_GITHUB_API_TOKEN: $HOMEBREW_GITHUB_API_TOKEN
+      dockerfilePath: ${@REPOPATH}
