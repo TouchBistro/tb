@@ -1,8 +1,8 @@
 package config
 
 import (
-	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -15,6 +15,13 @@ type Playlist struct {
 	Services []string `yaml:"services"`
 }
 
+type ServiceOverride struct {
+	Remote struct {
+		Enabled bool   `yaml:"enabled"`
+		Tag     string `yaml:"tag"`
+	} `yaml:"remote"`
+}
+
 type UserConfig struct {
 	DebugEnabled bool                       `yaml:"debug"`
 	Playlists    map[string]Playlist        `yaml:"playlists"`
@@ -22,7 +29,7 @@ type UserConfig struct {
 }
 
 func InitRC() error {
-	rcPath := fmt.Sprintf("%s/.tbrc.yml", os.Getenv("HOME"))
+	rcPath := filepath.Join(os.Getenv("HOME"), ".tbrc.yml")
 
 	// Create default tbrc if it doesn't exist
 	if !util.FileOrDirExists(rcPath) {
@@ -41,23 +48,24 @@ func TBRC() *UserConfig {
 }
 
 const rcTemplate = `# Toggle debug mode for more verbose logging
-debug: true
+debug: false
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
+  db:
+	services:
+      - postgres
   dev-tools:
+    extends: db
     services:
       - localstack
-  partner-custom:
-    extends: dev-tools
-    services:
-      - partners-config-service
-      - partners-etl-service
 # Override service configuration
 overrides:
   #mokta:
-    #ecr: false
+	#remote:
+      #enabled: false
   #venue-admin-frontend:
-    #ecr: true
-    #ecrTag: master-65392c89be11a78b6caa3924c7af73ca76bcaac7
+    #remote:
+      #enabled: true
+      #tag: tag-name
 `

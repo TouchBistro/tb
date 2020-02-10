@@ -71,16 +71,18 @@ To add a new service do the following:
     The format is as follows:
     ```yaml
     <service-name>:
+      preRun: string # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
+      remote:
+        enabled: boolean  # Whether or not to use the remote version
+        image: string     # The image name or a valid URI pointing to a remote docker registry.
+        tag: string       # The the image tag to use (ex: master)
       repo: string        # The repo name on GitHub
-      migrations: boolean # Does it have migrations that need to be run?
-      ecr: boolean        # Is it available on ECR?
-      ecrTag: string      # The ECR tag to use, usually master
     ```
-    Note that `ecrTag` is required only if `ecr: true`.
+    Note that `remote` is required only if the service is available on a remote docker registry such as DockerHub or AWS ECR. If it is only built locally the `remote` field and all subfields can be omitted.
 2. Add the service to `static/docker-compose.yml`:  
-    If the service is available on ECR:
+    If the service is available from a remote registry:
     * Add a `x-<sevice-name>-boilerplate` dictionary in the boilerplates section.
-    * Add `<service-name>-ecr` and `<service-name>` dictionaries to the services section.  
+    * Add `<service-name>-remote` and `<service-name>` dictionaries to the services section.  
 
     Otherwise:  
     * Add `<service-name>` directly to the services section.

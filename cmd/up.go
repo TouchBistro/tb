@@ -19,19 +19,15 @@ import (
 )
 
 type options struct {
-	shouldSkipDBPrepare   bool
-	shouldSkipServerStart bool
-	shouldSkipGitPull     bool
-	shouldSkipDockerPull  bool
-	cliServiceNames       []string
-	playlistName          string
+	shouldSkipServicePreRun bool
+	shouldSkipServerStart   bool
+	shouldSkipGitPull       bool
+	shouldSkipDockerPull    bool
+	cliServiceNames         []string
+	playlistName            string
 }
 
-var (
-	composeFile      string
-	selectedServices config.ServiceMap
-	opts             options
-)
+var opts options
 
 func attemptNPMLogin() {
 	err := npm.Login()
@@ -47,10 +43,10 @@ func attemptECRLogin() {
 	}
 }
 
-func cleanupPrevDocker() {
+func cleanupPrevDocker(services config.ServiceMap) {
 	log.Debug("stopping compose services...")
 	serviceNames := make([]string, 0)
-	for name := range selectedServices {
+	for name := range services {
 		serviceNames = append(serviceNames, name)
 	}
 	err := docker.ComposeStop(serviceNames)
@@ -86,12 +82,12 @@ func pullTBBaseImages() {
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
 
-func dockerComposeBuild() {
-	log.Info("☐ building images for non-ecr / remote services")
+func dockerComposeBuild(services config.ServiceMap, composeFile string) {
+	log.Info("☐ building images for non-remote services")
 
 	var builder strings.Builder
-	for name, s := range selectedServices {
-		if !s.ECR && s.DockerhubImage == "" {
+	for name, s := range services {
+		if !s.UseRemote() {
 			builder.WriteString(name)
 			builder.WriteString(" ")
 		}
@@ -114,8 +110,8 @@ func dockerComposeBuild() {
 	fmt.Println()
 }
 
-func dockerComposeUp() {
-	serviceNames := config.ComposeNames(selectedServices)
+func dockerComposeUp(services config.ServiceMap, composeFile string) {
+	serviceNames := config.ComposeNames(services)
 
 	log.Info("☐ starting docker-compose up in detached mode")
 
@@ -128,7 +124,7 @@ func dockerComposeUp() {
 	log.Info("☑ finished starting docker-compose up in detached mode")
 }
 
-func selectServices() {
+func selectServices() config.ServiceMap {
 	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
 		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
 	}
@@ -157,7 +153,7 @@ func selectServices() {
 	}
 
 	services := config.Services()
-	selectedServices = make(config.ServiceMap, len(names))
+	selectedServices := make(config.ServiceMap, len(names))
 	for _, name := range names {
 		if _, ok := services[name]; !ok {
 			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
@@ -168,6 +164,8 @@ func selectServices() {
 	if len(selectedServices) == 0 {
 		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
 	}
+
+	return selectedServices
 }
 
 var upCmd = &cobra.Command{
@@ -189,11 +187,6 @@ Examples:
 			os.Setenv("START_SERVER", "true")
 		}
 
-		selectServices()
-
-		composeNames := config.ComposeNames(selectedServices)
-		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
-
 		err := deps.Resolve(
 			deps.Brew,
 			deps.Aws,
@@ -207,12 +200,13 @@ Examples:
 		fmt.Println()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var err error
-		composeFile = docker.ComposeFile()
+		selectedServices := selectServices()
+		composeNames := config.ComposeNames(selectedServices)
+		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths
-		err = config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
 		}
@@ -233,7 +227,7 @@ Examples:
 			successCh <- "ECR Login"
 		}()
 		go func() {
-			cleanupPrevDocker()
+			cleanupPrevDocker(selectedServices)
 			successCh <- "Docker Cleanup"
 		}()
 
@@ -277,15 +271,9 @@ Examples:
 			successCh = make(chan string)
 			failedCh = make(chan error)
 			count := 0
-			for name, s := range selectedServices {
-				if s.ECR || s.DockerhubImage != "" {
-					var uri string
-					if s.ECR {
-						uri = config.ResolveEcrURI(name, s.ECRTag)
-					} else {
-						uri = s.DockerhubImage
-					}
-
+			for _, s := range selectedServices {
+				if s.UseRemote() {
+					uri := s.ImageURI()
 					log.Infof("\t☐ pulling image %s\n", uri)
 					go func() {
 						err := docker.Pull(uri)
@@ -330,21 +318,22 @@ Examples:
 			fmt.Println()
 		}
 
-		dockerComposeBuild()
+		composeFile := docker.ComposeFile()
+		dockerComposeBuild(selectedServices, composeFile)
 		fmt.Println()
 
-		if !opts.shouldSkipDBPrepare {
-			log.Info("☐ performing database migrations and seeds")
+		if !opts.shouldSkipServicePreRun {
+			log.Info("☐ performing preRun step for services")
 			successCh = make(chan string)
 			failedCh = make(chan error)
 			count := 0
 			for name, s := range selectedServices {
-				if !s.Migrations {
+				if s.PreRun == "" {
 					continue
 				}
 
-				log.Infof("\t☐ resetting development database for %s. this may take a long time.\n", name)
-				composeArgs := fmt.Sprintf("%s run --rm %s yarn db:prepare", composeFile, config.ComposeName(name, s))
+				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
+				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, config.ComposeName(name, s), s.PreRun)
 				go func(successCh chan string, failedCh chan error, name string, args ...string) {
 					err := util.Exec(name, "docker-compose", args...)
 					if err != nil {
@@ -358,16 +347,16 @@ Examples:
 				// Any ideas better than a sleep hack are appreciated
 				time.Sleep(time.Second)
 			}
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished resetting development database for %s.\n", "failed running yarn db:prepare", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
 
-			log.Info("☑ finished performing all migrations and seeds")
+			log.Info("☑ finished performing all preRun steps")
 			fmt.Println()
 		}
 
-		dockerComposeUp()
+		dockerComposeUp(selectedServices, composeFile)
 		fmt.Println()
 
-		// Maybe we start this earlier and run compose build and migrations etc. in a separate goroutine so that people have a nicer output?
+		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
 		err = util.Exec("lazydocker", "lazydocker")
 		if err != nil {
@@ -383,9 +372,9 @@ Examples:
 
 func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDBPrepare, "no-db-reset", false, "dont reset databases with yarn db:prepare")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-ecr-pull", false, "dont get new ecr images")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
