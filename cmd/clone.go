@@ -28,12 +28,12 @@ var cloneCmd = &cobra.Command{
 			fatal.Exitf("%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
 		}
 
-		if !service.HasRepo() {
+		if !service.HasGitRepo() {
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		repoPath := fmt.Sprintf("./%s", strings.Split(service.Repo, "/")[1])
-		err := git.Clone(service.Repo, repoPath)
+		repoPath := fmt.Sprintf("./%s", strings.Split(service.GitRepo, "/")[1])
+		err := git.Clone(service.GitRepo, repoPath)
 		if err != nil {
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}

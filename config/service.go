@@ -32,6 +32,7 @@ type Service struct {
 	Entrypoint   []string          `yaml:"entrypoint"`
 	EnvFile      string            `yaml:"envFile"`
 	EnvVars      map[string]string `yaml:"envVars"`
+	GitRepo      string            `yaml:"repo"`
 	Ports        []string          `yaml:"ports"`
 	PreRun       string            `yaml:"preRun"`
 	Remote       struct {
@@ -41,7 +42,6 @@ type Service struct {
 		Tag     string   `yaml:"tag"`
 		Volumes []volume `yaml:"volumes"`
 	} `yaml:"remote"`
-	Repo string `yaml:"repo"`
 }
 
 type ServiceMap map[string]Service
@@ -57,8 +57,8 @@ type ServiceConfig struct {
 
 /* Methods & computed properties */
 
-func (s Service) HasRepo() bool {
-	return s.Repo != ""
+func (s Service) HasGitRepo() bool {
+	return s.GitRepo != ""
 }
 
 func (s Service) UseRemote() bool {
@@ -109,8 +109,8 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 		vars := config.Global.Variables
 		vars["@ROOTPATH"] = TBRootPath()
 
-		if service.HasRepo() {
-			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.Repo)
+		if service.HasGitRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.GitRepo)
 		}
 
 		// Expand any vars
@@ -152,7 +152,7 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 		if override.Remote.Enabled && s.Remote.Image == "" {
 			msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", name)
 			return nil, errors.New(msg)
-		} else if !override.Remote.Enabled && !s.HasRepo() {
+		} else if !override.Remote.Enabled && !s.HasGitRepo() {
 			msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", name)
 			return nil, errors.New(msg)
 		}
@@ -222,10 +222,10 @@ func Repos(services ServiceMap) []string {
 	seenRepos := make(map[string]bool)
 
 	for _, s := range services {
-		if !s.HasRepo() {
+		if !s.HasGitRepo() {
 			continue
 		}
-		repo := s.Repo
+		repo := s.GitRepo
 
 		// repo has already been added to the list, don't add it again
 		if seenRepos[repo] {
