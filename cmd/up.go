@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"time"
@@ -22,7 +21,6 @@ import (
 
 type options struct {
 	shouldSkipServicePreRun bool
-	shouldSkipServerStart   bool
 	shouldSkipGitPull       bool
 	shouldSkipDockerPull    bool
 	cliServiceNames         []string
@@ -189,12 +187,6 @@ Examples:
 	tb up --services postgres,localstack`,
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if opts.shouldSkipServerStart {
-			os.Setenv("START_SERVER", "false")
-		} else {
-			os.Setenv("START_SERVER", "true")
-		}
-
 		err := deps.Resolve(
 			deps.Brew,
 			deps.Aws,
@@ -377,7 +369,6 @@ Examples:
 }
 
 func init() {
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
