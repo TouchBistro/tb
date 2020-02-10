@@ -52,6 +52,7 @@ x-mysqlconnect: &mysql-connect
   DB_DISABLE_SSL: "true"
 
 x-nodeservice: &node-service
+  <<: *json-logger-config
   HTTP_PORT: 8080
 
 x-command-serve: &command-serve
@@ -199,6 +200,7 @@ x-legacy-bridge-manage-service-boilerplate:
   environment:
     <<: *mssql-connect
     DB_NAME: cloud_db
+    <<: *json-logger-config
   ports:
     - "8999:8080"
   depends_on:
