@@ -170,11 +170,17 @@ func Init() error {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	composeFile := generateComposeFile(services)
+	// Create docker-compose.yml
 	composePath := filepath.Join(tbRoot, dockerComposePath)
-	err = util.WriteYaml(composePath, &composeFile)
+	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
-		return errors.Wrapf(err, "failed to write generated docker-compose file to %s", composePath)
+		return errors.Wrapf(err, "failed to open file %s", composePath)
+	}
+	defer file.Close()
+
+	err = CreateComposeFile(services, file)
+	if err != nil {
+		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
 
 	serviceConfig.Services = services
