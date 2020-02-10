@@ -33,7 +33,7 @@ anchors:
     DB_USER: core
     DB_PASSWORD: localdev
     DB_DISABLE_SSL: "true"
-  mssqlconnect: &mssql-connect
+  mssql-connect: &mssql-connect
     DB_HOST: legacy-database
     DB_PORT: 1433
     DB_USER: SA
