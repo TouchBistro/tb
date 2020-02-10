@@ -523,6 +523,7 @@ x-venue-admin-frontend-boilerplate: &venue-admin-frontend-boilerplate
     - TOUCHBISTRO_PARTNER_CONFIG_URL_BASE=http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
     - TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE=http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
     - INFRASTRUCTURE_AUTH_SERVICE_URL=http://${INFRASTRUCTURE_AUTH_SERVICE_NAME}:8080
+    - OKTA_APPLICATION_URL_BASE=https://${MOKTA_NAME}:8080
     - HTTP_PORT=9002 # VAF will default to :5000 for local server development.
     - NODE_ENV=production
   ports:
