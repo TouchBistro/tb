@@ -112,6 +112,7 @@ cs-portal-deps:
   services:
     - backoffice-customer-service
     - infrastructure-auth-service
+    - infrastructure-scratchpad-service
 payments-gateway:
   services:
     - payments-gateway-service
