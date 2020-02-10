@@ -549,6 +549,19 @@ x-infrastructure-auth-service-boilerplate:
   depends_on:
     - postgres
 
+x-infrastructure-scratchpad-service-boilerplate:
+  &infrastructure-scratchpad-service-boilerplate
+  env_file:
+    - $TB_ROOT/repos/TouchBistro/infrastructure-scratchpad-service/.env.example
+  entrypoint: ["bash", "./docker-entrypoint.sh"]
+  environment:
+    <<: *node-service
+    <<: *postgres-connect
+  ports:
+    - "8181:8080"
+  depends_on:
+    - postgres
+
 x-loyalty-gateway-service-boilerplate: &loyalty-gateway-service-boilerplate
   env_file:
     - $TB_ROOT/repos/TouchBistro/loyalty-gateway-service/.env.example
@@ -1089,6 +1102,22 @@ services:
     <<: *command-start
     volumes:
       - $TB_ROOT/repos/TouchBistro/infrastructure-auth-service:/home/node/app:delegated
+
+  infrastructure-scratchpad-service-remote:
+    <<: *infrastructure-scratchpad-service-boilerplate
+    image: $INFRASTRUCTURE_SCRATCHPAD_SERVICE_IMAGE_URI
+    container_name: infrastructure-scratchpad-service-remote
+    <<: *command-serve
+
+  infrastructure-scratchpad-service:
+    <<: *infrastructure-scratchpad-service-boilerplate
+    build:
+      <<: *build-node-dev
+      context: $TB_ROOT/repos/TouchBistro/infrastructure-scratchpad-service
+    container_name: infrastructure-scratchpad-service
+    <<: *command-start
+    volumes:
+      - $TB_ROOT/repos/TouchBistro/infrastructure-scratchpad-service:/home/node/app:delegated
 
   loyalty-gateway-service-remote:
     <<: *loyalty-gateway-service-boilerplate

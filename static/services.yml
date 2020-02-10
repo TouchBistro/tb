@@ -52,6 +52,13 @@ services:
       image: ${ecr}/infrastructure-auth-service
       tag: master
     repo: TouchBistro/infrastructure-auth-service
+  infrastructure-scratchpad-service:
+    preRun: yarn db:prepare
+    remote:
+      enabled: true
+      image: ${ecr}/infrastructure-scratchpad-service
+      tag: master
+    repo: TouchBistro/infrastructure-scratchpad-service
   legacy-bridge-cloud-service:
     remote:
       enabled: true
