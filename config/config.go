@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/gobuffalo/packr/v2"
 
@@ -13,7 +14,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var services ServiceMap
+var serviceConfig ServiceConfig
 var playlists map[string]Playlist
 var tbRoot string
 
@@ -23,7 +24,6 @@ const (
 	dockerComposePath        = "docker-compose.yml"
 	localstackEntrypointPath = "localstack-entrypoint.sh"
 	lazydockerConfigPath     = "lazydocker.yml"
-	ecrURIRoot               = "651264383976.dkr.ecr.us-east-1.amazonaws.com"
 )
 
 /* Getters for private & computed vars */
@@ -33,11 +33,11 @@ func TBRootPath() string {
 }
 
 func ReposPath() string {
-	return fmt.Sprintf("%s/%s", tbRoot, "repos")
+	return filepath.Join(tbRoot, "repos")
 }
 
 func Services() ServiceMap {
-	return services
+	return serviceConfig.Services
 }
 
 func Playlists() map[string]Playlist {
@@ -45,20 +45,14 @@ func Playlists() map[string]Playlist {
 }
 
 func BaseImages() []string {
-	return []string{
-		"touchbistro/alpine-node:10-build",
-		"touchbistro/alpine-node:10-runtime",
-		"touchbistro/alpine-node:12-build",
-		"touchbistro/alpine-node:12-runtime",
-		"touchbistro/ubuntu16-ruby:2.5.7-build",
-	}
+	return serviceConfig.Global.BaseImages
 }
 
 /* Private functions */
 
 func setupEnv() error {
 	// Set $TB_ROOT so it works in the docker-compose file
-	tbRoot = fmt.Sprintf("%s/.tb", os.Getenv("HOME"))
+	tbRoot = filepath.Join(os.Getenv("HOME"), ".tb")
 	os.Setenv("TB_ROOT", tbRoot)
 
 	// Create $TB_ROOT directory if it doesn't exist
@@ -72,7 +66,7 @@ func setupEnv() error {
 }
 
 func dumpFile(from, to, dir string, box *packr.Box) error {
-	path := fmt.Sprintf("%s/%s", dir, to)
+	path := filepath.Join(dir, to)
 	buf, err := box.Find(from)
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", from)
@@ -129,7 +123,7 @@ func Init() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
-	err = util.DecodeYaml(bytes.NewReader(sBuf), &services)
+	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
@@ -153,7 +147,7 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
-	ldPath := fmt.Sprintf("%s/Library/Application Support/jesseduffield/lazydocker", os.Getenv("HOME"))
+	ldPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
 	err = os.MkdirAll(ldPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldPath)
@@ -164,34 +158,29 @@ func Init() error {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
 
-	err = applyOverrides(services, tbrc.Overrides)
+	services, err := parseServices(serviceConfig)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load services")
+	}
+
+	services, err = applyOverrides(services, tbrc.Overrides)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	// Setup service names image URI env vars for docker-compose
+	// Set env vars used in compose file
 	for name, s := range services {
-		serviceName := name
 		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
-		if s.ECR {
-			serviceName += "-ecr"
-		}
-		os.Setenv(serviceNameVar, serviceName)
+		os.Setenv(serviceNameVar, ComposeName(name, s))
 
-		// Set imageURIs for ECR and Dockerhub hosted images.
-		// non-ecr images. eg: postgres, redis, localstack
-		if !s.ECR && s.DockerhubImage != "" {
+		// Set imageURIs for remote images.
+		if s.UseRemote() {
 			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, s.DockerhubImage)
-		}
-
-		// ecr images. eg: 651264383976.dkr.ecr.us-east-1.amazonaws.com/venue-provisioning-service:master-e09270363e044e37c430c7997359d55697e6b165
-		if s.ECR && s.ECRTag != "" {
-			uri := ResolveEcrURI(name, s.ECRTag)
-			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, uri)
+			os.Setenv(uriVar, s.ImageURI())
 		}
 	}
+
+	serviceConfig.Services = services
 
 	return nil
 }
@@ -239,7 +228,7 @@ func RmFiles() error {
 
 	for _, file := range files {
 		log.Debugf("Removing %s...\n", file)
-		path := fmt.Sprintf("%s/%s", tbRoot, file)
+		path := filepath.Join(tbRoot, file)
 		err := os.Remove(path)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove file at %s", path)

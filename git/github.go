@@ -48,7 +48,7 @@ func GetBranchHeadSha(org, repo, branch string) (string, error) {
 	}
 
 	if res.StatusCode != 200 {
-		return "", errors.New(fmt.Sprintf("Got %d response from GitHub API:\n%s", res.StatusCode, string(body)))
+		return "", errors.Errorf("Got %d response from GitHub API:\n%s", res.StatusCode, string(body))
 	}
 
 	getBranchResp := getBranchResponse{}
@@ -88,7 +88,7 @@ func GetLatestRelease() (string, error) {
 	}
 
 	if res.StatusCode != 200 {
-		return "", errors.New(fmt.Sprintf("Got %d response from GitHub API:\n%s", res.StatusCode, string(body)))
+		return "", errors.Errorf("Got %d response from GitHub API:\n%s", res.StatusCode, string(body))
 	}
 
 	var jsonDict map[string]interface{}

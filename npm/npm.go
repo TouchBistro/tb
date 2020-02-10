@@ -1,9 +1,9 @@
 package npm
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 
 	"github.com/TouchBistro/tb/util"
@@ -61,7 +61,7 @@ func Login() error {
 	}
 
 	for _, file := range rcFiles {
-		rcPath := fmt.Sprintf("%s/%s", os.Getenv("HOME"), file)
+		rcPath := filepath.Join(os.Getenv("HOME"), file)
 		if !util.FileOrDirExists(rcPath) {
 			log.Debugf("No %s, skipping", file)
 			continue

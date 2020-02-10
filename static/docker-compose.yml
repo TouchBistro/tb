@@ -336,6 +336,7 @@ x-ordering-engine-service-boilerplate: &ordering-engine-service-boilerplate
     - $ORDERING_OOA_SERVICE_NAME
     - $SINGLEAPP_DATABASE_NAME
     - $YP_SINGLEAPP_API_NAME
+    - $INFRASTRUCTURE_AUTH_SERVICE_NAME
 
 x-ordering-online-frontend-boilerplate: &ordering-online-frontend-boilerplate
   env_file:
@@ -385,9 +386,20 @@ x-partners-config-service-boilerplate: &partners-config-service-boilerplate
   environment:
     <<: *postgres-connect
     <<: *node-service
+    LEGACY_CLOUD_SERVICE_URL: http://${LEGACY_BRIDGE_CLOUD_SERVICE_NAME}:8080
+    PARTNER_CONFIG_SERVICE_URL: http://${PARTNERS_CONFIG_SERVICE_NAME}:8080
+    PARTNERS_RESERVATIONS_SERVICE_URL: http://${PARTNERS_RESERVATIONS_SERVICE_NAME}:8080
+    VENUE_PROVISIONING_SERVICE_URL: http://${VENUE_PROVISIONING_SERVICE_NAME}:8080/internal
     TASK_PROVIDER: awssqs
     TASK_AWS_SQS_CONFIG_JSON: >
       {
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
         "partners-config.task.venueIntegrationUpdate": {
           "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
           "messageThrottle": 1,
@@ -618,7 +630,7 @@ services:
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "$TB_ROOT/repos/TouchBistro/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+      - "$TB_ROOT/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
       - "$TB_ROOT/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
       - "$TB_ROOT/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
       - "$TB_ROOT/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
@@ -636,10 +648,10 @@ services:
     container_name: mokta
     <<: *command-start
 
-  mokta-ecr:
+  mokta-remote:
     <<: *mokta-boilerplate
     image: $MOKTA_IMAGE_URI
-    container_name: mokta-ecr
+    container_name: mokta-remote
     <<: *command-serve
 
   identity-user-service:
@@ -651,10 +663,10 @@ services:
         - NPM_TOKEN=$NPM_TOKEN
     container_name: identity-user-service
 
-  identity-user-service-ecr:
+  identity-user-service-remote:
     <<: *identity-user-service-boilerplate
     image: $IDENTITY_USER_SERVICE_IMAGE_URI
-    container_name: identity-user-service-ecr
+    container_name: identity-user-service-remote
 
   legacy-database:
     <<: *legacy-database-boilerplate
@@ -668,10 +680,10 @@ services:
     volumes:
       - legacy-database:/var/opt/mssql/data
 
-  legacy-database-ecr:
+  legacy-database-remote:
     <<: *legacy-database-boilerplate
     image: $LEGACY_DATABASE_IMAGE_URI
-    container_name: legacy-database-ecr
+    container_name: legacy-database-remote
     volumes:
       - legacy-database:/var/opt/mssql/data
 
@@ -681,14 +693,14 @@ services:
       context: $TB_ROOT/repos/TouchBistro/cloud-server
     container_name: cloud-server
 
-  cloud-server-ecr:
+  cloud-server-remote:
     <<: *cloud-server-boilerplate
     image: $CLOUD_SERVER_IMAGE_URI
-    container_name: cloud-server-ecr
+    container_name: cloud-server-remote
 
-  cloud-server-frontend-ecr:
+  cloud-server-frontend-remote:
     <<: *cloud-server-frontend-boilerplate
-    container_name: cloud-server-frontend-ecr
+    container_name: cloud-server-frontend-remote
     image: $CLOUD_SERVER_FRONTEND_IMAGE_URI
 
   cloud-server-frontend:
@@ -701,7 +713,7 @@ services:
         - USE_INSECURE_COOKIE=insecure
     container_name: cloud-server-frontend
 
-  venue-core-service-ecr:
+  venue-core-service-remote:
     <<: *venue-core-service-boilerplate
     image: $VENUE_CORE_SERVICE_IMAGE_URI
     command: >
@@ -714,7 +726,7 @@ services:
           echo "Not starting server.."
           tail -f /dev/null
         fi'
-    container_name: venue-core-service-ecr
+    container_name: venue-core-service-remote
 
   venue-core-service:
     <<: *venue-core-service-boilerplate
@@ -739,10 +751,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/venue-core-service:/home/node/app:delegated
       - venue-core-service-node_modules:/home/node/app/node_modules:delegated
 
-  venue-provisioning-service-ecr:
+  venue-provisioning-service-remote:
     <<: *venue-provisioning-service-boilerplate
     image: $VENUE_PROVISIONING_SERVICE_IMAGE_URI
-    container_name: venue-provisioning-service-ecr
+    container_name: venue-provisioning-service-remote
     <<: *command-serve
 
   venue-provisioning-service:
@@ -755,10 +767,10 @@ services:
     container_name: \venue-provisioning-service
     <<: *command-start
 
-  health-clinic-ecr:
+  health-clinic-remote:
     <<: *health-clinic-boilerplate
     image: $HEALTH_CLINIC_IMAGE_URI
-    container_name: health-clinic-ecr
+    container_name: health-clinic-remote
 
   health-clinic:
     <<: *health-clinic-boilerplate
@@ -801,10 +813,10 @@ services:
     container_name: legacy-bridge-manage-service
     <<: *command-start
 
-  legacy-bridge-manage-service-ecr:
+  legacy-bridge-manage-service-remote:
     <<: *legacy-bridge-manage-service-boilerplate
     image: $LEGACY_BRIDGE_MANAGE_SERVICE_IMAGE_URI
-    container_name: legacy-bridge-manage-service-ecr
+    container_name: legacy-bridge-manage-service-remote
     <<: *command-serve
 
   legacy-bridge-cloud-service:
@@ -818,16 +830,16 @@ services:
       - $TB_ROOT/repos/TouchBistro/legacy-bridge-cloud-service:/home/node/app:delegated
       - legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
 
-  legacy-bridge-cloud-service-ecr:
+  legacy-bridge-cloud-service-remote:
     <<: *legacy-bridge-cloud-service-boilerplate
     image: $LEGACY_BRIDGE_CLOUD_SERVICE_IMAGE_URI
-    container_name: legacy-bridge-cloud-service-ecr
+    container_name: legacy-bridge-cloud-service-remote
     <<: *command-serve
 
-  ordering-ooa-service-ecr:
+  ordering-ooa-service-remote:
     <<: *ordering-ooa-service-boilerplate
     image: $ORDERING_OOA_SERVICE_IMAGE_URI
-    container_name: ordering-ooa-service-ecr
+    container_name: ordering-ooa-service-remote
     <<: *command-serve
 
   ordering-ooa-service:
@@ -841,10 +853,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/ordering-ooa-service:/home/node/app:delegated
       - ordering-ooa-service-node_modules:/home/node/app/node_modules
 
-  ordering-demo-frontend-ecr:
+  ordering-demo-frontend-remote:
     <<: *ordering-demo-frontend-boilerplate
     image: $ORDERING_DEMO_FRONTEND_IMAGE_URI
-    container_name: ordering-demo-frontend-ecr
+    container_name: ordering-demo-frontend-remote
     <<: *command-serve
 
   ordering-demo-frontend:
@@ -879,10 +891,10 @@ services:
     depends_on:
       - postgres
 
-  ordering-gateways-frontend-ecr:
+  ordering-gateways-frontend-remote:
     <<: *ordering-gateways-frontend-boilerplate
     image: $ORDERING_GATEWAYS_FRONTEND_IMAGE_URI
-    container_name: ordering-gateways-frontend-ecr
+    container_name: ordering-gateways-frontend-remote
     <<: *command-serve
 
   ordering-gateways-frontend:
@@ -896,10 +908,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/ordering-gateways-frontend:/home/node/app:delegated
       - ordering-gateways-frontend-node_modules:/home/node/app/node_modules
 
-  ordering-engine-service-ecr:
+  ordering-engine-service-remote:
     <<: *ordering-engine-service-boilerplate
     image: $ORDERING_ENGINE_SERVICE_IMAGE_URI
-    container_name: ordering-engine-service-ecr
+    container_name: ordering-engine-service-remote
     <<: *command-serve
 
   ordering-engine-service:
@@ -913,10 +925,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/ordering-engine-service:/home/node/app:delegated
       - ordering-engine-service-node_modules:/home/node/app/node_modules
 
-  ordering-online-frontend-ecr:
+  ordering-online-frontend-remote:
     <<: *ordering-online-frontend-boilerplate
     image: $ORDERING_ONLINE_FRONTEND_IMAGE_URI
-    container_name: ordering-online-frontend-ecr
+    container_name: ordering-online-frontend-remote
     <<: *command-serve
 
   ordering-online-frontend:
@@ -941,10 +953,10 @@ services:
     depends_on:
       - $SINGLEAPP_DATABASE_NAME
 
-  partners-etl-service-ecr:
+  partners-etl-service-remote:
     <<: *partners-etl-service-boilerplate
     image: $PARTNERS_ETL_SERVICE_IMAGE_URI
-    container_name: partners-etl-service-ecr
+    container_name: partners-etl-service-remote
     <<: *command-serve
 
   partners-etl-service:
@@ -958,10 +970,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/partners-etl-service:/home/node/app:delegated
       - partners-etl-service-node_modules:/home/node/app/node_modules
 
-  partners-config-service-ecr:
+  partners-config-service-remote:
     <<: *partners-config-service-boilerplate
     image: $PARTNERS_CONFIG_SERVICE_IMAGE_URI
-    container_name: partners-config-service-ecr
+    container_name: partners-config-service-remote
     <<: *command-serve
 
   partners-config-service:
@@ -975,10 +987,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/partners-config-service:/home/node/app:delegated
       - partners-config-service-node_modules:/home/node/app/node_modules
 
-  partners-orchestration-service-ecr:
+  partners-orchestration-service-remote:
     <<: *partners-orchestration-service-boilerplate
     image: $PARTNERS_ORCHESTRATION_SERVICE_IMAGE_URI
-    container_name: partners-orchestration-service-ecr
+    container_name: partners-orchestration-service-remote
     <<: *command-serve
 
   partners-orchestration-service:
@@ -992,10 +1004,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/partners-orchestration-service:/home/node/app:delegated
       - partners-orchestration-service-node_modules:/home/node/app/node_modules
 
-  partners-reservations-service-ecr:
+  partners-reservations-service-remote:
     <<: *partners-reservations-service-boilerplate
     image: $PARTNERS_RESERVATIONS_SERVICE_IMAGE_URI
-    container_name: partners-reservations-service-ecr
+    container_name: partners-reservations-service-remote
     <<: *command-serve
 
   partners-reservations-service:
@@ -1017,17 +1029,17 @@ services:
     volumes:
       - singleapp-database:/var/lib/mysql/
 
-  singleapp-database-ecr:
+  singleapp-database-remote:
     <<: *singleapp-database-boilerplate
     image: $SINGLEAPP_DATABASE_IMAGE_URI
-    container_name: singleapp-database-ecr
+    container_name: singleapp-database-remote
     volumes:
       - singleapp-database:/var/lib/mysql/
 
-  venue-upload-service-ecr:
+  venue-upload-service-remote:
     <<: *venue-upload-service-boilerplate
     image: $VENUE_UPLOAD_SERVICE_IMAGE_URI
-    container_name: venue-devtools_venue-upload-service-ecr
+    container_name: venue-devtools_venue-upload-service-remote
     <<: *command-serve
 
   venue-upload-service:
@@ -1041,10 +1053,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/venue-upload-service:/home/node/app:delegated
       - venue-upload-service-node_modules:/home/node/app/node_modules
 
-  venue-admin-frontend-ecr:
+  venue-admin-frontend-remote:
     <<: *venue-admin-frontend-boilerplate
     image: $VENUE_ADMIN_FRONTEND_IMAGE_URI
-    container_name: venue-admin-frontend-ecr
+    container_name: venue-admin-frontend-remote
     <<: *command-serve
 
   venue-admin-frontend:
@@ -1060,10 +1072,10 @@ services:
         # - SSO_INSECURE_BACKDOOR_DO_NOT_USE_ANYWHERE_BUT_LOCALHOST==insecure
     container_name: venue-admin-frontend
 
-  infrastructure-auth-service-ecr:
+  infrastructure-auth-service-remote:
     <<: *infrastructure-auth-service-boilerplate
     image: $INFRASTRUCTURE_AUTH_SERVICE_IMAGE_URI
-    container_name: infrastructure-auth-service-ecr
+    container_name: infrastructure-auth-service-remote
     <<: *command-serve
 
   infrastructure-auth-service:
@@ -1076,10 +1088,10 @@ services:
     volumes:
       - $TB_ROOT/repos/TouchBistro/infrastructure-auth-service:/home/node/app:delegated
 
-  loyalty-gateway-service-ecr:
+  loyalty-gateway-service-remote:
     <<: *loyalty-gateway-service-boilerplate
     image: $LOYALTY_GATEWAY_SERVICE_IMAGE_URI
-    container_name: loyalty-gateway-service-ecr
+    container_name: loyalty-gateway-service-remote
     <<: *command-serve
 
   loyalty-gateway-service:
@@ -1092,10 +1104,10 @@ services:
     volumes:
       - $TB_ROOT/repos/TouchBistro/loyalty-gateway-service:/home/node/app:delegated
 
-  legacy-upload-service-ecr:
+  legacy-upload-service-remote:
     <<: *legacy-upload-service-boilerplate
     image: $LEGACY_UPLOAD_SERVICE_IMAGE_URI
-    container_name: legacy-upload-service-ecr
+    container_name: legacy-upload-service-remote
     <<: *command-serve
 
   legacy-upload-service:
@@ -1109,10 +1121,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/legacy-upload-service:/home/node/app:delegated
       - legacy-upload-service-node_modules:/home/node/app/node_modules
 
-  backoffice-customer-service-ecr:
+  backoffice-customer-service-remote:
     <<: *backoffice-customer-service-boilerplate
     image: $BACKOFFICE_CUSTOMER_SERVICE_IMAGE_URI
-    container_name: backoffice-customer-service-ecr
+    container_name: backoffice-customer-service-remote
     <<: *command-serve
 
   backoffice-customer-service:
@@ -1126,10 +1138,10 @@ services:
       - $TB_ROOT/repos/TouchBistro/backoffice-customer-service:/home/node/app:delegated
       - backoffice-customer-service-node_modules:/home/node/app/node_modules
 
-  payments-gateway-service-ecr:
+  payments-gateway-service-remote:
     <<: *payments-gateway-service-boilerplate
     image: $PAYMENTS_GATEWAY_SERVICE_IMAGE_URI
-    container_name: payments-gateway-service-ecr
+    container_name: payments-gateway-service-remote
     <<: *command-serve
 
   payments-gateway-service:
