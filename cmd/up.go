@@ -29,18 +29,39 @@ type options struct {
 
 var opts options
 
-func attemptNPMLogin() {
-	err := npm.Login()
-	if err != nil {
-		fatal.ExitErr(err, "☒ failed logging into NPM")
-	}
-}
+func performLoginStrategies(loginStrategies []string) {
+	log.Infof("☐ Logging into services.")
 
-func attemptECRLogin() {
-	err := docker.ECRLogin()
-	if err != nil {
-		fatal.ExitErr(err, "failed logging into ECR")
+	log.Debugln("Validating login strategies")
+	loginFuncs := make([]func() error, len(loginStrategies))
+	for i, strategy := range loginStrategies {
+		switch strategy {
+		case config.LoginStrategyECR:
+			loginFuncs[i] = docker.ECRLogin
+		case config.LoginStrategyNPM:
+			loginFuncs[i] = npm.Login
+		default:
+			fatal.Exitf("Invalid login strategy %s\n", strategy)
+		}
 	}
+
+	successCh := make(chan string)
+	failedCh := make(chan error)
+
+	for i, loginFunc := range loginFuncs {
+		log.Infof("\t☐ Logging into %s", loginStrategies[i])
+		go func(successCh chan string, failedCh chan error, name string, f func() error) {
+			err := f()
+			if err != nil {
+				failedCh <- err
+				return
+			}
+			successCh <- name + " login"
+		}(successCh, failedCh, loginStrategies[i], loginFunc)
+	}
+
+	util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginFuncs))
+	log.Info("☑ Finished logging into services")
 }
 
 func cleanupPrevDocker(services config.ServiceMap) {
@@ -213,27 +234,21 @@ Examples:
 
 		fmt.Println()
 
+		if config.LoginStategies() != nil {
+			performLoginStrategies(config.LoginStategies())
+			fmt.Println()
+		}
+
+		log.Infof("☐ Cleaning up previous Docker state.")
 		successCh := make(chan string)
 		failedCh := make(chan error)
 
-		log.Infof("Logging into NPM, ECR, and cleaning up up previous Docker state.")
-
-		go func() {
-			attemptNPMLogin()
-			successCh <- "NPM Login"
-		}()
-		go func() {
-			attemptECRLogin()
-			successCh <- "ECR Login"
-		}()
 		go func() {
 			cleanupPrevDocker(selectedServices)
 			successCh <- "Docker Cleanup"
 		}()
 
-		util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while setting up", 3)
-		log.Info("☑ Finished setup tasks")
-		fmt.Println()
+		util.SpinnerWait(successCh, failedCh, "☑ Finished %s\n", "Error cleaning up previous Docker state", 1)
 
 		// check for docker disk usage after cleanup
 		full, usage, err := docker.CheckDockerDiskUsage()

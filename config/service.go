@@ -27,8 +27,9 @@ type ServiceMap map[string]Service
 
 type ServiceConfig struct {
 	Global struct {
-		BaseImages []string          `yaml:"baseImages"`
-		Variables  map[string]string `yaml:"variables"`
+		BaseImages     []string          `yaml:"baseImages"`
+		LoginStategies []string          `yaml:"loginStrategies"`
+		Variables      map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services ServiceMap `yaml:"services"`
 }

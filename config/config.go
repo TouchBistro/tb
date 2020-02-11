@@ -26,6 +26,11 @@ const (
 	lazydockerConfigPath     = "lazydocker.yml"
 )
 
+const (
+	LoginStrategyECR = "ecr"
+	LoginStrategyNPM = "npm"
+)
+
 /* Getters for private & computed vars */
 
 func TBRootPath() string {
@@ -42,6 +47,10 @@ func Services() ServiceMap {
 
 func Playlists() map[string]Playlist {
 	return playlists
+}
+
+func LoginStategies() []string {
+	return serviceConfig.Global.LoginStategies
 }
 
 func BaseImages() []string {
