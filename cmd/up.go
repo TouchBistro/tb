@@ -12,7 +12,7 @@ import (
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
-	"github.com/TouchBistro/tb/npm"
+	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -29,38 +29,25 @@ type options struct {
 
 var opts options
 
-func performLoginStrategies(loginStrategies []string) {
+func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 	log.Infof("☐ Logging into services.")
-
-	log.Debugln("Validating login strategies")
-	loginFuncs := make([]func() error, len(loginStrategies))
-	for i, strategy := range loginStrategies {
-		switch strategy {
-		case config.LoginStrategyECR:
-			loginFuncs[i] = docker.ECRLogin
-		case config.LoginStrategyNPM:
-			loginFuncs[i] = npm.Login
-		default:
-			fatal.Exitf("Invalid login strategy %s\n", strategy)
-		}
-	}
 
 	successCh := make(chan string)
 	failedCh := make(chan error)
 
-	for i, loginFunc := range loginFuncs {
-		log.Infof("\t☐ Logging into %s", loginStrategies[i])
-		go func(successCh chan string, failedCh chan error, name string, f func() error) {
-			err := f()
+	for _, s := range loginStrategies {
+		log.Infof("\t☐ Logging into %s", s.Name())
+		go func(successCh chan string, failedCh chan error, s login.LoginStrategy) {
+			err := s.Login()
 			if err != nil {
 				failedCh <- err
 				return
 			}
-			successCh <- name + " login"
-		}(successCh, failedCh, loginStrategies[i], loginFunc)
+			successCh <- s.Name() + " login"
+		}(successCh, failedCh, s)
 	}
 
-	util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginFuncs))
+	util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginStrategies))
 	log.Info("☑ Finished logging into services")
 }
 
@@ -234,8 +221,13 @@ Examples:
 
 		fmt.Println()
 
-		if config.LoginStategies() != nil {
-			performLoginStrategies(config.LoginStategies())
+		loginStrategies, err := config.LoginStategies()
+		if err != nil {
+			fatal.ExitErr(err, "Failed to get login strategies")
+		}
+
+		if loginStrategies != nil {
+			performLoginStrategies(loginStrategies)
 			fmt.Println()
 		}
 

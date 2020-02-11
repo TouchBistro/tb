@@ -2,9 +2,7 @@ package docker
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/TouchBistro/tb/util"
@@ -18,17 +16,6 @@ import (
 var (
 	defaultStopTimeout = 1 * time.Second
 )
-
-func ECRLogin() error {
-	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
-	if err != nil {
-		return errors.Wrap(err, "executing aws ecr get-login failed - try running aws configure.")
-	}
-
-	dockerLoginArgs := strings.Fields(string(out))
-	err = util.Exec("ecr-login", dockerLoginArgs[0], dockerLoginArgs[1:]...)
-	return errors.Wrap(err, "docker login failed")
-}
 
 func Pull(imageURI string) error {
 	err := util.Exec(imageURI, "docker", "pull", imageURI)
