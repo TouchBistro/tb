@@ -1,45 +1,4 @@
 anchors:
-  node-service: &node-service
-    LOGGER_CONFIG_JSON: >
-      {
-        "transports": {
-          "devConsole": {
-            "provider": "winston.transports.Console",
-            "config": {
-              "colorize": true,
-              "timestamp": true,
-              "json": false
-            }
-          }
-        },
-        "env": {
-          "development": {
-            "rules": [
-              {
-                "pattern": "*",
-                "binding": {
-                  "transport": ["devConsole"],
-                  "level": "info"
-                }
-              }
-            ]
-          }
-        }
-      }
-    HTTP_PORT: 8080
-  postgres-connect: &postgres-connect
-    DB_HOST: postgres
-    DB_PORT: 5432
-    DB_USER: core
-    DB_PASSWORD: localdev
-    DB_DISABLE_SSL: "true"
-  mssql-connect: &mssql-connect
-    DB_HOST: legacy-database
-    DB_PORT: 1433
-    DB_USER: SA
-    DB_PASSWORD: Password123
-    DB_DISABLE_SSL: "true"
-    DB_NAME: cloud_db
   build-node-dev: &build-node-dev
     target: dev
     command: yarn start
@@ -68,7 +27,7 @@ services:
       - infrastructure-auth-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *node-service, *postgres-connect ]
+      HTTP_PORT: 8080
       JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
       TASK_PROVIDER: inmemory
     ports:
@@ -159,7 +118,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *node-service, *postgres-connect ]
+      HTTP_PORT: 8080
       OKTA_BASE_URL: https://mokta:8080
       INSECURE_DISABLE_SSL_VALIDATION: "true"
     ports:
@@ -178,7 +137,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *node-service, *postgres-connect ]
+      HTTP_PORT: 8080
     ports:
       - '8073:8080'
     preRun: yarn db:prepare
@@ -197,7 +156,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *node-service, *postgres-connect ]
+      HTTP_PORT: 8080
     ports:
       - '8181:8080'
     preRun: yarn db:prepare
@@ -216,7 +175,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *mssql-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '8101:8080'
     repo: TouchBistro/legacy-bridge-cloud-service
@@ -236,7 +195,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.compose
     envVars:
-      <<: [ *mssql-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '8999:8080'
     repo: TouchBistro/legacy-bridge-manage-service
@@ -251,7 +210,6 @@ services:
     entrypoint: ["bash", "./docker-entrypoint-db.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *mssql-connect
       DB_HOST: localhost
     ports:
       - '1433:1433'
@@ -297,7 +255,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '8600:8080'
     preRun: yarn db:prepare
@@ -336,7 +294,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '9443:8080'
     preRun: yarn db:prepare
@@ -353,7 +311,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       DELIVEROO_DISABLED: "true"
       ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
       URL_CALLBACK_URL: http://ordering-demo-frontend:8080/callback
@@ -377,7 +335,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       INVENUE_BASE_URL: http://ordering-ooa-service:8080/external
       MODE: venue
     ports:
@@ -396,7 +354,7 @@ services:
       - yp-singleapp-api
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *node-service
+      HTTP_PORT: 8080
       DB_HOST: singleapp-database
       DB_PORT: 3306
       DB_USER: root
@@ -425,7 +383,7 @@ services:
       - ordering-engine-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *node-service
+      HTTP_PORT: 8080
       INFRASTRUCTURE_AUTH_BASE_URL: http://infrastructure-auth-service:8080/v1
     ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
     ports:
@@ -444,7 +402,7 @@ services:
   ordering-gateways-frontend:
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *node-service
+      HTTP_PORT: 8080
       ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
       ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
     ports:
@@ -464,7 +422,7 @@ services:
   ordering-ooa-service:
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
@@ -537,7 +495,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
       PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
       PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
@@ -581,7 +539,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       AWS_S3_ENDPOINT: http://localstack:4572
       AWS_S3_STUB: "false"
       PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
@@ -617,7 +575,40 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      # PORCHS is dead and the repo is archived.
+      # Leaving this here until I have Uzi's blessing to remove the service
+      LOGGER_CONFIG_JSON: >
+        {
+          "transports": {
+            "devConsole": {
+              "provider": "winston.transports.Console",
+              "config": {
+                "colorize": true,
+                "timestamp": true,
+                "json": false
+              }
+            }
+          },
+          "env": {
+            "development": {
+              "rules": [
+                {
+                  "pattern": "*",
+                  "binding": {
+                    "transport": ["devConsole"],
+                    "level": "info"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      HTTP_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: core
+      DB_PASSWORD: localdev
+      DB_DISABLE_SSL: "true"
       LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
       PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
       PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
@@ -665,7 +656,7 @@ services:
       - legacy-bridge-cloud-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       AWS_S3_ENDPOINT: http://localstack:4572
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
@@ -698,7 +689,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '8008:8080'
     preRun: yarn db:prepare
@@ -763,97 +754,19 @@ services:
     entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *node-service
-    DB_HOST: postgres
-    PROVISIONING_JWKS_URI: http://venue-provisioning-service:8080/external/jwks
-    AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
-    AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
-    AWS_S3_ENDPOINT: http://localstack:4572
-    LOCALSTACK_SQS_URL: http://localstack:4576
-    # Note: Remove USE_INSECURE_IMPERSONATE after https://github.com/TouchBistro/venue-core-service/pull/239 is merged.
-    # Keeping for backwards compatibility.
-    USE_INSECURE_IMPERSONATE: insecure
-    INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://infrastructure-auth-service:8080/jwks
-    INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
-    TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
-    LOGGER_CONFIG_JSON: >
-      {
-        "transports": {
-          "devConsole": {
-            "provider": "winston.transports.Console",
-            "config": {
-              "colorize": true,
-              "timestamp": true,
-              "json": false
-            }
-          },
-          "graphqlLegacy": {
-            "provider": "winston.transports.File",
-            "config": {
-              "filename": "./logs/request_graphql_legacy.log",
-              "timestamp": true,
-              "json": true
-            }
-          },
-          "graphqlUp": {
-            "provider": "winston.transports.File",
-            "config": {
-              "filename": "./logs/request_graphql_up.log",
-              "timestamp": true,
-              "json": true
-            }
-          },
-          "errorLog": {
-            "provider": "winston.transports.File",
-            "config": {
-              "filename": "./logs/error_log.log",
-              "timestamp": true,
-              "json": true
-            }
-          }
-        },
-        "env": {
-          "development": {
-            "rules": [
-              {
-                "pattern": "*",
-                "binding": {
-                  "transport": ["devConsole"],
-                  "level": "info"
-                }
-              },
-              {
-                "pattern": "core.backend.request.log.graphql.legacy.*",
-                "binding": {
-                  "transport": ["graphqlLegacy"],
-                  "level": "debug"
-                }
-              },
-              {
-                "pattern": "core.backend.request.log.graphql.up.*",
-                "binding": {
-                  "transport": ["graphqlUp"],
-                  "level": "debug"
-                }
-              },
-              {
-                "pattern": "core.backend.loggable.error.class.*",
-                "binding": {
-                  "transport": ["errorLog"],
-                  "level": "debug"
-                }
-              },
-              {
-                "pattern": "core.backend.error.not.from.defined.core.error",
-                "binding": {
-                  "transport": ["errorLog"],
-                  "level": "debug"
-                }
-              }
-            ]
-          }
-        }
-      }
+      HTTP_PORT: 8080
+      DB_HOST: postgres
+      PROVISIONING_JWKS_URI: http://venue-provisioning-service:8080/external/jwks
+      AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_ENDPOINT: http://localstack:4572
+      LOCALSTACK_SQS_URL: http://localstack:4576
+      # Note: Remove USE_INSECURE_IMPERSONATE after https://github.com/TouchBistro/venue-core-service/pull/239 is merged.
+      # Keeping for backwards compatibility.
+      USE_INSECURE_IMPERSONATE: insecure
+      INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://infrastructure-auth-service:8080/jwks
+      INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
     ports:
       - '8081:8080' # Main HTTP port
       - '9901:9229' # 9229, 9330: Node debugger
@@ -879,7 +792,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
       TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
     port:
@@ -898,7 +811,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: *node-service
+      HTTP_PORT: 8080
       AWS_S3_ENDPOINT: http://localstack:4572
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
@@ -939,7 +852,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      <<: [ *postgres-connect, *node-service ]
+      HTTP_PORT: 8080
     ports:
       - '8009:8080'
     repo: TouchBistro/legacy-upload-service
