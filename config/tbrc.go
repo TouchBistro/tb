@@ -53,7 +53,7 @@ debug: false
 # Each playlist can extend another playlist as well as define its services
 playlists:
   db:
-	services:
+    services:
       - postgres
   dev-tools:
     extends: db
@@ -62,7 +62,7 @@ playlists:
 # Override service configuration
 overrides:
   #mokta:
-	#remote:
+    #remote:
       #enabled: false
   #venue-admin-frontend:
     #remote:
