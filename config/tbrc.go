@@ -17,7 +17,14 @@ type Playlist struct {
 }
 
 type ServiceOverride struct {
-	Remote struct {
+	Build struct {
+		Command string `yaml:"command"`
+		Target  string `yaml:"target"`
+	} `yaml:"build"`
+	EnvVars map[string]string `yaml:"envVars"`
+	PreRun  string            `yaml:"preRun"`
+	Remote  struct {
+		Command string `yaml:"command"`
 		Enabled bool   `yaml:"enabled"`
 		Tag     string `yaml:"tag"`
 	} `yaml:"remote"`

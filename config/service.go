@@ -158,6 +158,28 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 		}
 
 		// Apply overrides to service
+		if override.Build.Command != "" {
+			s.Build.Command = override.Build.Command
+		}
+
+		if override.Build.Target != "" {
+			s.Build.Target = override.Build.Target
+		}
+
+		if override.EnvVars != nil {
+			for v, val := range override.EnvVars {
+				s.EnvVars[v] = val
+			}
+		}
+
+		if override.PreRun != "" {
+			s.PreRun = override.PreRun
+		}
+
+		if override.Remote.Command != "" {
+			s.Remote.Command = override.Remote.Command
+		}
+
 		s.Remote.Enabled = override.Remote.Enabled
 		if override.Remote.Tag != "" {
 			s.Remote.Tag = override.Remote.Tag
