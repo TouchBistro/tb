@@ -176,6 +176,20 @@ You can also use a specific image tag by setting the `remote.tag` property. This
 
 **IMPORTANT:** If you set `remote.tag` you must also set `remote.enabled: true` for everything to work properly!
 
+Override schema:
+```yaml
+<name>:
+  envVars: map   # A list of env vars to set for the service, will be merged with exisiting env vars
+  preRun: string # Script to run before starting the service
+  build:         # Configuration when building the service locally
+    command: string # Command to run when the container starts
+    target: string  #
+  remote:        # Configuration when pulling the service from a remote registry
+    command: string  # Command to run when the container starts
+    enabled: boolean # Whether or not to use remote version
+    tag: string      # The image tag to use
+```
+
 ## Contributing
 
 See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`.

@@ -71,20 +71,32 @@ To add a new service do the following:
     The format is as follows:
     ```yaml
     <service-name>:
-      preRun: string # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
+      dependencies: string[] # Any services that this service requires to run (eg postgres)
+      entrypoint: string     # Customer Docker entrypoint
+      envFile: string        # Path to env file
+      envVars: map           # Env vars to set for the services
+      ports: string[]        # List of ports to expose
+      preRun: string         # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
+      repo: string           # The repo name on GitHub
+      build:
+        args: map              # List of args to pass to docker build
+        command: string        # Command to run when container starts
+        dockerfilePath: string # Path to the Dockerfile
+        target: string         # Target to build in a multi-stage build
+        volumes:               # List of docker volumes to create
+         - value: string  # The volume to create
+           named: boolean # Whether or not to create a named volume
       remote:
-        enabled: boolean  # Whether or not to use the remote version
-        image: string     # The image name or a valid URI pointing to a remote docker registry.
-        tag: string       # The the image tag to use (ex: master)
-      repo: string        # The repo name on GitHub
+        command: string  # Command to run when the container starts
+        enabled: boolean # Whether or not to use the remote version
+        image: string    # The image name or a valid URI pointing to a remote docker registry.
+        tag: string      # The the image tag to use (ex: master)
+        volumes:         # List of docker volumes to create
+         - value: string  # The volume to create
+           named: boolean # Whether or not to create a named volume
     ```
-    Note that `remote` is required only if the service is available on a remote docker registry such as DockerHub or AWS ECR. If it is only built locally the `remote` field and all subfields can be omitted.
-2. Add the service to `static/docker-compose.yml`:  
-    If the service is available from a remote registry:
-    * Add a `x-<sevice-name>-boilerplate` dictionary in the boilerplates section.
-    * Add `<service-name>-remote` and `<service-name>` dictionaries to the services section.  
+    At least one of `build` or `remote` are required. `build` is only required if the service can be built locally with `docker build`, `remote` is only required if the service can be pulled from a remote registry with `docker pull`.
 
-    Otherwise:  
-    * Add `<service-name>` directly to the services section.
-3. Add the service to any necessary playlists in `static/playlists.yml` (optional):  
+    Any unneeded fields can be omitted.
+2. Add the service to any necessary playlists in `static/playlists.yml` (optional):  
     Simply add the service as an entry to the `services` array of any playlist.
