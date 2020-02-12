@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/goutils/fatal"
 	"github.com/spf13/cobra"
 )
 
@@ -41,11 +42,10 @@ var logsCmd = &cobra.Command{
 		}
 
 		cmdStr := fmt.Sprintf("%s logs -f %s", docker.ComposeFile(), services)
-		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-
-		err := execCmd.Run()
+		err := command.Exec("docker-compose", strings.Fields(cmdStr), "docker-compose-logs", func(cmd *exec.Cmd) {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		})
 		if err != nil {
 			fatal.ExitErr(err, "Could not view logs.")
 		}

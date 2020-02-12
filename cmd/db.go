@@ -6,8 +6,9 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/TouchBistro/tb/deps"
+	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/deps"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -36,17 +37,14 @@ Examples:
 		dbName := args[0]
 		cmdStr := fmt.Sprintf("-h %s -p %d -U %s %s", host, port, user, dbName)
 
-		execCmd := exec.Command("pgcli", strings.Fields(cmdStr)...)
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		execCmd.Stdin = os.Stdin
-
-		err := execCmd.Run()
-
+		err := command.Exec("pgcli", strings.Fields(cmdStr), "pgcli", func(cmd *exec.Cmd) {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+		})
 		if err != nil {
 			fatal.ExitErr(err, "could not start database client.")
 		}
-
 	},
 }
 

@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/simulator"
 	log "github.com/sirupsen/logrus"
@@ -44,11 +45,10 @@ Examples:
 		logsPath := filepath.Join(os.Getenv("HOME"), "Library/Logs/CoreSimulator", deviceUDID, "system.log")
 		log.Infof("Attaching to logs for simulator %s\n\n", deviceName)
 
-		execCmd := exec.Command("tail", "-f", "-n", numberOfLines, logsPath)
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-
-		err = execCmd.Run()
+		err = command.Exec("tail", []string{"-f", "-n", numberOfLines, logsPath}, "ios-logs-tail", func(cmd *exec.Cmd) {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		})
 		if err != nil {
 			fatal.ExitErrf(err, "Failed to get logs for simulator %s with iOS version %s", deviceName, iosVersion)
 		}
