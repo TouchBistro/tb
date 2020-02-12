@@ -49,10 +49,16 @@ var nukeCmd = &cobra.Command{
 		// Passing nothing to compose will shut everything down
 		err := docker.ComposeStop(make([]string, 0))
 		if err != nil {
-			fatal.ExitErr(err, "Failed stopping docker containers and services.")
+			fatal.ExitErr(err, "Failed stopping docker compose services.")
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
+			log.Infoln("Stopping running containers...")
+			err = docker.StopAllContainers()
+			if err != nil {
+				fatal.ExitErr(err, "Failed stopping docker containers")
+			}
+
 			log.Infoln("Removing containers...")
 			err = docker.RmContainers()
 			if err != nil {
