@@ -40,7 +40,7 @@ var logsCmd = &cobra.Command{
 			services = b.String()
 		}
 
-		cmdStr := fmt.Sprintf("%s logs -t %s", docker.ComposeFile(), services)
+		cmdStr := fmt.Sprintf("%s logs -f %s", docker.ComposeFile(), services)
 		execCmd := exec.Command("docker-compose", strings.Fields(cmdStr)...)
 		execCmd.Stdout = os.Stdout
 		execCmd.Stderr = os.Stderr
