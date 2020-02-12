@@ -1,4 +1,4 @@
-package npm
+package login
 
 import (
 	"io/ioutil"
@@ -13,7 +13,13 @@ import (
 
 const npmToken = "NPM_TOKEN"
 
-func Login() error {
+type NPMLoginStrategy struct{}
+
+func (s NPMLoginStrategy) Name() string {
+	return "NPM"
+}
+
+func (s NPMLoginStrategy) Login() error {
 	log.Debugln("Checking private npm repository token...")
 	if os.Getenv(npmToken) != "" {
 		log.Debugf("Required env var %s is set\n", npmToken)

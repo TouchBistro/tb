@@ -9,6 +9,7 @@ import (
 
 	"github.com/gobuffalo/packr/v2"
 
+	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -42,6 +43,11 @@ func Services() ServiceMap {
 
 func Playlists() map[string]Playlist {
 	return playlists
+}
+
+func LoginStategies() ([]login.LoginStrategy, error) {
+	s, err := login.ParseStrategies(serviceConfig.Global.LoginStategies)
+	return s, errors.Wrap(err, "Failed to parse login strategies")
 }
 
 func BaseImages() []string {

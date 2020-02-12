@@ -5,6 +5,9 @@ global:
     - touchbistro/alpine-node:12-build
     - touchbistro/alpine-node:12-runtime
     - touchbistro/ubuntu16-ruby:2.5.7-build
+  loginStrategies:
+    - ecr
+    - npm
   variables:
     ecr: 651264383976.dkr.ecr.us-east-1.amazonaws.com
 
