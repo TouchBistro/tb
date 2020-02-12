@@ -2,44 +2,45 @@ package awsecr
 
 import (
 	"context"
+	"sort"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/aws/external"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/pkg/errors"
-	"sort"
 )
 
-const Limit = int64(1000)
-
-type ImgDetail []ecr.ImageDetail
-
-func FetchRepoImages(repoName string) ([]ecr.ImageDetail, error) {
+func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
-		return nil, errors.Wrap(err, "☒ failed to load default aws config")
+		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
-
-	maxResult := Limit
 
 	input := ecr.DescribeImagesInput{
 		RepositoryName: &repoName,
-		MaxResults: &maxResult,
+		MaxResults:     aws.Int64(int64(limit)),
 	}
 
-	images := ImgDetail{}
+	images := []ecr.ImageDetail{}
 
 	client := ecr.New(conf)
 	ctx := context.Background()
+	count := 0
 
 	for {
 		req := client.DescribeImagesRequest(&input)
 		res, err := req.Send(ctx)
 		if err != nil {
-			return nil, errors.Wrap(err, "☒ failed to load images for repo")
+			return nil, errors.Wrap(err, "failed to load images for repo")
 		}
 
 		images = append(images, res.ImageDetails...)
 
-		if res.NextToken == nil {
+		// MaxResults set the limit for the first page
+		// but more values can be returned by the NextToken
+		// Stop if we already got the amount of images we need
+		count += len(res.ImageDetails)
+		if count >= limit || res.NextToken == nil {
 			break
 		}
 
