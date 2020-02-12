@@ -7,10 +7,12 @@ import (
 
 	"time"
 
+	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/util"
@@ -85,7 +87,7 @@ func pullTBBaseImages() {
 		}(successCh, failedCh, b)
 	}
 
-	util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
+	spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
 
 	log.Info("☑ finished pulling latest touchbistro base images")
 }
@@ -109,7 +111,7 @@ func dockerComposeBuild(services config.ServiceMap, composeFile string) {
 	}
 
 	buildArgs := fmt.Sprintf("%s build --parallel %s", composeFile, str)
-	err := util.Exec("compose-build", "docker-compose", strings.Fields(buildArgs)...)
+	err := command.Exec("docker-compose", strings.Fields(buildArgs), "compose-build")
 	if err != nil {
 		fatal.ExitErr(err, "could not build docker-compose services")
 	}
@@ -124,7 +126,7 @@ func dockerComposeUp(services config.ServiceMap, composeFile string) {
 	log.Info("☐ starting docker-compose up in detached mode")
 
 	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
-	err := util.Exec("compose-up", "docker-compose", strings.Fields(upArgs)...)
+	err := command.Exec("docker-compose", strings.Fields(upArgs), "compose-up")
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
 	}
@@ -240,7 +242,7 @@ Examples:
 			successCh <- "Docker Cleanup"
 		}()
 
-		util.SpinnerWait(successCh, failedCh, "☑ Finished %s\n", "Error cleaning up previous Docker state", 1)
+		spinner.SpinnerWait(successCh, failedCh, "☑ Finished %s\n", "Error cleaning up previous Docker state", 1)
 
 		// check for docker disk usage after cleanup
 		full, usage, err := docker.CheckDockerDiskUsage()
@@ -262,7 +264,7 @@ Examples:
 					cleaned := fmt.Sprintf("%.2f", ((float64(pruned)/1024)/1024)/1024)
 					successCh <- cleaned
 				}(successCh, failedCh)
-				util.SpinnerWait(successCh, failedCh, "\t☑ finished pruning docker images, reclaimed %sGB\n", "failed pruning docker images", 1)
+				spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pruning docker images, reclaimed %sGB\n", "failed pruning docker images", 1)
 			} else {
 				log.Infoln("Continuing, but unexpected behavior is possible if docker usage isn't cleaned.")
 			}
@@ -294,7 +296,7 @@ Examples:
 				}
 			}
 
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
+			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
 			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
 		}
@@ -319,7 +321,7 @@ Examples:
 				count++
 			}
 
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling git repo", count)
+			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling git repo", count)
 
 			log.Info("☑ finished pulling latest default git branch for selected services")
 			fmt.Println()
@@ -341,20 +343,20 @@ Examples:
 
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
 				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, config.ComposeName(name, s), s.PreRun)
-				go func(successCh chan string, failedCh chan error, name string, args ...string) {
-					err := util.Exec(name, "docker-compose", args...)
+				go func(successCh chan string, failedCh chan error, name string, args []string) {
+					err := command.Exec("docker-compose", args, name)
 					if err != nil {
 						failedCh <- err
 						return
 					}
 					successCh <- name
-				}(successCh, failedCh, name, strings.Fields(composeArgs)...)
+				}(successCh, failedCh, name, strings.Fields(composeArgs))
 				count++
 				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				// Any ideas better than a sleep hack are appreciated
 				time.Sleep(time.Second)
 			}
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
+			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
 
 			log.Info("☑ finished performing all preRun steps")
 			fmt.Println()
@@ -365,7 +367,7 @@ Examples:
 
 		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?
 		log.Info("☐ Starting lazydocker")
-		err = util.Exec("lazydocker", "lazydocker")
+		err = command.Exec("lazydocker", nil, "lazydocker")
 		if err != nil {
 			fatal.ExitErr(err, "failed running lazydocker")
 		}

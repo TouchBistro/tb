@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/TouchBistro/tb/cmd/ios"
-	"github.com/TouchBistro/tb/color"
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
 	"github.com/blang/semver"

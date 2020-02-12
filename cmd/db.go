@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/tb/deps"
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

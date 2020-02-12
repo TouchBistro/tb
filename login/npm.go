@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/file"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -29,7 +29,7 @@ func (s NPMLoginStrategy) Login() error {
 	log.Debugf("Required env var %s not set\nChecking ~/.npmrc...\n", npmToken)
 
 	npmrcPath := os.Getenv("HOME") + "/.npmrc"
-	if !util.FileOrDirExists(npmrcPath) {
+	if !file.FileOrDirExists(npmrcPath) {
 		log.Warnln("No ~/.npmrc found.")
 		log.Warnln("Log in to the touchbistro npm registry with command: 'npm login' and try again.")
 		log.Warnln("If this does not work...Create a https://www.npmjs.com/ account called: touchbistro-youremailname, then message DevOps to add you to the @touchbistro account")
@@ -66,28 +66,28 @@ func (s NPMLoginStrategy) Login() error {
 		return errors.Wrap(err, "unable to compile export regex")
 	}
 
-	for _, file := range rcFiles {
-		rcPath := filepath.Join(os.Getenv("HOME"), file)
-		if !util.FileOrDirExists(rcPath) {
-			log.Debugf("No %s, skipping", file)
+	for _, f := range rcFiles {
+		rcPath := filepath.Join(os.Getenv("HOME"), f)
+		if !file.FileOrDirExists(rcPath) {
+			log.Debugf("No %s, skipping", f)
 			continue
 		}
 
 		contents, err := ioutil.ReadFile(rcPath)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read ~/%s", file)
+			return errors.Wrapf(err, "failed to read ~/%s", f)
 		}
 
 		export := r.FindString(string(contents))
 		if export != "" {
-			log.Debugf("Export found in ~/%s", file)
+			log.Debugf("Export found in ~/%s", f)
 			continue
 		}
 
 		log.Debugf("...adding export to %s.\n", rcPath)
-		err = util.AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
+		err = file.AppendLineToFile(rcPath, "export NPM_TOKEN="+token)
 		if err != nil {
-			return errors.Wrapf(err, "failed to export to file %s", file)
+			return errors.Wrapf(err, "failed to export to file %s", f)
 		}
 		log.Debugln("...done")
 	}

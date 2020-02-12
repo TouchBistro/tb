@@ -9,6 +9,7 @@ import (
 
 	"github.com/gobuffalo/packr/v2"
 
+	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -62,7 +63,7 @@ func setupEnv() error {
 	os.Setenv("TB_ROOT", tbRoot)
 
 	// Create $TB_ROOT directory if it doesn't exist
-	if !util.FileOrDirExists(tbRoot) {
+	if !file.FileOrDirExists(tbRoot) {
 		err := os.Mkdir(tbRoot, 0755)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create $TB_ROOT directory at %s", tbRoot)
@@ -80,7 +81,7 @@ func dumpFile(from, to, dir string, box *packr.Box) error {
 
 	var reason string
 	// If file exists compare the checksum to the packr version
-	if util.FileOrDirExists(path) {
+	if file.FileOrDirExists(path) {
 		log.Debugf("%s exists", path)
 		log.Debugf("comparing checksums for %s", from)
 

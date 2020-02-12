@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/command"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -18,7 +18,7 @@ var (
 )
 
 func Pull(imageURI string) error {
-	err := util.Exec(imageURI, "docker", "pull", imageURI)
+	err := command.Exec("docker", []string{"pull", imageURI}, imageURI)
 	return err
 }
 

@@ -8,7 +8,7 @@ import (
 
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/spf13/cobra"
 )
 

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
 
@@ -41,7 +41,7 @@ func ComposeStop(services []string) error {
 		return errors.Wrap(err, "could not exec docker-compose stop")
 	}
 	stopArgs := fmt.Sprintf("%s stop -t %d %s", ComposeFile(), stopTimeoutSecs, servicelist)
-	err = util.Exec("docker-compose-stop", "docker-compose", strings.Fields(stopArgs)...)
+	err = command.Exec("docker-compose", strings.Fields(stopArgs), "docker-compose-stop")
 
 	return errors.Wrap(err, "could not exec docker-compose stop")
 }
@@ -52,7 +52,7 @@ func ComposeRm(services []string) error {
 		return errors.Wrap(err, "could not exec docker-compose rm")
 	}
 	rmArgs := fmt.Sprintf("%s rm -f %s", ComposeFile(), servicelist)
-	err = util.Exec("docker-compose-stop", "docker-compose", strings.Fields(rmArgs)...)
+	err = command.Exec("docker-compose", strings.Fields(rmArgs), "docker-compose-rm")
 
 	return errors.Wrap(err, "could not exec docker-compose rm")
 }
