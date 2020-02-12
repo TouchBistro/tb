@@ -72,7 +72,7 @@ To add a new service do the following:
     ```yaml
     <service-name>:
       dependencies: string[] # Any services that this service requires to run (eg postgres)
-      entrypoint: string     # Customer Docker entrypoint
+      entrypoint: string     # Custom Docker entrypoint
       envFile: string        # Path to env file
       envVars: map           # Env vars to set for the services
       ports: string[]        # List of ports to expose

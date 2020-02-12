@@ -72,6 +72,10 @@ func createComposeService(name string, service Service) composeService {
 
 func CreateComposeFile(services ServiceMap, w io.Writer) error {
 	composeServices := make(map[string]composeService)
+	// Top level named volumes are an empty field, i.e. `postgres:`
+	// There's no way to create an empty field with go-yaml
+	// so we use interface{} and set it to nil which produces `postgres: null`
+	// docker-compose seems cool with this
 	composeVolumes := make(map[string]interface{})
 
 	for name, service := range services {
