@@ -27,6 +27,7 @@ services:
       - infrastructure-auth-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
       TASK_PROVIDER: inmemory
@@ -118,6 +119,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       OKTA_BASE_URL: https://mokta:8080
       INSECURE_DISABLE_SSL_VALIDATION: "true"
@@ -137,6 +139,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
     ports:
       - '8073:8080'
@@ -156,6 +159,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
     ports:
       - '8181:8080'
@@ -175,6 +179,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: legacy-database
       HTTP_PORT: 8080
     ports:
       - '8101:8080'
@@ -195,6 +200,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.compose
     envVars:
+      DB_HOST: legacy-database
       HTTP_PORT: 8080
     ports:
       - '8999:8080'
@@ -230,6 +236,28 @@ services:
       enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
+  legacy-upload-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8009:8080'
+    repo: TouchBistro/legacy-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
+          named: true
+    remote:
+      command: yarn serve
+      enabled: true
+      image: ${ecr}/legacy-upload-service
+      tag: master
   localstack:
     envVars:
       SERVICES: s3,sqs,sns
@@ -255,6 +283,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
     ports:
       - '8600:8080'
@@ -311,6 +340,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       DELIVEROO_DISABLED: "true"
       ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
@@ -335,6 +365,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       INVENUE_BASE_URL: http://ordering-ooa-service:8080/external
       MODE: venue
@@ -422,6 +453,7 @@ services:
   ordering-ooa-service:
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
@@ -495,6 +527,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
       PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
@@ -539,6 +572,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       AWS_S3_ENDPOINT: http://localstack:4572
       AWS_S3_STUB: "false"
@@ -656,6 +690,7 @@ services:
       - legacy-bridge-cloud-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       AWS_S3_ENDPOINT: http://localstack:4572
       TASK_PROVIDER: awssqs
@@ -689,6 +724,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
     ports:
       - '8008:8080'
@@ -792,6 +828,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
       TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
@@ -845,27 +882,6 @@ services:
       command: yarn serve
       enabled: true
       image: ${ecr}/venue-upload-service
-      tag: master
-  legacy-upload-service:
-    dependencies:
-      - postgres
-      - localstack
-    envFile: ${@REPOPATH}/.env.example
-    envVars:
-      HTTP_PORT: 8080
-    ports:
-      - '8009:8080'
-    repo: TouchBistro/legacy-upload-service
-    build:
-      <<: *build-node-dev
-      volumes:
-        - value: ${@REPOPATH}:/home/node/app:delegated
-        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
-          named: true
-    remote:
-      command: yarn serve
-      enabled: true
-      image: ${ecr}/legacy-upload-service
       tag: master
   yp-singleapp-api:
     dependencies:
