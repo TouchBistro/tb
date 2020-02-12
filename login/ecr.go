@@ -4,7 +4,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/command"
 	"github.com/pkg/errors"
 )
 
@@ -21,6 +21,6 @@ func (s ECRLoginStrategy) Login() error {
 	}
 
 	dockerLoginArgs := strings.Fields(string(out))
-	err = util.Exec("ecr-login", dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	err = command.Exec(dockerLoginArgs[0], dockerLoginArgs[1:], "ecr-login")
 	return errors.Wrap(err, "docker login failed")
 }

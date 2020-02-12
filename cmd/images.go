@@ -3,9 +3,12 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/awsecr"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/goutils/fatal"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -26,15 +29,32 @@ Examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
-		if _, ok := config.Services()[serviceName]; !ok {
+		s, ok := config.Services()[serviceName]
+		if !ok {
 			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		} else if s.Remote.Image == "" {
+			fatal.Exitf("%s is not available from a remote docker registry\n", serviceName)
 		}
 
-		fmt.Printf("Fetching images for %s:\n", serviceName)
-		images, err := awsecr.FetchRepoImages(serviceName, max)
-		if err != nil {
-			fatal.ExitErrf(err, "failed load images for service %s", serviceName)
-		}
+		log.Infof("☐ Fetching images for %s:", serviceName)
+		successCh := make(chan string)
+		failedCh := make(chan error)
+		var images []ecr.ImageDetail
+
+		// Do it for the spinner!
+		go func() {
+			imgs, err := awsecr.FetchRepoImages(serviceName, max)
+			if err != nil {
+				failedCh <- err
+				return
+			}
+
+			// This is only being assigned in this one goroutine so locking isn't needed
+			images = imgs
+			successCh <- serviceName
+		}()
+
+		spinner.SpinnerWait(successCh, failedCh, "☑ Finished fetching images for %s\n", "failed loading images", 1)
 
 		for _, img := range images {
 			fmt.Println(img.ImagePushedAt, img.ImageTags)

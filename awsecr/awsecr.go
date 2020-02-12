@@ -10,6 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const max = 1000
+
 func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -18,14 +20,13 @@ func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 
 	input := ecr.DescribeImagesInput{
 		RepositoryName: &repoName,
-		MaxResults:     aws.Int64(int64(limit)),
+		MaxResults:     aws.Int64(int64(max)),
 	}
 
 	images := []ecr.ImageDetail{}
 
 	client := ecr.New(conf)
 	ctx := context.Background()
-	count := 0
 
 	for {
 		req := client.DescribeImagesRequest(&input)
@@ -35,12 +36,7 @@ func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 		}
 
 		images = append(images, res.ImageDetails...)
-
-		// MaxResults set the limit for the first page
-		// but more values can be returned by the NextToken
-		// Stop if we already got the amount of images we need
-		count += len(res.ImageDetails)
-		if count >= limit || res.NextToken == nil {
+		if res.NextToken == nil {
 			break
 		}
 
@@ -51,5 +47,5 @@ func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 		return images[i].ImagePushedAt.After(*images[j].ImagePushedAt)
 	})
 
-	return images, nil
+	return images[:limit], nil
 }

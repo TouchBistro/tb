@@ -49,7 +49,7 @@ func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 		}(successCh, failedCh, s)
 	}
 
-	util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginStrategies))
+	spinner.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginStrategies))
 	log.Info("☑ Finished logging into services")
 }
 
