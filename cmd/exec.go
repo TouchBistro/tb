@@ -6,9 +6,10 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/fatal"
 	"github.com/spf13/cobra"
 )
 
@@ -43,13 +44,11 @@ Examples:
 		composeCmdArgs := strings.Split(composeCmd, " ")
 		composeCmdArgs = append(composeCmdArgs, args[1:]...)
 
-		execCmd := exec.Command("docker-compose", composeCmdArgs...)
-
-		execCmd.Stdout = os.Stdout
-		execCmd.Stderr = os.Stderr
-		execCmd.Stdin = os.Stdin
-
-		err := execCmd.Run()
+		err := command.Exec("docker-compose", composeCmdArgs, "docker-compose-exec", func(cmd *exec.Cmd) {
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			cmd.Stdin = os.Stdin
+		})
 		if err != nil {
 			fatal.ExitErr(err, "Could not execute command against this service.")
 		}

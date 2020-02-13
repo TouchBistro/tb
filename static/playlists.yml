@@ -41,6 +41,7 @@ pos-core-vaf:
     - venue-admin-frontend
     - cloud-server-frontend
     - partners-config-service
+    - mokta
 ordering:
   services:
     - postgres
@@ -90,6 +91,7 @@ vaf-deps:
     - legacy-bridge-cloud-service
     - partners-config-service
     - infrastructure-auth-service
+    - mokta
 vaf:
   extends: vaf-deps
   services:
@@ -112,6 +114,7 @@ cs-portal-deps:
   services:
     - backoffice-customer-service
     - infrastructure-auth-service
+    - infrastructure-scratchpad-service
 payments-gateway:
   services:
     - payments-gateway-service

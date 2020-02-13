@@ -28,3 +28,4 @@ dist
 *-packr.go
 packrd/
 bin
+.idea/

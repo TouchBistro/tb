@@ -3,7 +3,7 @@ package ios
 import (
 	"runtime"
 
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/simulator"
 	"github.com/spf13/cobra"
 )

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
@@ -32,8 +33,8 @@ func InitRC() error {
 	rcPath := filepath.Join(os.Getenv("HOME"), ".tbrc.yml")
 
 	// Create default tbrc if it doesn't exist
-	if !util.FileOrDirExists(rcPath) {
-		err := util.CreateFile(rcPath, rcTemplate)
+	if !file.FileOrDirExists(rcPath) {
+		err := file.CreateFile(rcPath, rcTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "couldn't create default tbrc at %s", rcPath)
 		}
@@ -53,7 +54,7 @@ debug: false
 # Each playlist can extend another playlist as well as define its services
 playlists:
   db:
-	services:
+    services:
       - postgres
   dev-tools:
     extends: db
@@ -62,7 +63,7 @@ playlists:
 # Override service configuration
 overrides:
   #mokta:
-	#remote:
+    #remote:
       #enabled: false
   #venue-admin-frontend:
     #remote:

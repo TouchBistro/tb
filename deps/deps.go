@@ -3,8 +3,8 @@ package deps
 import (
 	"runtime"
 
-	"github.com/TouchBistro/tb/fatal"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -41,7 +41,7 @@ var deps = map[string]Dependency{
 	Pgcli: {
 		Name: "pgcli",
 		BeforeInstall: func() error {
-			err := util.Exec("pgcli-install", "brew", "tap", "dbcli/tap")
+			err := command.Exec("brew", []string{"tap", "dbcli/tap"}, "pgcli-install")
 			return errors.Wrap(err, "failed to tap dbcli/tap")
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
@@ -53,7 +53,7 @@ var deps = map[string]Dependency{
 	Lazydocker: {
 		Name: "lazydocker",
 		BeforeInstall: func() error {
-			err := util.Exec("lazydocker-install", "brew", "tap", "jesseduffield/lazydocker")
+			err := command.Exec("brew", []string{"tap", "jesseduffield/lazydocker"}, "lazydocker-install")
 			return errors.Wrap(err, "failed to tap jesseduffield/lazydocker")
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
@@ -82,7 +82,7 @@ func Resolve(depNames ...string) error {
 			return errors.Errorf("%s is not a valid dependency.", depName)
 		}
 
-		if util.IsCommandAvailable(dep.Name) {
+		if command.IsCommandAvailable(dep.Name) {
 			log.Debugf("%s was found.\n", dep.Name)
 			continue
 		} else {
@@ -101,7 +101,7 @@ func Resolve(depNames ...string) error {
 		installCmd := dep.InstallCmd[0]
 		installArgs := dep.InstallCmd[1:]
 
-		err := util.Exec(depName, installCmd, installArgs...)
+		err := command.Exec(installCmd, installArgs, depName)
 		if err != nil {
 			return errors.Wrapf(err, "install failed for %s", dep.Name)
 		}

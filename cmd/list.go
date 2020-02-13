@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/spf13/cobra"
 	"sort"
 )
@@ -47,14 +47,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func init() {
-	rootCmd.AddCommand(listCmd)
-	listCmd.Flags().BoolVarP(&shouldListServices, "services", "s", false, "list services")
-	listCmd.Flags().BoolVarP(&shouldListPlaylists, "playlists", "p", false, "list playlists")
-	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
-	listCmd.Flags().BoolVarP(&isTreeMode, "tree", "t", false, "tree mode, show playlist services")
-}
-
 func listServices(services config.ServiceMap) {
 	names := make([]string, len(services))
 	i := 0
@@ -91,4 +83,12 @@ func listPlaylists(playlists map[string]config.Playlist, tree bool) {
 			fmt.Printf("    - %s\n", s)
 		}
 	}
+}
+
+func init() {
+	rootCmd.AddCommand(listCmd)
+	listCmd.Flags().BoolVarP(&shouldListServices, "services", "s", false, "list services")
+	listCmd.Flags().BoolVarP(&shouldListPlaylists, "playlists", "p", false, "list playlists")
+	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
+	listCmd.Flags().BoolVarP(&isTreeMode, "tree", "t", false, "tree mode, show playlist services")
 }

@@ -4,16 +4,16 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/cmd"
-	"github.com/TouchBistro/tb/fatal"
-	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra/doc"
 )
 
 func main() {
 	rootCmd := cmd.Root()
 	dir := "dist"
-	if !util.FileOrDirExists(dir) {
+	if !file.FileOrDirExists(dir) {
 		err := os.Mkdir(dir, 0755)
 		if err != nil {
 			fatal.ExitErr(err, "Failed to create dist directory")
@@ -38,7 +38,7 @@ func main() {
 	}
 
 	manDir := filepath.Join(dir, "man1")
-	if !util.FileOrDirExists(manDir) {
+	if !file.FileOrDirExists(manDir) {
 		err := os.Mkdir(manDir, 0755)
 		if err != nil {
 			fatal.ExitErr(err, "Failed to create directory for man pages.")

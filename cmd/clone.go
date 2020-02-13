@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/fatal"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/git"
 
 	log "github.com/sirupsen/logrus"

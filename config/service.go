@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -27,8 +29,9 @@ type ServiceMap map[string]Service
 
 type ServiceConfig struct {
 	Global struct {
-		BaseImages []string          `yaml:"baseImages"`
-		Variables  map[string]string `yaml:"variables"`
+		BaseImages     []string          `yaml:"baseImages"`
+		LoginStategies []string          `yaml:"loginStrategies"`
+		Variables      map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services ServiceMap `yaml:"services"`
 }
@@ -135,8 +138,8 @@ func CloneMissingRepos(services ServiceMap) error {
 	for _, repo := range repos {
 		path := filepath.Join(ReposPath(), repo)
 
-		if util.FileOrDirExists(path) {
-			dirlen, err := util.DirLen(path)
+		if file.FileOrDirExists(path) {
+			dirlen, err := file.DirLen(path)
 			if err != nil {
 				return errors.Wrap(err, "Could not read project directory")
 			}
@@ -162,7 +165,7 @@ func CloneMissingRepos(services ServiceMap) error {
 		count++
 	}
 
-	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
+	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
 
 	log.Info("☑ finished checking git repos")
 	return nil
