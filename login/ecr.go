@@ -1,11 +1,13 @@
 package login
 
 import (
-	"bytes"
+	"fmt"
+	"io"
 	"os/exec"
-	"strings"
 
-	"github.com/TouchBistro/goutils/command"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 )
 
@@ -16,15 +18,33 @@ func (s ECRLoginStrategy) Name() string {
 }
 
 func (s ECRLoginStrategy) Login() error {
-	buf := &bytes.Buffer{}
-	err := command.Exec("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email"), "aws-ecr-login", func(cmd *exec.Cmd) {
-		cmd.Stdout = buf
-	})
+	sess := session.New()
+	stssvc := sts.New(sess)
+	ecrsvc := ecr.New(sess)
+	stsin := &sts.GetCallerIdentityInput{}
+	result, err := stssvc.GetCallerIdentity(stsin)
 	if err != nil {
-		return errors.Wrap(err, "executing aws ecr get-login failed - try running aws configure.")
+		return errors.Wrap(err, "failed to get AWS account ID - try running aws configure.")
+	}
+	account := result.Account
+	ecrin := &ecr.GetAuthorizationTokenInput{}
+	authdata, err := ecrsvc.GetAuthorizationToken(ecrin)
+	if err != nil {
+		return errors.Wrap(err, "failed to get ECR login token - try running aws configure.")
+	}
+	token := *authdata.AuthorizationData[0].AuthorizationToken
+	argString := fmt.Sprintf("login --username AWS --password-stdin https://%s.dkr.ecr.us-east-1.amazonaws.com", account)
+
+	cmd := exec.Command("docker", argString)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return errors.Wrap(err, "Couldn't open stdin to docker cli")
 	}
 
-	dockerLoginArgs := strings.Fields(buf.String())
-	err = command.Exec(dockerLoginArgs[0], dockerLoginArgs[1:], "ecr-login")
+	err = cmd.Start()
+	if err != nil {
+		return errors.Wrap(err, "Could not start docker cli")
+	}
+	_, err = io.WriteString(stdin, token)
 	return errors.Wrap(err, "docker login failed")
 }
