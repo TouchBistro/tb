@@ -45,6 +45,9 @@ func (s ECRLoginStrategy) Login() error {
 		return errors.Wrap(err, "Could not start docker cli")
 	}
 	_, err = io.WriteString(stdin, token)
+	if err != nil {
+		return errors.Wrap(err, "docker login failed")
+	}
 	err = cmd.Wait()
 	return errors.Wrap(err, "docker login failed")
 }
