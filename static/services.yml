@@ -109,13 +109,6 @@ services:
       image: ${ecr}/mokta
       tag: master
     repo: TouchBistro/mokta
-  ordering-deliveroo-service:
-    preRun: yarn db:prepare
-    remote:
-      enabled: true
-      image: ${ecr}/ordering-deliveroo-service
-      tag: master
-    repo: TouchBistro/ordering-deliveroo-service
   ordering-demo-frontend:
     preRun: yarn db:prepare
     remote:

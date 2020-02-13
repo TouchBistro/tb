@@ -1167,7 +1167,6 @@ volumes:
   ordering-ooa-service-node_modules:
   ordering-demo-frontend-node_modules:
   ordering-demo-frontend-venue-node_modules:
-  ordering-deliveroo-service-node_modules:
   ordering-gateways-frontend-node_modules:
   ordering-engine-service-node_modules:
   ordering-online-frontend-node_modules:
