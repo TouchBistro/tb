@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/ecr"
-	"github.com/aws/aws-sdk-go/service/sts"
 	"github.com/pkg/errors"
 )
 
@@ -18,25 +17,18 @@ func (s ECRLoginStrategy) Name() string {
 }
 
 func (s ECRLoginStrategy) Login() error {
-	sess, err := session.NewSession()
+	sess, err := session.NewSessionWithOptions(session.Options{SharedConfigState: session.SharedConfigEnable})
 	if err != nil {
 		return errors.Wrap(err, "failed to start aws session - try running aws configure.")
 	}
-	stssvc := sts.New(sess)
 	ecrsvc := ecr.New(sess)
-	stsin := &sts.GetCallerIdentityInput{}
-	result, err := stssvc.GetCallerIdentity(stsin)
-	if err != nil {
-		return errors.Wrap(err, "failed to get AWS account ID - try running aws configure.")
-	}
-	account := result.Account
-	ecrin := &ecr.GetAuthorizationTokenInput{}
-	authdata, err := ecrsvc.GetAuthorizationToken(ecrin)
+	authdata, err := ecrsvc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get ECR login token - try running aws configure.")
 	}
 	token := *authdata.AuthorizationData[0].AuthorizationToken
-	argString := fmt.Sprintf("login --username AWS --password-stdin https://%s.dkr.ecr.us-east-1.amazonaws.com", *account)
+	endpoint := *authdata.AuthorizationData[0].ProxyEndpoint
+	argString := fmt.Sprintf("login --username AWS --password-stdin %s", endpoint)
 
 	cmd := exec.Command("docker", argString)
 	stdin, err := cmd.StdinPipe()
