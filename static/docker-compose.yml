@@ -1,35 +1,6 @@
 version: "3.7"
 
 ###### ANCHORS ######
-
-x-json-logger-config: &json-logger-config
-  LOGGER_CONFIG_JSON: >
-    {
-      "transports": {
-        "devConsole": {
-          "provider": "winston.transports.Console",
-          "config": {
-            "colorize": true,
-            "timestamp": true,
-            "json": false
-          }
-        }
-      },
-      "env": {
-        "development": {
-          "rules": [
-            {
-              "pattern": "*",
-              "binding": {
-                "transport": ["devConsole"],
-                "level": "info"
-              }
-            }
-          ]
-        }
-      }
-    }
-
 x-postgresconnect: &postgres-connect
   DB_HOST: postgres
   DB_PORT: 5432
@@ -52,7 +23,6 @@ x-mysqlconnect: &mysql-connect
   DB_DISABLE_SSL: "true"
 
 x-nodeservice: &node-service
-  <<: *json-logger-config
   HTTP_PORT: 8080
 
 x-command-serve: &command-serve
@@ -200,7 +170,6 @@ x-legacy-bridge-manage-service-boilerplate:
   environment:
     <<: *mssql-connect
     DB_NAME: cloud_db
-    <<: *json-logger-config
   ports:
     - "8999:8080"
   depends_on:
