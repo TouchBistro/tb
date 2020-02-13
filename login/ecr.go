@@ -36,7 +36,7 @@ func (s ECRLoginStrategy) Login() error {
 		return errors.Wrap(err, "failed to get ECR login token - try running aws configure.")
 	}
 	token := *authdata.AuthorizationData[0].AuthorizationToken
-	argString := fmt.Sprintf("login --username AWS --password-stdin https://%s.dkr.ecr.us-east-1.amazonaws.com", &account)
+	argString := fmt.Sprintf("login --username AWS --password-stdin https://%s.dkr.ecr.us-east-1.amazonaws.com", *account)
 
 	cmd := exec.Command("docker", argString)
 	stdin, err := cmd.StdinPipe()
