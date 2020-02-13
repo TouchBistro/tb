@@ -10,14 +10,17 @@ import (
 	"github.com/pkg/errors"
 )
 
-const max = 1000
-
 func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
 
+	// Unforunately there's no way to get the latest images from ECR
+	// it just seems to return them in a random order
+	// We therefore need to fetch all the available images
+	// and sort them ourselves to get the newest ones
+	const max = 1000
 	input := ecr.DescribeImagesInput{
 		RepositoryName: &repoName,
 		MaxResults:     aws.Int64(int64(max)),
