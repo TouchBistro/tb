@@ -1,10 +1,11 @@
 package login
 
 import (
+	"bytes"
 	"os/exec"
 	"strings"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/command"
 	"github.com/pkg/errors"
 )
 
@@ -15,12 +16,15 @@ func (s ECRLoginStrategy) Name() string {
 }
 
 func (s ECRLoginStrategy) Login() error {
-	out, err := exec.Command("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email")...).Output()
+	buf := &bytes.Buffer{}
+	err := command.Exec("aws", strings.Fields("ecr get-login --region us-east-1 --no-include-email"), "aws-ecr-login", func(cmd *exec.Cmd) {
+		cmd.Stdout = buf
+	})
 	if err != nil {
 		return errors.Wrap(err, "executing aws ecr get-login failed - try running aws configure.")
 	}
 
-	dockerLoginArgs := strings.Fields(string(out))
-	err = util.Exec("ecr-login", dockerLoginArgs[0], dockerLoginArgs[1:]...)
+	dockerLoginArgs := strings.Fields(buf.String())
+	err = command.Exec(dockerLoginArgs[0], dockerLoginArgs[1:], "ecr-login")
 	return errors.Wrap(err, "docker login failed")
 }

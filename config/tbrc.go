@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
@@ -32,8 +33,8 @@ func InitRC() error {
 	rcPath := filepath.Join(os.Getenv("HOME"), ".tbrc.yml")
 
 	// Create default tbrc if it doesn't exist
-	if !util.FileOrDirExists(rcPath) {
-		err := util.CreateFile(rcPath, rcTemplate)
+	if !file.FileOrDirExists(rcPath) {
+		err := file.CreateFile(rcPath, rcTemplate)
 		if err != nil {
 			return errors.Wrapf(err, "couldn't create default tbrc at %s", rcPath)
 		}

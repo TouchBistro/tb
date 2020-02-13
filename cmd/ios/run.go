@@ -6,9 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/awss3"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/fatal"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/simulator"
 	"github.com/TouchBistro/tb/util"
@@ -54,7 +56,7 @@ Examples:
 		downloadDest := config.IOSBuildPath()
 
 		// Check disk utilisation by ios directory
-		usageBytes, err := util.DirSize(downloadDest)
+		usageBytes, err := file.DirSize(downloadDest)
 		if err != nil {
 			fatal.ExitErr(err, "Error checking ios build disk space usage")
 		}
@@ -144,7 +146,7 @@ Examples:
 				successCh <- pathToS3Tarball
 			}(successCh, failedCh)
 			count := 1
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
+			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
 
 			// Untar, ungzip and cleanup the file
 			pathToLocalTarball := filepath.Join(downloadDest, pathToS3Tarball)
@@ -197,7 +199,7 @@ Examples:
 		if dataPath != "" {
 			log.Infoln("☐ Injecting data files into simulator")
 
-			err = util.CopyDirContents(dataPath, appDataPath)
+			err = file.CopyDirContents(dataPath, appDataPath)
 			if err != nil {
 				fatal.ExitErrf(err, "☒ Failed to inject data into simulator")
 			}
