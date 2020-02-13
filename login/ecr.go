@@ -30,8 +30,8 @@ func (s ECRLoginStrategy) Login() error {
 	}
 
 	authData := *result.AuthorizationData[0]
-	token := authData.AuthorizationToken
-	endpoint := authData.ProxyEndpoint
+	token := *authData.AuthorizationToken
+	endpoint := *authData.ProxyEndpoint
 	argString := fmt.Sprintf("login --username AWS --password-stdin %s", endpoint)
 
 	cmd := exec.Command("docker", argString)
@@ -44,7 +44,7 @@ func (s ECRLoginStrategy) Login() error {
 	if err != nil {
 		return errors.Wrap(err, "Could not start docker cli")
 	}
-	_, err = io.WriteString(stdin, *token)
-	cmd.Wait()
+	_, err = io.WriteString(stdin, token)
+	err = cmd.Wait()
 	return errors.Wrap(err, "docker login failed")
 }
