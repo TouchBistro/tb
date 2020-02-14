@@ -1,7 +1,11 @@
 anchors:
+  command-serve: &command-serve |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+  command-start: &command-start |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
   build-node-dev: &build-node-dev
     target: dev
-    command: yarn start
+    command: *command-start
     dockerfilePath: ${@REPOPATH}
     args:
       NODE_ENV: development
@@ -42,7 +46,7 @@ services:
         - value: backoffice-customer-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
@@ -60,7 +64,16 @@ services:
     build:
       dockerfilePath: ${@REPOPATH}
     remote:
-      command: bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+      command: >
+        bash -c '
+          echo '...done'
+          if [ "$START_SERVER" = "true" ]; then
+            echo "Starting server.."
+            bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+          else
+            echo "Not starting server.."
+            tail -f /dev/null
+          fi'
       enabled: true
       image: ${ecr}/cloud-server
       tag: develop
@@ -130,7 +143,7 @@ services:
     build:
       <<: *build-node-dev
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/identity-user-service
       tag: master
@@ -150,7 +163,7 @@ services:
       volumes:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-auth-service
       tag: master
@@ -170,7 +183,7 @@ services:
       volumes:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-scratchpad-service
       tag: master
@@ -191,7 +204,7 @@ services:
         - value: legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-cloud-service
       tag: master
@@ -208,7 +221,7 @@ services:
     build:
       <<: *build-node-dev
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-manage-service
       tag: master
@@ -294,7 +307,7 @@ services:
       volumes:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
@@ -331,7 +344,7 @@ services:
     build:
       <<: *build-node-dev
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/mokta
       tag: master
@@ -356,7 +369,7 @@ services:
         - value: ordering-demo-frontend-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-demo-frontend
       tag: master
@@ -404,7 +417,7 @@ services:
         - value: ordering-engine-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-engine-service
       tag: master
@@ -426,7 +439,7 @@ services:
         - value: ${@REPOPATH}:/home/node/app:delegated
         - value: ordering-online-frontend-node_modules:/home/node/app/node_module
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-online-frontend
       tag: master
@@ -446,7 +459,7 @@ services:
         - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-gateways-frontend
       tag: master
@@ -517,7 +530,7 @@ services:
         - value: ordering-ooa-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-ooa-service
       tag: master
@@ -562,7 +575,7 @@ services:
         - value: partners-config-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-config-service
       tag: master
@@ -599,7 +612,7 @@ services:
         - value: partners-etl-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
@@ -676,7 +689,7 @@ services:
         - value: partners-orchestration-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-orchestration-service
       tag: master
@@ -715,7 +728,7 @@ services:
         - value: partners-reservations-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-reservations-service
       tag: master
@@ -733,7 +746,7 @@ services:
     build:
       <<: *build-node-dev
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/payments-gateway-service
       tag: master
@@ -779,7 +792,7 @@ services:
       dockerfilePath: ${@REPOPATH}
       target: release
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-admin-frontend
       tag: master
@@ -819,7 +832,7 @@ services:
         - value: venue-core-service-node_modules:/home/node/app/node_modules:delegated
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-core-service
       tag: master
@@ -839,7 +852,7 @@ services:
     build:
       <<: *build-node-dev
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-provisioning-service
       tag: master
@@ -879,10 +892,34 @@ services:
         - value: venue-upload-service-node_modules:/home/node/app/node_modules
           named: true
     remote:
-      command: yarn serve
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
+<<<<<<< HEAD
+=======
+  legacy-upload-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      <<: [ *postgres-connect, *node-service ]
+    ports:
+      - '8009:8080'
+    repo: TouchBistro/legacy-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
+          named: true
+    remote:
+      command: *command-serve
+      enabled: true
+      image: ${ecr}/legacy-upload-service
+      tag: master
+>>>>>>> parent of 636892f... Remove no-start-servers
   yp-singleapp-api:
     dependencies:
       - singleapp-database
