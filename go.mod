@@ -3,6 +3,7 @@ module github.com/TouchBistro/tb
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/TouchBistro/goutils v0.0.1
+	github.com/aws/aws-sdk-go v1.29.1
 	github.com/aws/aws-sdk-go-v2 v0.15.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/distribution v2.7.1+incompatible // indirect
@@ -14,7 +15,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cobra v0.0.5
-	golang.org/x/net v0.0.0-20190628185345-da137c7871d7
+	golang.org/x/net v0.0.0-20200202094626-16171245cfb2
 	gopkg.in/yaml.v2 v2.2.2
 )
 
