@@ -9,21 +9,21 @@ type IOSApp struct {
 	EnvVars  map[string]string
 }
 
-const Bucket = "tb-ios-builds"
-
-var apps = map[string]IOSApp{
-	"TouchBistro": {
-		BundleID: "com.touchbistro.TouchBistro",
-		Branch:   "develop",
-		Repo:     "TouchBistro/tb-pos",
-		EnvVars: map[string]string{
-			"debug.autoAcceptTOS": "true",
-		},
-	},
+type AppConfig struct {
+	Global struct {
+		Storage struct {
+			Type string `yaml:"type"`
+			Name string `yaml:"name"`
+		} `yaml:"storage"`
+	} `yaml:"global"`
+	IOSApps map[string]IOSApp `yaml:"ios"`
 }
 
+// TODO legacy - remove
+const Bucket = "tb-ios-builds"
+
 func Apps() map[string]IOSApp {
-	return apps
+	return appConfig.IOSApps
 }
 
 func IOSBuildPath() string {

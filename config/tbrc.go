@@ -4,12 +4,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/TouchBistro/goutils/file"
-	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v2"
 )
 
-var tbrc UserConfig
+const (
+	tbrcFileName = ".tbrc.yml"
+)
+
+type ExperimentalOptions struct {
+	UseRecipes bool `yaml:"recipes"`
+}
 
 type Playlist struct {
 	Extends  string   `yaml:"extends"`
@@ -26,33 +31,32 @@ type ServiceOverride struct {
 	Remote  struct {
 		Command string `yaml:"command"`
 		Enabled bool   `yaml:"enabled"`
-		Tag     string `yaml:"tag"`
-	} `yaml:"remote"`
+		Tag     string `yaml:"tag,omitempty"`
+	} `yaml:"remote,omitempty"`
 }
 
 type UserConfig struct {
 	DebugEnabled bool                       `yaml:"debug"`
+	Experimental ExperimentalOptions        `yaml:"experimental"`
+	Recipes      []Recipe                   `yaml:"recipes"`
 	Playlists    map[string]Playlist        `yaml:"playlists"`
 	Overrides    map[string]ServiceOverride `yaml:"overrides"`
 }
 
-func InitRC() error {
-	rcPath := filepath.Join(os.Getenv("HOME"), ".tbrc.yml")
-
-	// Create default tbrc if it doesn't exist
-	if !file.FileOrDirExists(rcPath) {
-		err := file.CreateFile(rcPath, rcTemplate)
-		if err != nil {
-			return errors.Wrapf(err, "couldn't create default tbrc at %s", rcPath)
-		}
-	}
-
-	err := util.ReadYaml(rcPath, &tbrc)
-	return errors.Wrapf(err, "couldn't read yaml file at %s", rcPath)
-}
-
 func TBRC() *UserConfig {
 	return &tbrc
+}
+
+func saveTBRC(rc UserConfig) error {
+	rcPath := filepath.Join(os.Getenv("HOME"), tbrcFileName)
+	rcFile, err := os.OpenFile(rcPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open file %s", rcPath)
+	}
+	defer rcFile.Close()
+
+	err = yaml.NewEncoder(rcFile).Encode(&rc)
+	return errors.Wrapf(err, "failed to write %s", tbrcFileName)
 }
 
 const rcTemplate = `# Toggle debug mode for more verbose logging

@@ -1,25 +1,27 @@
 package config
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/gobuffalo/packr/v2"
-
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/login"
-	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
+type PlaylistMap map[string]Playlist
+
+// Package state for storing config info
+var tbrc UserConfig
 var serviceConfig ServiceConfig
-var playlists map[string]Playlist
+var playlists PlaylistMap
+var appConfig AppConfig
 var tbRoot string
 
+// TODO legacy - remove these
 const (
 	servicesPath             = "services.yml"
 	playlistPath             = "playlists.yml"
@@ -27,6 +29,12 @@ const (
 	localstackEntrypointPath = "localstack-entrypoint.sh"
 	lazydockerConfigPath     = "lazydocker.yml"
 )
+
+type InitOptions struct {
+	LoadServices  bool
+	LoadApps      bool
+	UpdateRecipes bool
+}
 
 /* Getters for private & computed vars */
 
@@ -57,7 +65,7 @@ func BaseImages() []string {
 
 /* Private functions */
 
-func setupEnv() error {
+func setupEnv(rcPath string) error {
 	// Set $TB_ROOT so it works in the docker-compose file
 	tbRoot = filepath.Join(os.Getenv("HOME"), ".tb")
 	os.Setenv("TB_ROOT", tbRoot)
@@ -69,123 +77,86 @@ func setupEnv() error {
 			return errors.Wrapf(err, "failed to create $TB_ROOT directory at %s", tbRoot)
 		}
 	}
+
+	// Create default tbrc if it doesn't exist
+	if !file.FileOrDirExists(rcPath) {
+		err := file.CreateFile(rcPath, rcTemplate)
+		if err != nil {
+			return errors.Wrapf(err, "couldn't create default tbrc at %s", rcPath)
+		}
+	}
+
 	return nil
 }
 
-func dumpFile(from, to, dir string, box *packr.Box) error {
-	path := filepath.Join(dir, to)
-	buf, err := box.Find(from)
+func Init(opts InitOptions) error {
+	// Setup env and load .tbrc.yml
+	rcPath := filepath.Join(os.Getenv("HOME"), tbrcFileName)
+	setupEnv(rcPath)
+
+	log.Debugf("Loading %s...", tbrcFileName)
+	rcFile, err := os.Open(rcPath)
 	if err != nil {
-		return errors.Wrapf(err, "failed to find packr box %s", from)
+		return errors.Wrapf(err, "failed to open file %s", rcPath)
+	}
+	defer rcFile.Close()
+
+	err = yaml.NewDecoder(rcFile).Decode(&tbrc)
+	if err != nil {
+		return errors.Wrapf(err, "failed to decode %s", tbrcFileName)
 	}
 
-	var reason string
-	// If file exists compare the checksum to the packr version
-	if file.FileOrDirExists(path) {
-		log.Debugf("%s exists", path)
-		log.Debugf("comparing checksums for %s", from)
+	if !tbrc.Experimental.UseRecipes {
+		log.Debugln("Using legacy config init")
+		return legacyInit()
+	}
 
-		fileBuf, err := ioutil.ReadFile(path)
+	log.Debugf("Resolving recipes...")
+	// Make sure recipes exist and resolve path
+	for i, r := range tbrc.Recipes {
+		resolvedRecipe, err := resolveRecipe(r, opts.UpdateRecipes)
 		if err != nil {
-			return errors.Wrapf(err, "failed to read contents of %s", path)
+			return errors.Wrapf(err, "failed to resolve recipe %s", r.Name)
+		}
+		tbrc.Recipes[i] = resolvedRecipe
+	}
+
+	if opts.LoadServices {
+		serviceConfigMap := make(map[string]ServiceConfig)
+		playlistsMap := make(map[string]PlaylistMap)
+		for _, r := range tbrc.Recipes {
+			s, p, err := readRecipeServices(r)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read services for recipe %s", r.Name)
+			}
+			serviceConfigMap[r.Name] = s
+			playlistsMap[r.Name] = p
 		}
 
-		memChecksum, err := util.MD5Checksum(buf)
+		serviceConfig, playlists, err = mergeServiceConfigs(serviceConfigMap, playlistsMap)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get checksum of %s in packr box", from)
+			return errors.Wrap(err, "failed to merge services and playlists")
+		}
+	}
+
+	if opts.LoadApps {
+		appConfigMap := make(map[string]AppConfig)
+		for _, r := range tbrc.Recipes {
+			a, err := readRecipeApps(r)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read apps for recipe %s", r.Name)
+			}
+			appConfigMap[r.Name] = a
 		}
 
-		fileChecksum, err := util.MD5Checksum(fileBuf)
+		appConfig, err = mergeAppConfigs(appConfigMap)
 		if err != nil {
-			return errors.Wrapf(err, "failed to get checksum of %s", path)
+			return errors.Wrap(err, "failed to merge apps")
 		}
-
-		// checksums are the same, leave as is
-		if bytes.Equal(memChecksum, fileChecksum) {
-			log.Debugf("checksums match, leaving %s as is", from)
-			return nil
-		}
-
-		reason = "is outdated, recreating file..."
-	} else {
-		reason = "does not exist, creating file..."
-	}
-
-	log.Debugf("%s %s", path, reason)
-
-	err = ioutil.WriteFile(path, buf, 0644)
-	return errors.Wrapf(err, "failed to write contents of %s to %s", from, path)
-}
-
-func Init() error {
-	err := setupEnv()
-	if err != nil {
-		return errors.Wrap(err, "failed to setup $TB_ROOT env")
-	}
-
-	box := packr.New("static", "../static")
-
-	sBuf, err := box.Find(servicesPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
-	}
-
-	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
-	}
-
-	pBuf, err := box.Find(playlistPath)
-	if err != nil {
-		return errors.Wrapf(err, "failed to find packr box %s", playlistPath)
-	}
-	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
-	if err != nil {
-		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
-	}
-
-	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
-	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
-	}
-
-	ldPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
-	err = os.MkdirAll(ldPath, 0766)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldPath)
-	}
-
-	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
-	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", lazydockerConfigPath)
-	}
-
-	services, err := parseServices(serviceConfig)
-	if err != nil {
-		return errors.Wrapf(err, "failed to load services")
-	}
-
-	services, err = applyOverrides(services, tbrc.Overrides)
-	if err != nil {
-		return errors.Wrap(err, "failed to apply overrides from tbrc")
-	}
-
-	// Create docker-compose.yml
-	composePath := filepath.Join(tbRoot, dockerComposePath)
-	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", composePath)
-	}
-	defer file.Close()
-
-	log.Debugln("Generating docker-compose.yml file...")
-	err = CreateComposeFile(services, file)
-	if err != nil {
-		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
 	log.Debugln("Successfully generated docker-compose.yml")
 
-	serviceConfig.Services = services
+	// TODO Dump lazydocker config if it doesn't exist
 
 	return nil
 }
@@ -226,19 +197,4 @@ func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
 	}
 
 	return []string{}, nil
-}
-
-func RmFiles() error {
-	files := [...]string{dockerComposePath, localstackEntrypointPath}
-
-	for _, file := range files {
-		log.Debugf("Removing %s...\n", file)
-		path := filepath.Join(tbRoot, file)
-		err := os.Remove(path)
-		if err != nil {
-			return errors.Wrapf(err, "could not remove file at %s", path)
-		}
-	}
-
-	return nil
 }

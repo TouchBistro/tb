@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/goutils/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -115,10 +115,18 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeConfig || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing config files...")
-			err := config.RmFiles()
-			if err != nil {
-				fatal.ExitErr(err, "Failed removing config files.")
+
+			// TODO will clean this up later, just moving here for now
+			files := [...]string{"docker-compose.yml", "localstack-entrypoint.sh"}
+			for _, file := range files {
+				log.Debugf("Removing %s...\n", file)
+				path := filepath.Join(config.TBRootPath(), file)
+				err := os.Remove(path)
+				if err != nil {
+					fatal.ExitErrf(err, "Failed removing file %s", path)
+				}
 			}
+
 			log.Infoln("...done")
 		}
 
