@@ -103,8 +103,8 @@ Examples:
 
 			// If there is a local build, get latest sha from github for desired branch to see if the build available on s3 corresponds to the
 			// latest commit on the branch.
-			log.Infof("Checking latest github sha for %s/%s-%s", app.Organisation, app.Repo, branch)
-			latestGitsha, err := git.GetBranchHeadSha(app.Organisation, app.Repo, branch)
+			log.Infof("Checking latest github sha for %s-%s", app.Repo, branch)
+			latestGitsha, err := git.GetBranchHeadSha(app.Repo, branch)
 			if err != nil {
 				fatal.ExitErrf(err, "Failed getting branch head sha for %s/%s", app.Repo, branch)
 			}
