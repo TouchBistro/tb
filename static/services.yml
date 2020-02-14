@@ -896,30 +896,6 @@ services:
       enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
-<<<<<<< HEAD
-=======
-  legacy-upload-service:
-    dependencies:
-      - postgres
-      - localstack
-    envFile: ${@REPOPATH}/.env.example
-    envVars:
-      <<: [ *postgres-connect, *node-service ]
-    ports:
-      - '8009:8080'
-    repo: TouchBistro/legacy-upload-service
-    build:
-      <<: *build-node-dev
-      volumes:
-        - value: ${@REPOPATH}:/home/node/app:delegated
-        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
-          named: true
-    remote:
-      command: *command-serve
-      enabled: true
-      image: ${ecr}/legacy-upload-service
-      tag: master
->>>>>>> parent of 636892f... Remove no-start-servers
   yp-singleapp-api:
     dependencies:
       - singleapp-database

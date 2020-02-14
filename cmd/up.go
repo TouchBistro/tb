@@ -123,7 +123,7 @@ func dockerComposeBuild(services config.ServiceMap, composeFile string) {
 func dockerComposeUp(services config.ServiceMap, composeFile string) {
 	log.Info("☐ starting docker-compose up in detached mode")
 
-	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
+	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(services.Names(), " "))
 	err := command.Exec("docker-compose", strings.Fields(upArgs), "compose-up")
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
@@ -339,7 +339,7 @@ Examples:
 				}
 
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
-				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, config.ComposeName(name, s), s.PreRun)
+				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, name, s.PreRun)
 				go func(successCh chan string, failedCh chan error, name string, args []string) {
 					err := command.Exec("docker-compose", args, name)
 					if err != nil {
