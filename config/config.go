@@ -178,10 +178,12 @@ func Init() error {
 	}
 	defer file.Close()
 
+	log.Debugln("Generating docker-compose.yml file...")
 	err = CreateComposeFile(services, file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
+	log.Debugln("Successfully generated docker-compose.yml")
 
 	serviceConfig.Services = services
 

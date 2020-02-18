@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/spinner"
@@ -383,6 +384,9 @@ func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
+
+	altMsg := color.Yellow("Please override either 'build.command' or 'remote.command' in your '.tbrc.yml' if you wish to change the way a service starts.")
+	upCmd.PersistentFlags().MarkDeprecated("no-start-servers", fmt.Sprintf("and will be removed in the next major version of tb.\n%s\n", altMsg))
 
 	rootCmd.AddCommand(upCmd)
 }
