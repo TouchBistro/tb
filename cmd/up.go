@@ -378,7 +378,8 @@ Examples:
 }
 
 func init() {
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
+	noStartServers := "no-start-servers"
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, noStartServers, false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
@@ -386,7 +387,10 @@ func init() {
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
 	altMsg := color.Yellow("Please override either 'build.command' or 'remote.command' in your '.tbrc.yml' if you wish to change the way a service starts.")
-	upCmd.PersistentFlags().MarkDeprecated("no-start-servers", fmt.Sprintf("and will be removed in the next major version of tb.\n%s\n", altMsg))
+	err := upCmd.PersistentFlags().MarkDeprecated(noStartServers, fmt.Sprintf("and will be removed in the next major version of tb.\n%s\n", altMsg))
+	if err != nil {
+		fatal.ExitErrf(err, "Failed to deprecate flag %s", noStartServers)
+	}
 
 	rootCmd.AddCommand(upCmd)
 }
