@@ -15,13 +15,32 @@ import (
 
 /* Types */
 
+type volume struct {
+	Value   string `yaml:"value"`
+	IsNamed bool   `yaml:"named"`
+}
+
 type Service struct {
-	GithubRepo string `yaml:"repo"`
-	PreRun     string `yaml:"preRun"`
-	Remote     struct {
-		Enabled bool   `yaml:"enabled"`
-		Image   string `yaml:"image"`
-		Tag     string `yaml:"tag"`
+	Build struct {
+		Args           map[string]string `yaml:"args"`
+		Command        string            `yaml:"command"`
+		DockerfilePath string            `yaml:"dockerfilePath"`
+		Target         string            `yaml:"target"`
+		Volumes        []volume          `yaml:"volumes"`
+	} `yaml:"build"`
+	Dependencies []string          `yaml:"dependencies"`
+	Entrypoint   []string          `yaml:"entrypoint"`
+	EnvFile      string            `yaml:"envFile"`
+	EnvVars      map[string]string `yaml:"envVars"`
+	GitRepo      string            `yaml:"repo"`
+	Ports        []string          `yaml:"ports"`
+	PreRun       string            `yaml:"preRun"`
+	Remote       struct {
+		Command string   `yaml:"command"`
+		Enabled bool     `yaml:"enabled"`
+		Image   string   `yaml:"image"`
+		Tag     string   `yaml:"tag"`
+		Volumes []volume `yaml:"volumes"`
 	} `yaml:"remote"`
 }
 
@@ -38,12 +57,16 @@ type ServiceConfig struct {
 
 /* Methods & computed properties */
 
-func (s Service) IsGithubRepo() bool {
-	return s.GithubRepo != ""
+func (s Service) HasGitRepo() bool {
+	return s.GitRepo != ""
 }
 
 func (s Service) UseRemote() bool {
 	return s.Remote.Enabled
+}
+
+func (s Service) CanBuild() bool {
+	return s.Build.DockerfilePath != ""
 }
 
 func (s Service) ImageURI() string {
@@ -54,6 +77,15 @@ func (s Service) ImageURI() string {
 	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
 }
 
+func (sm ServiceMap) Names() []string {
+	names := make([]string, 0, len(sm))
+	for name := range sm {
+		names = append(names, name)
+	}
+
+	return names
+}
+
 /* Private helpers */
 
 func parseServices(config ServiceConfig) (ServiceMap, error) {
@@ -62,19 +94,41 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 	// Validate each service and perform any necessary actions
 	for name, service := range config.Services {
 		// Make sure either local or remote usage is specified
-		if !service.IsGithubRepo() && service.Remote.Image == "" {
-			msg := fmt.Sprintf("Must specify at least one of 'repo' or 'remote.image' for service %s", name)
+		if !service.CanBuild() && service.Remote.Image == "" {
+			msg := fmt.Sprintf("Must specify at least one of 'build.dockerfilePath' or 'remote.image' for service %s", name)
 			return nil, errors.New(msg)
 		}
 
 		// Make sure repo is specified if not using remote
-		if !service.UseRemote() && !service.IsGithubRepo() {
-			msg := fmt.Sprintf("'enabled: false' is set but 'repo' was not provided for service %s", name)
+		if !service.UseRemote() && !service.CanBuild() {
+			msg := fmt.Sprintf("'remote.enabled: false' is set but 'build.dockerfilePath' was not provided for service %s", name)
 			return nil, errors.New(msg)
 		}
 
-		// Expand any docker registry vars
-		service.Remote.Image = util.ExpandVars(service.Remote.Image, config.Global.Variables)
+		// Set special service specific vars
+		vars := config.Global.Variables
+		vars["@ROOTPATH"] = TBRootPath()
+
+		if service.HasGitRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.GitRepo)
+		}
+
+		// Expand any vars
+		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
+		service.EnvFile = util.ExpandVars(service.EnvFile, vars)
+		service.Remote.Image = util.ExpandVars(service.Remote.Image, vars)
+
+		for key, value := range service.EnvVars {
+			service.EnvVars[key] = util.ExpandVars(value, vars)
+		}
+
+		for i, volume := range service.Build.Volumes {
+			service.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		for i, volume := range service.Remote.Volumes {
+			service.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
 
 		parsedServices[name] = service
 	}
@@ -98,12 +152,34 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 		if override.Remote.Enabled && s.Remote.Image == "" {
 			msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", name)
 			return nil, errors.New(msg)
-		} else if !override.Remote.Enabled && !s.IsGithubRepo() {
+		} else if !override.Remote.Enabled && !s.HasGitRepo() {
 			msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", name)
 			return nil, errors.New(msg)
 		}
 
 		// Apply overrides to service
+		if override.Build.Command != "" {
+			s.Build.Command = override.Build.Command
+		}
+
+		if override.Build.Target != "" {
+			s.Build.Target = override.Build.Target
+		}
+
+		if override.EnvVars != nil {
+			for v, val := range override.EnvVars {
+				s.EnvVars[v] = val
+			}
+		}
+
+		if override.PreRun != "" {
+			s.PreRun = override.PreRun
+		}
+
+		if override.Remote.Command != "" {
+			s.Remote.Command = override.Remote.Command
+		}
+
 		s.Remote.Enabled = override.Remote.Enabled
 		if override.Remote.Tag != "" {
 			s.Remote.Tag = override.Remote.Tag
@@ -116,14 +192,6 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 }
 
 /* Public funtions */
-
-func ComposeName(name string, s Service) string {
-	if s.UseRemote() && s.IsGithubRepo() {
-		return name + "-remote"
-	}
-
-	return name
-}
 
 func CloneMissingRepos(services ServiceMap) error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
@@ -171,24 +239,15 @@ func CloneMissingRepos(services ServiceMap) error {
 	return nil
 }
 
-func ComposeNames(configs ServiceMap) []string {
-	names := make([]string, 0)
-	for name, s := range configs {
-		names = append(names, ComposeName(name, s))
-	}
-
-	return names
-}
-
 func Repos(services ServiceMap) []string {
 	var repos []string
 	seenRepos := make(map[string]bool)
 
 	for _, s := range services {
-		if !s.IsGithubRepo() {
+		if !s.HasGitRepo() {
 			continue
 		}
-		repo := s.GithubRepo
+		repo := s.GitRepo
 
 		// repo has already been added to the list, don't add it again
 		if seenRepos[repo] {

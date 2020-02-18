@@ -18,13 +18,13 @@ func serviceString(services []string) (string, error) {
 	for _, serviceName := range services {
 		// Make sure it's a valid service
 		// We should probably consider removing needing the config package here
-		s, ok := config.Services()[serviceName]
+		_, ok := config.Services()[serviceName]
 		if !ok {
 			msg := fmt.Sprintf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 			return "", errors.New(msg)
 		}
 
-		b.WriteString(config.ComposeName(serviceName, s))
+		b.WriteString(serviceName)
 		b.WriteString(" ")
 	}
 

@@ -1,3 +1,16 @@
+anchors:
+  command-serve: &command-serve |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn serve; else tail -f /dev/null; fi'
+  command-start: &command-start |
+    bash -c 'if [ "$START_SERVER" = "true" ]; then yarn start; else tail -f /dev/null; fi'
+  build-node-dev: &build-node-dev
+    target: dev
+    command: *command-start
+    dockerfilePath: ${@REPOPATH}
+    args:
+      NODE_ENV: development
+      NPM_TOKEN: $NPM_TOKEN
+
 global:
   baseImages:
     - touchbistro/alpine-node:10-build
@@ -13,208 +26,883 @@ global:
 
 services:
   backoffice-customer-service:
+    dependencies:
+      - postgres
+      - infrastructure-auth-service
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
+      TASK_PROVIDER: inmemory
+    ports:
+      - '8700:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/backoffice-customer-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: backoffice-customer-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
-    repo: TouchBistro/backoffice-customer-service
   cloud-server:
+    dependencies:
+      - redis
+      - legacy-database
+    entrypoint: ["bash", "./docker-entrypoint.sh"]
+    envFile: ${@REPOPATH}/.env.compose
+    envVars:
+      MSSQL_HOST: legacy-database
+    ports:
+      - '3000:3000'
+    repo: TouchBistro/cloud-server
+    build:
+      dockerfilePath: ${@REPOPATH}
     remote:
+      command: >
+        bash -c '
+          echo '...done'
+          if [ "$START_SERVER" = "true" ]; then
+            echo "Starting server.."
+            bundle exec unicorn -p 3000 -c ./config/unicorn.rb
+          else
+            echo "Not starting server.."
+            tail -f /dev/null
+          fi'
       enabled: true
       image: ${ecr}/cloud-server
       tag: develop
-    repo: TouchBistro/cloud-server
   cloud-server-frontend:
+    dependencies:
+      - cloud-server
+    envFile: ${@REPOPATH}/packages/frontend/.env.example
+    ports:
+      - '8080:80'
+    repo: TouchBistro/cloud-server-frontend
+    build:
+      args:
+        USE_INSECURE_COOKIE: insecure
+      dockerfilePath: ${@REPOPATH}/packages/frontend
     remote:
       enabled: true
       image: ${ecr}/cloud-server-frontend
       tag: develop
-    repo: TouchBistro/cloud-server-frontend
   dotnet-api:
+    dependencies:
+      - legacy-database
+    envVars:
+      MONO_OPTIONS: --debug
+    ports:
+      - '9001:80'
     repo: TouchBistro/dotnet-depot
+    build:
+      dockerfilePath: ${@REPOPATH}/api
   dotnet-manage:
+    dependencies:
+      - legacy-database
+    envVars:
+      MONO_OPTIONS: --debug
+    ports:
+      - '9000:80'
     repo: TouchBistro/dotnet-depot
+    build:
+      dockerfilePath: ${@REPOPATH}/Manage
   health-clinic:
+    envFile: ${@REPOPATH}/.env.compose
+    ports:
+      - '8089:8089'
+    repo: TouchBistro/health-clinic
+    build:
+      command: 'tail -f /dev/null'
+      dockerfilePath: ${@REPOPATH}
+      volumes:
+        - value: ${@REPOPATH}:/home/python/app
     remote:
+      command: 'tail -f /dev/null'
       enabled: true
       image: ${ecr}/health-clinic
       tag: master
-    repo: TouchBistro/health-clinic
   identity-user-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      OKTA_BASE_URL: https://mokta:8080
+      INSECURE_DISABLE_SSL_VALIDATION: "true"
+    ports:
+      - '8777:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/identity-user-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/identity-user-service
       tag: master
-    repo: TouchBistro/identity-user-service
   infrastructure-auth-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8073:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/infrastructure-auth-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-auth-service
       tag: master
-    repo: TouchBistro/infrastructure-auth-service
   infrastructure-scratchpad-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8181:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/infrastructure-scratchpad-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/infrastructure-scratchpad-service
       tag: master
-    repo: TouchBistro/infrastructure-scratchpad-service
   legacy-bridge-cloud-service:
+    dependencies:
+      - legacy-database
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: legacy-database
+      HTTP_PORT: 8080
+    ports:
+      - '8101:8080'
+    repo: TouchBistro/legacy-bridge-cloud-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-bridge-cloud-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-cloud-service
       tag: master
-    repo: TouchBistro/legacy-bridge-cloud-service
   legacy-bridge-manage-service:
+    dependencies:
+      - legacy-database
+    envFile: ${@REPOPATH}/.env.compose
+    envVars:
+      DB_HOST: legacy-database
+      HTTP_PORT: 8080
+    ports:
+      - '8999:8080'
+    repo: TouchBistro/legacy-bridge-manage-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/legacy-bridge-manage-service
       tag: master
-    repo: TouchBistro/legacy-bridge-manage-service
   legacy-database:
+    entrypoint: ["bash", "./docker-entrypoint-db.sh"]
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: localhost
+    ports:
+      - '1433:1433'
     preRun: yarn db:prepare
+    repo: TouchBistro/legacy-database
+    build:
+      args:
+        NODE_ENV: development
+        NPM_TOKEN: $NPM_TOKEN
+      command: "tail -f /dev/null"
+      dockerfilePath: ${@REPOPATH}
+      target: db-migrate-with-seeds
+      volumes:
+        - value: legacy-database:/var/opt/mssql/data
+          named: true
     remote:
+      command: "tail -f /dev/null"
       enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
-    repo: TouchBistro/legacy-database
+  legacy-upload-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8009:8080'
+    repo: TouchBistro/legacy-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: legacy-upload-service-node_modules:/home/node/app/node_modules
+          named: true
+    remote:
+      command: yarn serve
+      enabled: true
+      image: ${ecr}/legacy-upload-service
+      tag: master
   localstack:
+    envVars:
+      SERVICES: s3,sqs,sns
+      PORT_WEB_UI: '8080'
+      DOCKER_HOST: unix:///var/run/docker.sock
+    ports:
+      - '9888:8080' # web interface
+      - '4567-4584:4567-4584'
     remote:
       enabled: true
       image: localstack/localstack
+      volumes:
+        - value: "/var/run/docker.sock:/var/run/docker.sock"
+        - value: "${@ROOTPATH}/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
+        - value: "${@ROOTPATH}/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
+        - value: "${@ROOTPATH}/repos/TouchBistro/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
   loyalty-gateway-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8600:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/loyalty-gateway-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
-    repo: TouchBistro/loyalty-gateway-service
   postgres:
+    envVars:
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - '5432:5432'
     remote:
       enabled: true
       image: postgres
       tag: 10.6-alpine
+      volumes:
+        - value: postgres:/var/lib/postgresql/data
+          named: true
   redis:
+    ports:
+      - '6379:6379'
     remote:
       enabled: true
       image: redis
       tag: 4-alpine
   mokta:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+    ports:
+      - '9443:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/mokta
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/mokta
       tag: master
-    repo: TouchBistro/mokta
   ordering-demo-frontend:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      DELIVEROO_DISABLED: "true"
+      ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
+      URL_CALLBACK_URL: http://ordering-demo-frontend:8080/callback
+    ports:
+      - '8010:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/ordering-demo-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-demo-frontend-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-demo-frontend
       tag: master
-    repo: TouchBistro/ordering-demo-frontend
   ordering-demo-frontend-venue:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      INVENUE_BASE_URL: http://ordering-ooa-service:8080/external
+      MODE: venue
+    ports:
+      - '8020:8080'
     repo: TouchBistro/ordering-demo-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
+          named: true
   ordering-engine-service:
+    dependencies:
+      - ordering-ooa-service
+      - singleapp-database
+      - yp-singleapp-api
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      DB_HOST: singleapp-database
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: root
+      DB_DISABLE_SSL: "true"
+      JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
+      ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
+      SINGLEAPP_BASE_URL: http://yp-singleapp-api:80
+    ports:
+      - '8610:8080'
+    repo: TouchBistro/ordering-engine-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-engine-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-engine-service
       tag: master
-    repo: TouchBistro/ordering-engine-service
   ordering-online-frontend:
+    dependencies:
+      - infrastructure-auth-service
+      - ordering-engine-service
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      INFRASTRUCTURE_AUTH_BASE_URL: http://infrastructure-auth-service:8080/v1
+    ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
+    ports:
+      - '8611:8080'
+    repo: TouchBistro/ordering-online-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-online-frontend-node_modules:/home/node/app/node_module
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-online-frontend
       tag: master
-    repo: TouchBistro/ordering-online-frontend
   ordering-gateways-frontend:
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
+      ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
+    ports:
+      - '8030:8080'
+    repo: TouchBistro/ordering-gateways-frontend
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-gateways-frontend
       tag: master
-    repo: TouchBistro/ordering-gateways-frontend
   ordering-ooa-service:
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {
+          "ordering.notification.venue.menuUpdate": {
+            "queueURL": "http://localstack:4576/queue/menuUpdate",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "ordering.notification.venue.orderCancelled": {
+            "queueURL": "http://localstack:4576/queue/orderCancelled",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "ordering.notification.venue.ordersPending": {
+            "queueURL": "http://localstack:4576/queue/ordersPending",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "ordering.notification.gateway.ordersStatus": {
+            "queueURL": "http://localstack:4576/queue/ordersStatus",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "ordering.order.expiryCheck": {
+            "queueURL": "http://localstack:4576/queue/expiryCheck",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "ordering.order.validate": {
+            "queueURL": "http://localstack:4576/queue/orderValidate",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+      TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+    dependencies:
+      - postgres
+      - localstack
+    ports:
+      - '8005:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/ordering-ooa-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: ordering-ooa-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/ordering-ooa-service
       tag: master
-    repo: TouchBistro/ordering-ooa-service
   partners-config-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
+      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
+      PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
+      VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        "workflow.runNextInstruction": {
+          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+          "messageThrottle": 1,
+          "visibilityTimeout": 10,
+          "waitTimeSeconds": 5,
+          "sleepTimeSeconds": 5
+        },
+        {
+          "partners-config.task.venueIntegrationUpdate": {
+            "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+    ports:
+      - '8090:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-config-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-config-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-config-service
       tag: master
-    repo: TouchBistro/partners-config-service
   partners-etl-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      AWS_S3_ENDPOINT: http://localstack:4572
+      AWS_S3_STUB: "false"
+      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {
+          "etl.job.execute": {
+            "queueURL": "http://localstack:4576/queue/etlExecute",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+    ports:
+      - '8888:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-etl-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-etl-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
-    repo: TouchBistro/partners-etl-service
   partners-orchestration-service:
+    dependencies:
+      - postgres
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      # PORCHS is dead and the repo is archived.
+      # Leaving this here until I have Uzi's blessing to remove the service
+      LOGGER_CONFIG_JSON: >
+        {
+          "transports": {
+            "devConsole": {
+              "provider": "winston.transports.Console",
+              "config": {
+                "colorize": true,
+                "timestamp": true,
+                "json": false
+              }
+            }
+          },
+          "env": {
+            "development": {
+              "rules": [
+                {
+                  "pattern": "*",
+                  "binding": {
+                    "transport": ["devConsole"],
+                    "level": "info"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      HTTP_PORT: 8080
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: core
+      DB_PASSWORD: localdev
+      DB_DISABLE_SSL: "true"
+      LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
+      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
+      PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
+      VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {
+          "workflow.runNextInstruction": {
+            "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          },
+          "partners-config.task.venueIntegrationUpdate": {
+            "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+    ports:
+      - '8085:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-orchestration-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-orchestration-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-orchestration-service
       tag: master
-    repo: TouchBistro/partners-orchestration-service
   partners-reservations-service:
+    dependencies:
+      - postgres
+      - localstack
+      - venue-upload-service
+      - partners-config-service
+      - partners-orchestration-service
+      - legacy-bridge-cloud-service
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      AWS_S3_ENDPOINT: http://localstack:4572
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {
+          "venue-upload.task.venueUpload": {
+            "queueURL": "http://localstack:4576/queue/venueUpload",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+    ports:
+      - '8602:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/partners-reservations-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: partners-reservations-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/partners-reservations-service
       tag: master
-    repo: TouchBistro/partners-reservations-service
   payments-gateway-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    ports:
+      - '8008:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/payments-gateway-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/payments-gateway-service
       tag: master
-    repo: TouchBistro/payments-gateway-service
   singleapp-database:
+    ports:
+      - '3306:3306'
+    repo: TouchBistro/singleapp-database
+    build:
+      dockerfilePath: ${@REPOPATH}
+      volumes:
+        - value: singleapp-database:/var/lib/mysql/
+          named: true
     remote:
       enabled: true
       image: ${ecr}/singleapp-database
       tag: master
-    repo: TouchBistro/singleapp-database
+      volumes:
+        - value: singleapp-database:/var/lib/mysql/
+          named: true
   venue-admin-frontend:
+    dependencies:
+      - venue-core-service
+      - cloud-server
+      - legacy-bridge-cloud-service
+      - partners-config-service
+    # Note the `../`, since the Dockerfile executes from $HOME/app/dist
+    entrypoint: ["bash", "../docker-entrypoint.sh"]
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      CORE_BACKEND_URL_BASE: http://venue-core-service:8080
+      TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://partners-config-service:8080
+      TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE: http://legacy-bridge-cloud-service:8080
+      INFRASTRUCTURE_AUTH_SERVICE_URL: http://infrastructure-auth-service:8080
+      OKTA_APPLICATION_URL_BASE: https://mokta:8080
+      HTTP_PORT: 9002 # VAF will default to :5000 for local server development.
+      NODE_ENV: production
+    ports:
+      - '9002:9002'
+    repo: TouchBistro/venue-admin-frontend
+    build:
+      args:
+        NPM_TOKEN: $NPM_TOKEN
+      dockerfilePath: ${@REPOPATH}
+      target: release
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-admin-frontend
       tag: master
-    repo: TouchBistro/venue-admin-frontend
   venue-core-service:
+    dependencies:
+      - postgres
+      - localstack
+    entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      DB_HOST: postgres
+      PROVISIONING_JWKS_URI: http://venue-provisioning-service:8080/external/jwks
+      AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_ENDPOINT: http://localstack:4572
+      LOCALSTACK_SQS_URL: http://localstack:4576
+      # Note: Remove USE_INSECURE_IMPERSONATE after https://github.com/TouchBistro/venue-core-service/pull/239 is merged.
+      # Keeping for backwards compatibility.
+      USE_INSECURE_IMPERSONATE: insecure
+      INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://infrastructure-auth-service:8080/jwks
+      INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+    ports:
+      - '8081:8080' # Main HTTP port
+      - '9901:9229' # 9229, 9330: Node debugger
+      - '9902:9230'
+      - '4001:4001' # JSDoc server
+      - '9903:8090' # rtail log server
+      # - '8089:8089'   # Not used?
     preRun: yarn db:prepare
+    repo: TouchBistro/venue-core-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: venue-core-service-node_modules:/home/node/app/node_modules:delegated
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-core-service
       tag: master
-    repo: TouchBistro/venue-core-service
   venue-provisioning-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+      TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+    port:
+      - '8666:8080'
     preRun: yarn db:prepare
+    repo: TouchBistro/venue-provisioning-service
+    build:
+      <<: *build-node-dev
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-provisioning-service
       tag: master
-    repo: TouchBistro/venue-provisioning-service
   venue-upload-service:
+    dependencies:
+      - localstack
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      AWS_S3_ENDPOINT: http://localstack:4572
+      TASK_PROVIDER: awssqs
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {
+          "venue-upload.task.venueUpload": {
+            "queueURL": "http://localstack:4576/queue/venueUpload",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5,
+            "sendOnly": true
+          },
+          "venue-upload.task.validateOrder": {
+            "queueURL": "http://localstack:4576/queue/validateOrder",
+            "messageThrottle": 1,
+            "visibilityTimeout": 10,
+            "waitTimeSeconds": 5,
+            "sleepTimeSeconds": 5
+          }
+        }
+    ports:
+      - '8601:8080'
+    repo: TouchBistro/venue-upload-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+        - value: venue-upload-service-node_modules:/home/node/app/node_modules
+          named: true
     remote:
+      command: *command-serve
       enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
-    repo: TouchBistro/venue-upload-service
-  legacy-upload-service:
-    remote:
-      enabled: true
-      image: ${ecr}/legacy-upload-service
-      tag: master
-    repo: TouchBistro/legacy-upload-service
   yp-singleapp-api:
+    dependencies:
+      - singleapp-database
+    ports:
+      - '8023:80'
     repo: TouchBistro/yp-singleapp-api
+    build:
+      args:
+        HOMEBREW_GITHUB_API_TOKEN: $HOMEBREW_GITHUB_API_TOKEN
+      dockerfilePath: ${@REPOPATH}

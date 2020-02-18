@@ -144,11 +144,6 @@ func Init() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	err = dumpFile(dockerComposePath, dockerComposePath, tbRoot, box)
-	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", dockerComposePath)
-	}
-
 	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
@@ -162,7 +157,7 @@ func Init() error {
 
 	err = dumpFile(lazydockerConfigPath, "config.yml", ldPath, box)
 	if err != nil {
-		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
+		return errors.Wrapf(err, "failed to dump file to %s", lazydockerConfigPath)
 	}
 
 	services, err := parseServices(serviceConfig)
@@ -175,17 +170,20 @@ func Init() error {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
-	// Set env vars used in compose file
-	for name, s := range services {
-		serviceNameVar := util.StringToUpperAndSnake(name) + "_NAME"
-		os.Setenv(serviceNameVar, ComposeName(name, s))
-
-		// Set imageURIs for remote images.
-		if s.UseRemote() {
-			uriVar := util.StringToUpperAndSnake(name) + "_IMAGE_URI"
-			os.Setenv(uriVar, s.ImageURI())
-		}
+	// Create docker-compose.yml
+	composePath := filepath.Join(tbRoot, dockerComposePath)
+	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open file %s", composePath)
 	}
+	defer file.Close()
+
+	log.Debugln("Generating docker-compose.yml file...")
+	err = CreateComposeFile(services, file)
+	if err != nil {
+		return errors.Wrap(err, "failed to generated docker-compose file")
+	}
+	log.Debugln("Successfully generated docker-compose.yml")
 
 	serviceConfig.Services = services
 

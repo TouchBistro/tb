@@ -7,6 +7,7 @@ import (
 
 	"time"
 
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/spinner"
@@ -121,11 +122,9 @@ func dockerComposeBuild(services config.ServiceMap, composeFile string) {
 }
 
 func dockerComposeUp(services config.ServiceMap, composeFile string) {
-	serviceNames := config.ComposeNames(services)
-
 	log.Info("☐ starting docker-compose up in detached mode")
 
-	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(serviceNames, " "))
+	upArgs := fmt.Sprintf("%s up -d %s", composeFile, strings.Join(services.Names(), " "))
 	err := command.Exec("docker-compose", strings.Fields(upArgs), "compose-up")
 	if err != nil {
 		fatal.ExitErr(err, "could not run docker-compose up")
@@ -211,8 +210,7 @@ Examples:
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedServices := selectServices()
-		composeNames := config.ComposeNames(selectedServices)
-		log.Infof("running the following services: %s", strings.Join(composeNames, ", "))
+		log.Infof("running the following services: %s", strings.Join(selectedServices.Names(), ", "))
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths
@@ -342,7 +340,7 @@ Examples:
 				}
 
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
-				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, config.ComposeName(name, s), s.PreRun)
+				composeArgs := fmt.Sprintf("%s run --rm %s %s", composeFile, name, s.PreRun)
 				go func(successCh chan string, failedCh chan error, name string, args []string) {
 					err := command.Exec("docker-compose", args, name)
 					if err != nil {
@@ -380,12 +378,19 @@ Examples:
 }
 
 func init() {
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, "no-start-servers", false, "dont start servers with yarn start or yarn serve on container boot")
+	noStartServers := "no-start-servers"
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, noStartServers, false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
+
+	altMsg := color.Yellow("Please override either 'build.command' or 'remote.command' in your '.tbrc.yml' if you wish to change the way a service starts.")
+	err := upCmd.PersistentFlags().MarkDeprecated(noStartServers, fmt.Sprintf("and will be removed in the next major version of tb.\n%s\n", altMsg))
+	if err != nil {
+		fatal.ExitErrf(err, "Failed to deprecate flag %s", noStartServers)
+	}
 
 	rootCmd.AddCommand(upCmd)
 }

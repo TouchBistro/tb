@@ -35,12 +35,12 @@ Examples:
 		serviceName := args[0]
 
 		// Make sure it's a valid service
-		service, ok := config.Services()[serviceName]
+		_, ok := config.Services()[serviceName]
 		if !ok {
 			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
-		composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), config.ComposeName(serviceName, service))
+		composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), serviceName)
 		composeCmdArgs := strings.Split(composeCmd, " ")
 		composeCmdArgs = append(composeCmdArgs, args[1:]...)
 
