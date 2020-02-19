@@ -785,7 +785,7 @@ services:
       TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://partners-config-service:8080
       TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE: http://legacy-bridge-cloud-service:8080
       INFRASTRUCTURE_AUTH_SERVICE_URL: http://infrastructure-auth-service:8080
-      OKTA_APPLICATION_URL_BASE: https://mokta:8080
+      OKTA_APPLICATION_URL_BASE: http://mokta:8080
       HTTP_PORT: 9002 # VAF will default to :5000 for local server development.
       NODE_ENV: production
     ports:
