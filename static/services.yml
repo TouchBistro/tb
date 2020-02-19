@@ -553,21 +553,22 @@ services:
       VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
-        "workflow.runNextInstruction": {
-          "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
-          "messageThrottle": 1,
-          "visibilityTimeout": 10,
-          "waitTimeSeconds": 5,
-          "sleepTimeSeconds": 5
-        },
         {
-          "partners-config.task.venueIntegrationUpdate": {
-            "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+          "workflow.runNextInstruction": {
+            "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
-          }
+          },
+          {
+            "partners-config.task.venueIntegrationUpdate": {
+              "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+              "messageThrottle": 1,
+              "visibilityTimeout": 10,
+              "waitTimeSeconds": 5,
+              "sleepTimeSeconds": 5
+            }
         }
     ports:
       - '8090:8080'
