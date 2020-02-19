@@ -850,7 +850,7 @@ services:
       HTTP_PORT: 8080
       TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
-    port:
+    ports:
       - '8666:8080'
     preRun: yarn db:prepare
     repo: TouchBistro/venue-provisioning-service
