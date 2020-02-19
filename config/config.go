@@ -2,9 +2,11 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/login"
 	"github.com/pkg/errors"
@@ -20,6 +22,13 @@ var serviceConfig ServiceConfig
 var playlists PlaylistMap
 var appConfig AppConfig
 var tbRoot string
+
+const lazydockerConfig = `
+reporting: "off"
+gui:
+  wrapMainPanel: true
+update:
+  dockerRefreshInterval: 2000ms`
 
 // TODO legacy - remove these
 const (
@@ -50,8 +59,8 @@ func Services() ServiceMap {
 	return serviceConfig.Services
 }
 
-func Playlists() map[string]Playlist {
-	return playlists
+func Playlists() (PlaylistMap, PlaylistMap) {
+	return playlists, tbrc.Playlists
 }
 
 func LoginStategies() ([]login.LoginStrategy, error) {
@@ -94,7 +103,6 @@ func Init(opts InitOptions) error {
 	rcPath := filepath.Join(os.Getenv("HOME"), tbrcFileName)
 	setupEnv(rcPath)
 
-	log.Debugf("Loading %s...", tbrcFileName)
 	rcFile, err := os.Open(rcPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file %s", rcPath)
@@ -106,10 +114,42 @@ func Init(opts InitOptions) error {
 		return errors.Wrapf(err, "failed to decode %s", tbrcFileName)
 	}
 
-	if !tbrc.Experimental.UseRecipes {
+	// Configure anything debug related
+	var logLevel log.Level
+	if tbrc.DebugEnabled {
+		logLevel = log.DebugLevel
+	} else {
+		logLevel = log.InfoLevel
+		fatal.ShowStackTraces = false
+	}
+
+	log.SetLevel(logLevel)
+	log.SetFormatter(&log.TextFormatter{
+		// TODO: Remove the log level - its quite ugly
+		DisableTimestamp: true,
+	})
+
+	if !tbrc.ExperimentalMode {
 		log.Debugln("Using legacy config init")
 		return legacyInit()
 	}
+
+	// Create default lazydocker config if it doesn't exist
+	ldDirPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
+	err = os.MkdirAll(ldDirPath, 0766)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
+	}
+
+	ldConfigPath := filepath.Join(ldDirPath, "lazydocker.yml")
+	if !file.FileOrDirExists(ldConfigPath) {
+		err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
+		if err != nil {
+			return errors.Wrap(err, "failed to create lazydocker config file")
+		}
+	}
+
+	// THE RECIPE ZONE
 
 	log.Debugf("Resolving recipes...")
 	// Make sure recipes exist and resolve path
@@ -155,8 +195,6 @@ func Init(opts InitOptions) error {
 		}
 	}
 	log.Debugln("Successfully generated docker-compose.yml")
-
-	// TODO Dump lazydocker config if it doesn't exist
 
 	return nil
 }

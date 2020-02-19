@@ -12,10 +12,6 @@ const (
 	tbrcFileName = ".tbrc.yml"
 )
 
-type ExperimentalOptions struct {
-	UseRecipes bool `yaml:"recipes"`
-}
-
 type Playlist struct {
 	Extends  string   `yaml:"extends"`
 	Services []string `yaml:"services"`
@@ -36,15 +32,15 @@ type ServiceOverride struct {
 }
 
 type UserConfig struct {
-	DebugEnabled bool                       `yaml:"debug"`
-	Experimental ExperimentalOptions        `yaml:"experimental"`
-	Recipes      []Recipe                   `yaml:"recipes"`
-	Playlists    map[string]Playlist        `yaml:"playlists"`
-	Overrides    map[string]ServiceOverride `yaml:"overrides"`
+	DebugEnabled     bool                       `yaml:"debug"`
+	ExperimentalMode bool                       `yaml:"experimental"`
+	Recipes          []Recipe                   `yaml:"recipes"`
+	Playlists        map[string]Playlist        `yaml:"playlists"`
+	Overrides        map[string]ServiceOverride `yaml:"overrides"`
 }
 
-func TBRC() *UserConfig {
-	return &tbrc
+func ExperimentalMode() bool {
+	return tbrc.ExperimentalMode
 }
 
 func saveTBRC(rc UserConfig) error {

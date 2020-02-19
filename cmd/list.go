@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/goutils/fatal"
-	"github.com/spf13/cobra"
 	"sort"
+
+	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/config"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -37,12 +38,14 @@ var listCmd = &cobra.Command{
 
 		if shouldListPlaylists {
 			fmt.Println("Playlists:")
-			listPlaylists(config.Playlists(), isTreeMode)
+			playlists, _ := config.Playlists()
+			listPlaylists(playlists, isTreeMode)
 		}
 
 		if shouldListCustomPlaylists {
 			fmt.Println("Custom Playlists:")
-			listPlaylists(config.TBRC().Playlists, isTreeMode)
+			_, customPlaylists := config.Playlists()
+			listPlaylists(customPlaylists, isTreeMode)
 		}
 	},
 }

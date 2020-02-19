@@ -26,6 +26,9 @@ var iosCmd = &cobra.Command{
 			fatal.Exit("Error: tb ios is only supported on macOS")
 		}
 
+		// Run root setup
+		cmd.Root().PersistentPreRun(cmd, args)
+
 		err := simulator.LoadSimulators()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to find available iOS simulators")

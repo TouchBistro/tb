@@ -16,11 +16,29 @@ import (
 )
 
 var version string
+var rootOpts struct {
+	noUpdateRecipes bool
+}
 
 var rootCmd = &cobra.Command{
 	Use:     "tb",
 	Version: version,
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		initOpts := config.InitOptions{UpdateRecipes: !rootOpts.noUpdateRecipes}
+		baseCmdName := cmd.Parent().Name()
+
+		if baseCmdName == "ios" {
+			initOpts.LoadApps = true
+		} else if baseCmdName == "tb" {
+			initOpts.LoadServices = true
+		}
+
+		err := config.Init(initOpts)
+		if err != nil {
+			fatal.ExitErr(err, "Failed to initialise config files.")
+		}
+	},
 }
 
 func Execute() {
@@ -30,6 +48,8 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&rootOpts.noUpdateRecipes, "no-update-recipes", false, "Don't update recipes when tb is run")
+
 	// Add subcommands
 	rootCmd.AddCommand(ios.IOS())
 	rootCmd.AddCommand(recipe.Recipe())
@@ -37,39 +57,8 @@ func init() {
 	cobra.OnInitialize(func() {
 		f := fortune.Random().String()
 		fmt.Println(color.Magenta(f))
-		initConfig()
+		checkVersion()
 	})
-}
-
-func initConfig() {
-	err := config.InitRC()
-	if err != nil {
-		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
-	}
-
-	var logLevel log.Level
-	if config.TBRC().DebugEnabled {
-		logLevel = log.DebugLevel
-	} else {
-		logLevel = log.InfoLevel
-	}
-
-	log.SetLevel(logLevel)
-	log.SetFormatter(&log.TextFormatter{
-		// TODO: Remove the log level - its quite ugly
-		DisableTimestamp: true,
-	})
-
-	if logLevel != log.DebugLevel {
-		fatal.ShowStackTraces = false
-	}
-
-	err = config.Init()
-	if err != nil {
-		fatal.ExitErr(err, "Failed to initialise config files.")
-	}
-
-	checkVersion()
 }
 
 func checkVersion() {
