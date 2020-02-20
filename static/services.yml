@@ -434,7 +434,7 @@ services:
     envVars:
       HTTP_PORT: 8080
       INFRASTRUCTURE_AUTH_BASE_URL: http://infrastructure-auth-service:8080/v1
-    ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
+      ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
     ports:
       - '8611:8080'
     repo: TouchBistro/ordering-online-frontend
