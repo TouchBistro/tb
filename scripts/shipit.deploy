@@ -1,16 +1,32 @@
 #!/bin/bash
-set -e
 
+export AWS_DEFAULT_REGION=us-east-1 # lazy
 export CARD_IMAGE="https://png.pngtree.com/svg/20170406/icon_failed__1325447.png"
-export DEPLOY_MESSAGE="Deployment failed, see shipit for more info."
+export ICON="❌"
 
 . scripts/notif.sh
 
+#todo: just start using this directly once shipit is upgraded
+export GITHUB_REPO_NAME=$1
+
+if [ $# -lt 2 ]; then
+  echo "Incorrect arguments supplied - need projectname, operation, and optional webhookurl"
+fi
+
+if [ $2 = "deploy" ]; then
+  export DEPLOY_MESSAGE="Deployment failed for $GITHUB_REPO_NAME, see shipit for more info."
+fi
+
+if [ $2 = "rollback" ]; then
+  export DEPLOY_MESSAGE="Rollback failed for $GITHUB_REPO_NAME, see shipit for more info."
+fi
+
 fail_notif() {
-	if [ -f .gchat_notification_url ]; then
-		curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_post_data)" "$(cat .gchat_notification_url)"
+	# test if $3 is set to a webhook url
+	if !([ -z ${3+x} ]); then
+		curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_slack_post_data)" $3
 	fi
-	curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_post_data)" $WEBHOOK_URL
+	curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_slack_post_data)" $SLACK_WEBHOOK_URL
 	exit 1
 }
 

@@ -1,70 +1,12 @@
 #!/bin/bash
 
-export PROJECT=tb
+export GITLOG="$(git log --pretty=format:"* %an: <https://github.com/touchbistro/$GITHUB_REPO_NAME/commit/%H|%s>" $LAST_DEPLOYED_SHA..$REVISION)"
 
-generate_post_data()
+generate_slack_post_data()
 {
   cat <<EOF
 {
-  "cards":[
-    {
-      "header":{
-        "title":"${DEPLOY_MESSAGE}",
-        "subtitle":"${PROJECT}",
-        "imageUrl":"${CARD_IMAGE}",
-        "imageStyle":"IMAGE"
-      },
-      "sections":[
-        {
-          "widgets":[
-            {
-              "keyValue":{
-                "content":"Branch: ${BRANCH}"
-              }
-            },
-            {
-              "keyValue":{
-                "content":"Commit SHA: ${REVISION}"
-              }
-            },
-            {
-              "keyValue":{
-                "content":"User: ${SHIPIT_USER}"
-              }
-            }
-          ]
-        },
-        {
-          "widgets":[
-            {
-              "buttons":[
-                {
-                  "textButton":{
-                    "text":"DETAILS",
-                    "onClick":{
-                      "openLink":{
-                        "url":"${SHIPIT_LINK}"
-                      }
-                    }
-                  }
-                },
-                {
-                  "textButton":{
-                    "text":"DIFF",
-                    "onClick":{
-                      "openLink":{
-                        "url":"${DIFF_LINK}"
-                      }
-                    }
-                  }
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
+  "text":"$ICON $DEPLOY_MESSAGE (<$SHIPIT_LINK|logs>|<$DIFF_LINK|diff>)\n$GITLOG"
 }
 EOF
 }
