@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -31,6 +32,22 @@ type Recipe struct {
 
 func recipesPath() string {
 	return filepath.Join(tbRoot, "recipes")
+}
+
+func recipeNameParts(name string) (string, string, error) {
+	// Full form of item name in a recipe is
+	// <org>/<repo>/<item> where an item is a service, playlist or app
+	regex := regexp.MustCompile(`^(?:([\w-]+\/[\w-]+)\/)?([\w-]+)$`)
+	matches := regex.FindStringSubmatch(name)
+
+	if len(matches) == 0 {
+		return "", "", errors.Errorf("%s is not a valid tb item name. Format is <org>/<repo>/<item>", name)
+	} else if len(matches) == 2 {
+		// No recipe name provided
+		return "", matches[1], nil
+	}
+
+	return matches[1], matches[2], nil
 }
 
 func resolveRecipe(r Recipe, shouldUpdate bool) (Recipe, error) {
@@ -64,12 +81,12 @@ func resolveRecipe(r Recipe, shouldUpdate bool) (Recipe, error) {
 	return r, nil
 }
 
-func readRecipeServices(r Recipe) (ServiceConfig, PlaylistMap, error) {
+func readRecipeServices(r Recipe) (RecipeServiceConfig, PlaylistMap, error) {
 	servicesPath := filepath.Join(r.Path, servicesFileName)
 	playlistsPath := filepath.Join(r.Path, playlistsFileName)
 
 	log.Debugf("Reading services from recipe %s", r.Name)
-	serviceConf := ServiceConfig{}
+	serviceConf := RecipeServiceConfig{}
 
 	// Read services.yml
 	if !file.FileOrDirExists(servicesPath) {
@@ -109,11 +126,11 @@ func readRecipeServices(r Recipe) (ServiceConfig, PlaylistMap, error) {
 	return serviceConf, playlists, nil
 }
 
-func readRecipeApps(r Recipe) (AppConfig, error) {
+func readRecipeApps(r Recipe) (RecipeAppConfig, error) {
 	appsPath := filepath.Join(r.Path, appsFileName)
 
 	log.Debugf("Reading apps from recipe %s", r.Name)
-	appConf := AppConfig{}
+	appConf := RecipeAppConfig{}
 
 	if !file.FileOrDirExists(appsPath) {
 		log.Debugf("recipe %s has no %s", r.Name, appsFileName)
@@ -133,19 +150,76 @@ func readRecipeApps(r Recipe) (AppConfig, error) {
 	return appConf, nil
 }
 
-func mergeServiceConfigs(serviceConfigMap map[string]ServiceConfig, playlistsMap map[string]PlaylistMap) (ServiceConfig, PlaylistMap, error) {
+func mergeServiceConfigs(serviceConfigMap map[string]RecipeServiceConfig, playlistsMap map[string]PlaylistMap) (ServiceConfig, map[string][]Playlist, error) {
 	mergedServiceConfig := ServiceConfig{}
-	mergedPlaylists := make(PlaylistMap)
+	mergedPlaylists := make(map[string][]Playlist)
 
-	// for recipeName, serviceConf := range serviceConfigMap {
+	for recipeName, serviceConf := range serviceConfigMap {
+		mergedServiceConfig.BaseImages = append(mergedServiceConfig.BaseImages, serviceConf.Global.BaseImages...)
+		mergedServiceConfig.LoginStrategies = append(mergedServiceConfig.LoginStrategies, serviceConf.Global.LoginStrategies...)
 
-	// }
+		// Parse services to verify required properties exist and expand variables
+		services, err := parseServices(serviceConf)
+		if err != nil {
+			return mergedServiceConfig, nil, errors.Wrapf(err, "failed to parse services from recipe %s", recipeName)
+		}
+
+		// Add all services to the merged config and set their recipe name for lookup later
+		for serviceName, s := range services {
+			s.RecipeName = recipeName
+			mergedServiceConfig.Services[serviceName] = append(mergedServiceConfig.Services[serviceName], s)
+		}
+	}
+
+	for recipeName, playlists := range playlistsMap {
+		for playlistName, p := range playlists {
+			if p.Extends != "" {
+				// Add recipe name to playlist being extended if it's missing
+				r, name, err := recipeNameParts(p.Extends)
+				if err != nil {
+					return mergedServiceConfig, nil, errors.Wrapf(err, "failed to resolve full name of playlist %s", p.Extends)
+				}
+
+				if r == "" {
+					p.Extends = fmt.Sprintf("%s/%s", recipeName, name)
+				}
+			}
+
+			// Add recipe name to services if it's missing
+			serviceList := make([]string, len(p.Services))
+			for i, s := range p.Services {
+				r, name, err := recipeNameParts(s)
+				if err != nil {
+					return mergedServiceConfig, nil, errors.Wrapf(err, "failed to resolve full name of service %s in playlist %s", s, playlistName)
+				}
+
+				if r == "" {
+					r = recipeName
+				}
+
+				serviceList[i] = fmt.Sprintf("%s/%s", r, name)
+			}
+
+			p.Services = serviceList
+			p.RecipeName = recipeName
+			mergedPlaylists[playlistName] = append(mergedPlaylists[playlistName], p)
+		}
+	}
 
 	return mergedServiceConfig, mergedPlaylists, nil
 }
 
-func mergeAppConfigs(appConfigMap map[string]AppConfig) (AppConfig, error) {
+func mergeAppConfigs(appConfigMap map[string]RecipeAppConfig) (AppConfig, error) {
 	mergedAppConfig := AppConfig{}
+
+	for recipeName, appConf := range appConfigMap {
+		// TODO figure out s3 config
+
+		for appName, app := range appConf.IOSApps {
+			app.RecipeName = recipeName
+			mergedAppConfig.IOSApps[appName] = append(mergedAppConfig.IOSApps[appName], app)
+		}
+	}
 
 	return mergedAppConfig, nil
 }

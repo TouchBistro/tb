@@ -13,8 +13,9 @@ const (
 )
 
 type Playlist struct {
-	Extends  string   `yaml:"extends"`
-	Services []string `yaml:"services"`
+	Extends    string   `yaml:"extends"`
+	Services   []string `yaml:"services"`
+	RecipeName string   `yaml:"-"`
 }
 
 type ServiceOverride struct {

@@ -19,7 +19,7 @@ type PlaylistMap map[string]Playlist
 // Package state for storing config info
 var tbrc UserConfig
 var serviceConfig ServiceConfig
-var playlists PlaylistMap
+var playlists map[string][]Playlist
 var appConfig AppConfig
 var tbRoot string
 
@@ -64,12 +64,12 @@ func Playlists() (PlaylistMap, PlaylistMap) {
 }
 
 func LoginStategies() ([]login.LoginStrategy, error) {
-	s, err := login.ParseStrategies(serviceConfig.Global.LoginStategies)
+	s, err := login.ParseStrategies(serviceConfig.LoginStrategies)
 	return s, errors.Wrap(err, "Failed to parse login strategies")
 }
 
 func BaseImages() []string {
-	return serviceConfig.Global.BaseImages
+	return serviceConfig.BaseImages
 }
 
 /* Private functions */
@@ -162,7 +162,7 @@ func Init(opts InitOptions) error {
 	}
 
 	if opts.LoadServices {
-		serviceConfigMap := make(map[string]ServiceConfig)
+		serviceConfigMap := make(map[string]RecipeServiceConfig)
 		playlistsMap := make(map[string]PlaylistMap)
 		for _, r := range tbrc.Recipes {
 			s, p, err := readRecipeServices(r)
@@ -180,7 +180,7 @@ func Init(opts InitOptions) error {
 	}
 
 	if opts.LoadApps {
-		appConfigMap := make(map[string]AppConfig)
+		appConfigMap := make(map[string]RecipeAppConfig)
 		for _, r := range tbrc.Recipes {
 			a, err := readRecipeApps(r)
 			if err != nil {
@@ -194,7 +194,6 @@ func Init(opts InitOptions) error {
 			return errors.Wrap(err, "failed to merge apps")
 		}
 	}
-	log.Debugln("Successfully generated docker-compose.yml")
 
 	return nil
 }

@@ -42,17 +42,25 @@ type Service struct {
 		Tag     string   `yaml:"tag"`
 		Volumes []volume `yaml:"volumes"`
 	} `yaml:"remote"`
+	// Extra properties added at runtime
+	RecipeName string `yaml:"-"`
 }
 
 type ServiceMap map[string]Service
 
-type ServiceConfig struct {
+type RecipeServiceConfig struct {
 	Global struct {
-		BaseImages     []string          `yaml:"baseImages"`
-		LoginStategies []string          `yaml:"loginStrategies"`
-		Variables      map[string]string `yaml:"variables"`
+		BaseImages      []string          `yaml:"baseImages"`
+		LoginStrategies []string          `yaml:"loginStrategies"`
+		Variables       map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services ServiceMap `yaml:"services"`
+}
+
+type ServiceConfig struct {
+	BaseImages      []string
+	LoginStrategies []string
+	Services        map[string][]Service
 }
 
 /* Methods & computed properties */
@@ -77,6 +85,13 @@ func (s Service) ImageURI() string {
 	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
 }
 
+// func (sm ServiceMap) Service(name string) {
+// 	regex := regexp.MustCompile(`(?:([\w-]+\/[\w-]+)\/)?([\w-]+)`)
+// 	matches := regex.FindAllStringSubmatch(name, -1)
+// 	recipeName := matches[0][1]
+// 	serviceName := matches[0][2]
+// }
+
 func (sm ServiceMap) Names() []string {
 	names := make([]string, 0, len(sm))
 	for name := range sm {
@@ -88,7 +103,7 @@ func (sm ServiceMap) Names() []string {
 
 /* Private helpers */
 
-func parseServices(config ServiceConfig) (ServiceMap, error) {
+func parseServices(config RecipeServiceConfig) (ServiceMap, error) {
 	parsedServices := make(ServiceMap)
 
 	// Validate each service and perform any necessary actions
