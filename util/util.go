@@ -9,10 +9,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-func StringToUpperAndSnake(str string) string {
-	return strings.ReplaceAll(strings.ToUpper(str), "-", "_")
-}
-
 func MD5Checksum(buf []byte) ([]byte, error) {
 	hash := md5.New()
 	_, err := hash.Write(buf)
@@ -39,7 +35,7 @@ func Prompt(msg string) bool {
 
 func ExpandVars(str string, vars map[string]string) string {
 	// Regex to match variable substitution of the form ${VAR}
-	regex := regexp.MustCompile(`\$\{([\w-@]+)\}`)
+	regex := regexp.MustCompile(`\$\{([\w-@:]+)\}`)
 	indices := regex.FindAllStringSubmatchIndex(str, -1)
 
 	// Go through the string in reverse order and replace all variables with their value

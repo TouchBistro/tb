@@ -29,3 +29,6 @@ dist
 packrd/
 bin
 .idea/
+
+# Test coverage
+coverage/

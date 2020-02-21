@@ -29,3 +29,10 @@ lint:
 go-uninstall:
 	rm $(shell go env GOPATH)/bin/tb
 .PHONY: go-uninstall
+
+# Run tests and collect coverage data
+test:
+	mkdir -p coverage
+	go test -coverprofile=coverage/coverage.txt ./...
+	go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
+.PHONY: test
