@@ -128,7 +128,7 @@ func legacyInit() error {
 	defer file.Close()
 
 	log.Debugln("Generating docker-compose.yml file...")
-	err = CreateComposeFile(services.ServiceMap(), file)
+	err = createComposeFile(services.ServiceMap(), file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}

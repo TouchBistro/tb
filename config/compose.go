@@ -70,7 +70,7 @@ func createComposeService(name string, service Service) composeService {
 	return s
 }
 
-func CreateComposeFile(services ServiceMap, w io.Writer) error {
+func createComposeFile(services ServiceMap, w io.Writer) error {
 	composeServices := make(map[string]composeService)
 	// Top level named volumes are an empty field, i.e. `postgres:`
 	// There's no way to create an empty field with go-yaml

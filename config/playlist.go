@@ -30,7 +30,6 @@ func getPlaylistServices(name string, deps map[string]bool) ([]string, error) {
 			}
 
 			playlist = list[0]
-			name = joinNameParts(playlist.RecipeName, playlistName)
 		} else {
 			// Find playlist with matching recipe
 			found := false

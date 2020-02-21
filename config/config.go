@@ -197,7 +197,7 @@ func Init(opts InitOptions) error {
 		}
 		defer file.Close()
 
-		err = CreateComposeFile(serviceConfig.Services.ServiceMap(), file)
+		err = createComposeFile(serviceConfig.Services.ServiceMap(), file)
 		if err != nil {
 			return errors.Wrap(err, "failed to generated docker-compose file")
 		}
