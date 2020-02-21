@@ -398,7 +398,7 @@ services:
       - singleapp-database
       - yp-singleapp-api
       - infrastructure-auth-service
-      - loyalty-gateway-service 
+      - loyalty-gateway-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -815,6 +815,8 @@ services:
       AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
       AWS_S3_ENDPOINT: http://localstack:4572
       LOCALSTACK_SQS_URL: http://localstack:4576
+      TASK_AWS_SQS_CONFIG_JSON: >
+        {"core.task.data.migration":{"queueURL":"http://localstack:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
       # Note: Remove USE_INSECURE_IMPERSONATE after https://github.com/TouchBistro/venue-core-service/pull/239 is merged.
       # Keeping for backwards compatibility.
       USE_INSECURE_IMPERSONATE: insecure
