@@ -33,18 +33,18 @@ var listCmd = &cobra.Command{
 
 		if shouldListServices {
 			fmt.Println("Services:")
-			listServices(config.Services())
+			listServices(config.Services().ServiceMap())
 		}
 
 		if shouldListPlaylists {
 			fmt.Println("Playlists:")
-			playlists, _ := config.Playlists()
+			playlists := config.PlaylistNames()
 			listPlaylists(playlists, isTreeMode)
 		}
 
 		if shouldListCustomPlaylists {
 			fmt.Println("Custom Playlists:")
-			_, customPlaylists := config.Playlists()
+			customPlaylists := config.CustomPlaylistNames()
 			listPlaylists(customPlaylists, isTreeMode)
 		}
 	},
@@ -64,21 +64,14 @@ func listServices(services config.ServiceMap) {
 	}
 }
 
-func listPlaylists(playlists map[string]config.Playlist, tree bool) {
-	names := make([]string, len(playlists))
-	i := 0
-	for name := range playlists {
-		names[i] = name
-		i++
-	}
-
-	sort.Strings(names)
-	for _, name := range names {
+func listPlaylists(playlists []string, tree bool) {
+	sort.Strings(playlists)
+	for _, name := range playlists {
 		fmt.Printf("  - %s\n", name)
 		if !tree {
 			continue
 		}
-		list, err := config.GetPlaylist(name, make(map[string]bool))
+		list, err := config.GetPlaylist(name)
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed resolving service playlist")
 		}

@@ -38,9 +38,9 @@ Examples:
 - run the build for specific branch in an iOS 12.3 iPad Air 2 simulator
 	tb ios run --app TouchBistro --ios-version 12.3 --device iPad Air 2 --branch task/pay-631/fix-thing`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app, ok := config.Apps()[appName]
-		if !ok {
-			fatal.Exitf("Error: No iOS app with name %s\n", appName)
+		fullAppName, app, err := config.GetIOSApp(appName)
+		if err != nil {
+			fatal.ExitErrf(err, "Error: failed to find iOS app with name %s\n", appName)
 		}
 
 		// If no branch provided, use default branch for app
@@ -83,7 +83,7 @@ Examples:
 
 		// Decide whether or not to pull down a new version.
 
-		localBranchDir := filepath.Join(downloadDest, appName, branch)
+		localBranchDir := filepath.Join(downloadDest, fullAppName, branch)
 		log.Infof("Checking contents at %s to see if we need to download a new version from S3", localBranchDir)
 
 		pattern := fmt.Sprintf("%s/*.app", localBranchDir)

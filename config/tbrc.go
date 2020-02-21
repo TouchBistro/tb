@@ -12,12 +12,6 @@ const (
 	tbrcFileName = ".tbrc.yml"
 )
 
-type Playlist struct {
-	Extends    string   `yaml:"extends"`
-	Services   []string `yaml:"services"`
-	RecipeName string   `yaml:"-"`
-}
-
 type ServiceOverride struct {
 	Build struct {
 		Command string `yaml:"command"`
@@ -54,6 +48,15 @@ func saveTBRC(rc UserConfig) error {
 
 	err = yaml.NewEncoder(rcFile).Encode(&rc)
 	return errors.Wrapf(err, "failed to write %s", tbrcFileName)
+}
+
+func CustomPlaylistNames() []string {
+	names := make([]string, 0)
+	for n := range tbrc.Playlists {
+		names = append(names, n)
+	}
+
+	return names
 }
 
 const rcTemplate = `# Toggle debug mode for more verbose logging

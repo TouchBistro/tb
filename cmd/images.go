@@ -29,9 +29,9 @@ Examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
-		s, ok := config.Services()[serviceName]
-		if !ok {
-			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		_, s, err := config.Services().Get(serviceName)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		} else if s.Remote.Image == "" {
 			fatal.Exitf("%s is not available from a remote docker registry\n", serviceName)
 		}

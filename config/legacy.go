@@ -66,7 +66,8 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
-	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConfig)
+	var serviceConf RecipeServiceConfig
+	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConf)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
@@ -75,9 +76,16 @@ func legacyInit() error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", playlistPath)
 	}
-	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
+
+	playlistMap := make(PlaylistMap)
+	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlistMap)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
+	}
+
+	// make it work with the new world
+	for n, p := range playlistMap {
+		playlists[n] = []Playlist{p}
 	}
 
 	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
@@ -96,9 +104,14 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to dump file to %s", lazydockerConfigPath)
 	}
 
-	services, err := parseServices(serviceConfig)
+	serviceMap, err := parseServices(serviceConf)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load services")
+	}
+
+	services := make(ServiceListMap)
+	for n, s := range serviceMap {
+		services[n] = []Service{s}
 	}
 
 	services, err = applyOverrides(services, tbrc.Overrides)
@@ -115,21 +128,25 @@ func legacyInit() error {
 	defer file.Close()
 
 	log.Debugln("Generating docker-compose.yml file...")
-	err = CreateComposeFile(services, file)
+	err = CreateComposeFile(services.ServiceMap(), file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
 	log.Debugln("Successfully generated docker-compose.yml")
 
+	serviceConfig.BaseImages = serviceConf.Global.BaseImages
+	serviceConfig.LoginStrategies = serviceConf.Global.LoginStrategies
 	serviceConfig.Services = services
 
-	appConfig.IOSApps = map[string]IOSApp{
-		"TouchBistro": {
-			BundleID: "com.touchbistro.TouchBistro",
-			Branch:   "develop",
-			Repo:     "TouchBistro/tb-pos",
-			EnvVars: map[string]string{
-				"debug.autoAcceptTOS": "true",
+	appConfig.IOSApps = map[string][]IOSApp{
+		"TouchBistro": []IOSApp{
+			{
+				BundleID: "com.touchbistro.TouchBistro",
+				Branch:   "develop",
+				Repo:     "TouchBistro/tb-pos",
+				EnvVars: map[string]string{
+					"debug.autoAcceptTOS": "true",
+				},
 			},
 		},
 	}

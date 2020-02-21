@@ -26,7 +26,7 @@ Examples:
 	tb exec core-database bash`,
 	Args: cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services().ServiceMap())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}

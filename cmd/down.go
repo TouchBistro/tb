@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/goutils/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -12,7 +12,7 @@ var downCmd = &cobra.Command{
 	Use:   "down [services...]",
 	Short: "Stop and remove containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services().ServiceMap())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}

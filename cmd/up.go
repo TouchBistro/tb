@@ -147,7 +147,7 @@ func selectServices() config.ServiceMap {
 			fatal.Exit("playlist name cannot be blank. try running tb up --help")
 		}
 		var err error
-		names, err = config.GetPlaylist(name, make(map[string]bool))
+		names, err = config.GetPlaylist(name)
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed resolving service playlist")
 		}
@@ -164,10 +164,11 @@ func selectServices() config.ServiceMap {
 	services := config.Services()
 	selectedServices := make(config.ServiceMap, len(names))
 	for _, name := range names {
-		if _, ok := services[name]; !ok {
-			fatal.Exitf("%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
+		fullName, s, err := services.Get(name)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
 		}
-		selectedServices[name] = services[name]
+		selectedServices[fullName] = s
 	}
 
 	if len(selectedServices) == 0 {
@@ -214,7 +215,7 @@ Examples:
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services().ServiceMap())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
 		}

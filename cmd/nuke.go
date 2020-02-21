@@ -39,7 +39,7 @@ var nukeCmd = &cobra.Command{
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
 
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services().ServiceMap())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -96,7 +96,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing repos...")
-			for _, repo := range config.Repos(config.Services()) {
+			for _, repo := range config.Repos(config.Services().ServiceMap()) {
 				log.Debugf("Removing repo %s...", repo)
 				repoPath := filepath.Join(config.ReposPath(), repo)
 				err := os.RemoveAll(repoPath)

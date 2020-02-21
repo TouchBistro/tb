@@ -48,6 +48,8 @@ type Service struct {
 
 type ServiceMap map[string]Service
 
+type ServiceListMap map[string][]Service
+
 type RecipeServiceConfig struct {
 	Global struct {
 		BaseImages      []string          `yaml:"baseImages"`
@@ -60,7 +62,7 @@ type RecipeServiceConfig struct {
 type ServiceConfig struct {
 	BaseImages      []string
 	LoginStrategies []string
-	Services        map[string][]Service
+	Services        ServiceListMap
 }
 
 /* Methods & computed properties */
@@ -85,13 +87,6 @@ func (s Service) ImageURI() string {
 	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
 }
 
-// func (sm ServiceMap) Service(name string) {
-// 	regex := regexp.MustCompile(`(?:([\w-]+\/[\w-]+)\/)?([\w-]+)`)
-// 	matches := regex.FindAllStringSubmatch(name, -1)
-// 	recipeName := matches[0][1]
-// 	serviceName := matches[0][2]
-// }
-
 func (sm ServiceMap) Names() []string {
 	names := make([]string, 0, len(sm))
 	for name := range sm {
@@ -99,6 +94,76 @@ func (sm ServiceMap) Names() []string {
 	}
 
 	return names
+}
+
+func (slm ServiceListMap) Get(name string) (string, Service, error) {
+	recipeName, serviceName, err := recipeNameParts(name)
+	if err != nil {
+		return "", Service{}, errors.Wrapf(err, "invalid service name %s", name)
+	}
+
+	list, ok := slm[serviceName]
+	if !ok {
+		return "", Service{}, errors.Errorf("No such service %s", serviceName)
+	}
+
+	if recipeName == "" {
+		if len(list) > 1 {
+			return "", Service{}, errors.Errorf("Multiple services named %s found. Please specify the recipe the service belongs to.", serviceName)
+		}
+
+		s := list[0]
+		return joinNameParts(s.RecipeName, serviceName), s, nil
+	}
+
+	for _, service := range list {
+		if service.RecipeName == recipeName {
+			return name, service, nil
+		}
+	}
+
+	return "", Service{}, errors.Errorf("No such service %s", name)
+}
+
+func (slm ServiceListMap) Set(name string, value Service) error {
+	recipeName, serviceName, err := recipeNameParts(name)
+	if err != nil {
+		return errors.Wrapf(err, "invalid service name %s", name)
+	}
+
+	list, ok := slm[serviceName]
+	if !ok {
+		return errors.Errorf("No such service %s", serviceName)
+	}
+
+	if recipeName == "" {
+		if len(list) > 1 {
+			return errors.Errorf("Multiple services named %s found. Please specify the recipe the service belongs to.", serviceName)
+		}
+
+		slm[serviceName][0] = value
+		return nil
+	}
+
+	for i, service := range list {
+		if service.RecipeName == recipeName {
+			slm[serviceName][i] = value
+			return nil
+		}
+	}
+
+	return errors.Errorf("No such service %s", name)
+}
+
+func (slm ServiceListMap) ServiceMap() ServiceMap {
+	sm := make(ServiceMap)
+	for n, list := range slm {
+		for _, s := range list {
+			sm[joinNameParts(s.RecipeName, n)] = s
+		}
+	}
+
+	return sm
 }
 
 /* Private helpers */
@@ -151,16 +216,20 @@ func parseServices(config RecipeServiceConfig) (ServiceMap, error) {
 	return parsedServices, nil
 }
 
-func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (ServiceMap, error) {
-	newServices := make(ServiceMap)
-	for name, s := range services {
-		newServices[name] = s
+func applyOverrides(services ServiceListMap, overrides map[string]ServiceOverride) (ServiceListMap, error) {
+	newServices := make(ServiceListMap)
+	for name, list := range services {
+		newList := make([]Service, len(list))
+		for i, s := range list {
+			newList[i] = s
+		}
+		newServices[name] = newList
 	}
 
 	for name, override := range overrides {
-		s, ok := services[name]
-		if !ok {
-			return nil, fmt.Errorf("%s is not a valid service", name)
+		_, s, err := services.Get(name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get service matching override %s", name)
 		}
 
 		// Validate overrides
@@ -200,7 +269,10 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 			s.Remote.Tag = override.Remote.Tag
 		}
 
-		newServices[name] = s
+		err = newServices.Set(name, s)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to set service named %s", name)
+		}
 	}
 
 	return newServices, nil

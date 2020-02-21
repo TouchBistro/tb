@@ -17,7 +17,7 @@ var logsCmd = &cobra.Command{
 	Use:   "logs [services...]",
 	Short: "View logs from containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos(config.Services().ServiceMap())
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}

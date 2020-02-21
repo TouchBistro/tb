@@ -50,6 +50,15 @@ func recipeNameParts(name string) (string, string, error) {
 	return matches[1], matches[2], nil
 }
 
+func joinNameParts(recipeName, itemName string) string {
+	// Doing this to abstract the notion of how the names are combined to form the full name
+	if recipeName == "" {
+		return itemName
+	}
+
+	return fmt.Sprintf("%s/%s", recipeName, itemName)
+}
+
 func resolveRecipe(r Recipe, shouldUpdate bool) (Recipe, error) {
 	var path string
 	isLocal := r.LocalPath != ""
@@ -181,7 +190,7 @@ func mergeServiceConfigs(serviceConfigMap map[string]RecipeServiceConfig, playli
 				}
 
 				if r == "" {
-					p.Extends = fmt.Sprintf("%s/%s", recipeName, name)
+					p.Extends = joinNameParts(recipeName, name)
 				}
 			}
 
@@ -197,7 +206,7 @@ func mergeServiceConfigs(serviceConfigMap map[string]RecipeServiceConfig, playli
 					r = recipeName
 				}
 
-				serviceList[i] = fmt.Sprintf("%s/%s", r, name)
+				serviceList[i] = joinNameParts(r, name)
 			}
 
 			p.Services = serviceList
