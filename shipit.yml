@@ -1,9 +1,9 @@
 deploy:
   override:
-    - scripts/shipit.deploy
+    - scripts/shipit.deploy tb "deploy" https://hooks.slack.com/services/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
 
   post:
-    - scripts/shipit.post
+    - /notif/slack/post tb "deploy" https://hooks.slack.com/services/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
 
   variables:
     -
