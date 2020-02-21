@@ -94,7 +94,10 @@ func setupEnv(rcPath string) error {
 func Init(opts InitOptions) error {
 	// Setup env and load .tbrc.yml
 	rcPath := filepath.Join(os.Getenv("HOME"), tbrcFileName)
-	setupEnv(rcPath)
+	err := setupEnv(rcPath)
+	if err != nil {
+		return errors.Wrap(err, "failed to setup tb environment")
+	}
 
 	rcFile, err := os.Open(rcPath)
 	if err != nil {
@@ -166,6 +169,8 @@ func Init(opts InitOptions) error {
 			if err != nil {
 				return errors.Wrapf(err, "failed to read services for recipe %s", r.Name)
 			}
+
+			s.Global.Variables["@STATICPATH"] = filepath.Join(r.Path, staticDirName)
 			serviceConfigMap[r.Name] = s
 			playlistsMap[r.Name] = p
 		}
@@ -178,6 +183,9 @@ func Init(opts InitOptions) error {
 
 		log.Debugln("Applying overrides to services...")
 		serviceConfig.Services, err = applyOverrides(serviceConfig.Services, tbrc.Overrides)
+		if err != nil {
+			return errors.Wrap(err, "failed to apply overrides from tbrc")
+		}
 
 		// Create docker-compose.yml
 		log.Debugln("Generating docker-compose.yml file...")

@@ -220,9 +220,7 @@ func applyOverrides(services ServiceListMap, overrides map[string]ServiceOverrid
 	newServices := make(ServiceListMap)
 	for name, list := range services {
 		newList := make([]Service, len(list))
-		for i, s := range list {
-			newList[i] = s
-		}
+		copy(newList, list)
 		newServices[name] = newList
 	}
 
