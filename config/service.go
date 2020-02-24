@@ -20,14 +20,24 @@ type volume struct {
 	IsNamed bool   `yaml:"named"`
 }
 
+type build struct {
+	Args           map[string]string `yaml:"args"`
+	Command        string            `yaml:"command"`
+	DockerfilePath string            `yaml:"dockerfilePath"`
+	Target         string            `yaml:"target"`
+	Volumes        []volume          `yaml:"volumes"`
+}
+
+type remote struct {
+	Command string   `yaml:"command"`
+	Enabled bool     `yaml:"enabled"`
+	Image   string   `yaml:"image"`
+	Tag     string   `yaml:"tag"`
+	Volumes []volume `yaml:"volumes"`
+}
+
 type Service struct {
-	Build struct {
-		Args           map[string]string `yaml:"args"`
-		Command        string            `yaml:"command"`
-		DockerfilePath string            `yaml:"dockerfilePath"`
-		Target         string            `yaml:"target"`
-		Volumes        []volume          `yaml:"volumes"`
-	} `yaml:"build"`
+	Build        build             `yaml:"build"`
 	Dependencies []string          `yaml:"dependencies"`
 	Entrypoint   []string          `yaml:"entrypoint"`
 	EnvFile      string            `yaml:"envFile"`
@@ -35,13 +45,7 @@ type Service struct {
 	GitRepo      string            `yaml:"repo"`
 	Ports        []string          `yaml:"ports"`
 	PreRun       string            `yaml:"preRun"`
-	Remote       struct {
-		Command string   `yaml:"command"`
-		Enabled bool     `yaml:"enabled"`
-		Image   string   `yaml:"image"`
-		Tag     string   `yaml:"tag"`
-		Volumes []volume `yaml:"volumes"`
-	} `yaml:"remote"`
+	Remote       remote            `yaml:"remote"`
 	// Extra properties added at runtime
 	RecipeName string `yaml:"-"`
 }
@@ -216,7 +220,7 @@ func parseServices(config RecipeServiceConfig) (ServiceMap, error) {
 	return parsedServices, nil
 }
 
-func applyOverrides(services ServiceListMap, overrides map[string]ServiceOverride) (ServiceListMap, error) {
+func applyOverrides(services ServiceListMap, overrides map[string]serviceOverride) (ServiceListMap, error) {
 	newServices := make(ServiceListMap)
 	for name, list := range services {
 		newList := make([]Service, len(list))

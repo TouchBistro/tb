@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
 
@@ -69,19 +70,7 @@ func GetPlaylist(name string) ([]string, error) {
 		return nil, errors.Wrapf(err, "Failed to get services of playlist %s", name)
 	}
 
-	// Remove duplicate services
-	seenServices := make(map[string]bool)
-	uniqueServices := make([]string, 0)
-	for _, serviceName := range services {
-		if _, ok := seenServices[serviceName]; ok {
-			continue
-		}
-
-		seenServices[serviceName] = true
-		uniqueServices = append(uniqueServices, serviceName)
-	}
-
-	return uniqueServices, nil
+	return util.UniqueStrings(services), nil
 }
 
 func PlaylistNames() []string {

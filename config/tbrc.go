@@ -12,18 +12,22 @@ const (
 	tbrcFileName = ".tbrc.yml"
 )
 
-type ServiceOverride struct {
-	Build struct {
-		Command string `yaml:"command"`
-		Target  string `yaml:"target"`
-	} `yaml:"build"`
+type buildOverride struct {
+	Command string `yaml:"command"`
+	Target  string `yaml:"target"`
+}
+
+type remoteOverride struct {
+	Command string `yaml:"command"`
+	Enabled bool   `yaml:"enabled"`
+	Tag     string `yaml:"tag,omitempty"`
+}
+
+type serviceOverride struct {
+	Build   buildOverride     `yaml:"build"`
 	EnvVars map[string]string `yaml:"envVars"`
 	PreRun  string            `yaml:"preRun"`
-	Remote  struct {
-		Command string `yaml:"command"`
-		Enabled bool   `yaml:"enabled"`
-		Tag     string `yaml:"tag,omitempty"`
-	} `yaml:"remote,omitempty"`
+	Remote  remoteOverride    `yaml:"remote,omitempty"`
 }
 
 type UserConfig struct {
@@ -31,7 +35,7 @@ type UserConfig struct {
 	ExperimentalMode bool                       `yaml:"experimental"`
 	Recipes          []Recipe                   `yaml:"recipes"`
 	Playlists        map[string]Playlist        `yaml:"playlists"`
-	Overrides        map[string]ServiceOverride `yaml:"overrides"`
+	Overrides        map[string]serviceOverride `yaml:"overrides"`
 }
 
 func ExperimentalMode() bool {
@@ -64,20 +68,20 @@ debug: false
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
-  db:
-    services:
-      - postgres
-  dev-tools:
-    extends: db
-    services:
-      - localstack
+  # db:
+    # services:
+      # - postgres
+  # dev-tools:
+    # extends: db
+    # services:
+      # - localstack
 # Override service configuration
 overrides:
-  #mokta:
-    #remote:
-      #enabled: false
-  #venue-admin-frontend:
-    #remote:
-      #enabled: true
-      #tag: tag-name
+  # mokta:
+    # remote:
+      # enabled: false
+  # venue-admin-frontend:
+    # remote:
+      # enabled: true
+      # tag: tag-name
 `

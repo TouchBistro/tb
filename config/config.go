@@ -40,6 +40,8 @@ type InitOptions struct {
 	LoadServices  bool
 	LoadApps      bool
 	UpdateRecipes bool
+	// TODO remove once legacy init is removed
+	LegacyInit bool
 }
 
 /* Getters for private & computed vars */
@@ -126,8 +128,12 @@ func Init(opts InitOptions) error {
 	})
 
 	if !tbrc.ExperimentalMode {
-		log.Debugln("Using legacy config init")
-		return legacyInit()
+		if opts.LegacyInit {
+			log.Debugln("Using legacy config init")
+			return legacyInit()
+		}
+
+		return nil
 	}
 
 	// Create default lazydocker config if it doesn't exist

@@ -9,6 +9,7 @@ import (
 
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -60,22 +61,30 @@ func joinNameParts(recipeName, itemName string) string {
 }
 
 func resolveRecipe(r Recipe, shouldUpdate bool) (Recipe, error) {
-	var path string
 	isLocal := r.LocalPath != ""
-	if isLocal {
-		path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
-	} else {
-		path = filepath.Join(recipesPath(), r.Name)
-	}
+
 	// Set true path for usage later
-	r.Path = path
+	if isLocal {
+		if strings.HasPrefix(r.LocalPath, "~") {
+			r.Path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
+		} else {
+			path, err := filepath.Abs(r.LocalPath)
+			if err != nil {
+				return r, errors.Wrapf(err, "failed to resolve absolute path to local recipe %s", r.Name)
+			}
+
+			r.Path = path
+		}
+	} else {
+		r.Path = filepath.Join(recipesPath(), r.Name)
+	}
 
 	// Clone if missing and not local
-	if !isLocal && !file.FileOrDirExists(path) {
+	if !isLocal && !file.FileOrDirExists(r.Path) {
 		log.Debugf("Recipe %s is missing, cloning...", r.Name)
 		err := git.Clone(r.Name, recipesPath())
 		if err != nil {
-			return r, errors.Wrapf(err, "failed to clone recipe to %s", path)
+			return r, errors.Wrapf(err, "failed to clone recipe to %s", r.Path)
 		}
 	}
 
@@ -160,7 +169,7 @@ func readRecipeApps(r Recipe) (RecipeAppConfig, error) {
 }
 
 func mergeServiceConfigs(serviceConfigMap map[string]RecipeServiceConfig, playlistsMap map[string]PlaylistMap) (ServiceConfig, map[string][]Playlist, error) {
-	mergedServiceConfig := ServiceConfig{}
+	mergedServiceConfig := ServiceConfig{Services: make(ServiceListMap)}
 	mergedPlaylists := make(map[string][]Playlist)
 
 	for recipeName, serviceConf := range serviceConfigMap {
@@ -214,6 +223,9 @@ func mergeServiceConfigs(serviceConfigMap map[string]RecipeServiceConfig, playli
 			mergedPlaylists[playlistName] = append(mergedPlaylists[playlistName], p)
 		}
 	}
+
+	mergedServiceConfig.BaseImages = util.UniqueStrings(mergedServiceConfig.BaseImages)
+	mergedServiceConfig.LoginStrategies = util.UniqueStrings(mergedServiceConfig.LoginStrategies)
 
 	return mergedServiceConfig, mergedPlaylists, nil
 }

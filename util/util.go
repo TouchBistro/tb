@@ -65,3 +65,19 @@ func ExpandVars(str string, vars map[string]string) string {
 
 	return expandedStr
 }
+
+func UniqueStrings(s []string) []string {
+	set := make(map[string]bool)
+	us := make([]string, 0)
+
+	for _, v := range s {
+		if _, ok := set[v]; ok {
+			continue
+		}
+
+		set[v] = true
+		us = append(us, v)
+	}
+
+	return us
+}

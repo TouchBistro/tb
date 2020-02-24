@@ -25,7 +25,10 @@ var rootCmd = &cobra.Command{
 	Version: version,
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		initOpts := config.InitOptions{UpdateRecipes: !rootOpts.noUpdateRecipes}
+		initOpts := config.InitOptions{
+			UpdateRecipes: !rootOpts.noUpdateRecipes,
+			LegacyInit:    true,
+		}
 		baseCmdName := cmd.Parent().Name()
 
 		if baseCmdName == "ios" {

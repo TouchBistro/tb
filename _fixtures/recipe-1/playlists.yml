@@ -1,0 +1,4 @@
+core:
+  services:
+    - postgres
+    - venue-core-service
