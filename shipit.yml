@@ -1,4 +1,7 @@
 deploy:
+  pre:
+    - /notif/slack/pre tb "deploy" https://hooks.slack.com/services/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
+
   override:
     - scripts/shipit.deploy tb "deploy" https://hooks.slack.com/services/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
 
