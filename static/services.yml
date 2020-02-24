@@ -249,6 +249,9 @@ services:
       enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
+      volumes:
+        - value: legacy-database:/var/opt/mssql/data
+          named: true
   legacy-upload-service:
     dependencies:
       - postgres
