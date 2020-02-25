@@ -293,7 +293,6 @@ services:
         - value: "${@ROOTPATH}/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
-        - value: "${@ROOTPATH}/repos/TouchBistro/partners-orchestration-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_orchestration_partner.sh"
   loyalty-gateway-service:
     dependencies:
       - postgres
@@ -624,90 +623,12 @@ services:
       enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
-  partners-orchestration-service:
-    dependencies:
-      - postgres
-      - localstack
-    envFile: ${@REPOPATH}/.env.example
-    envVars:
-      # PORCHS is dead and the repo is archived.
-      # Leaving this here until I have Uzi's blessing to remove the service
-      LOGGER_CONFIG_JSON: >
-        {
-          "transports": {
-            "devConsole": {
-              "provider": "winston.transports.Console",
-              "config": {
-                "colorize": true,
-                "timestamp": true,
-                "json": false
-              }
-            }
-          },
-          "env": {
-            "development": {
-              "rules": [
-                {
-                  "pattern": "*",
-                  "binding": {
-                    "transport": ["devConsole"],
-                    "level": "info"
-                  }
-                }
-              ]
-            }
-          }
-        }
-      HTTP_PORT: 8080
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: core
-      DB_PASSWORD: localdev
-      DB_DISABLE_SSL: "true"
-      LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
-      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
-      PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
-      VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
-      TASK_PROVIDER: awssqs
-      TASK_AWS_SQS_CONFIG_JSON: >
-        {
-          "workflow.runNextInstruction": {
-            "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
-            "messageThrottle": 1,
-            "visibilityTimeout": 10,
-            "waitTimeSeconds": 5,
-            "sleepTimeSeconds": 5
-          },
-          "partners-config.task.venueIntegrationUpdate": {
-            "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
-            "messageThrottle": 1,
-            "visibilityTimeout": 10,
-            "waitTimeSeconds": 5,
-            "sleepTimeSeconds": 5
-          }
-        }
-    ports:
-      - '8085:8080'
-    preRun: yarn db:prepare
-    repo: TouchBistro/partners-orchestration-service
-    build:
-      <<: *build-node-dev
-      volumes:
-        - value: ${@REPOPATH}:/home/node/app:delegated
-        - value: partners-orchestration-service-node_modules:/home/node/app/node_modules
-          named: true
-    remote:
-      command: *command-serve
-      enabled: true
-      image: ${ecr}/partners-orchestration-service
-      tag: master
   partners-reservations-service:
     dependencies:
       - postgres
       - localstack
       - venue-upload-service
       - partners-config-service
-      - partners-orchestration-service
       - legacy-bridge-cloud-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
