@@ -76,7 +76,7 @@ services:
           fi'
       enabled: true
       image: ${ecr}/cloud-server
-      tag: develop
+      tag: master
   cloud-server-frontend:
     dependencies:
       - cloud-server
@@ -91,7 +91,7 @@ services:
     remote:
       enabled: true
       image: ${ecr}/cloud-server-frontend
-      tag: develop
+      tag: master
   dotnet-api:
     dependencies:
       - legacy-database
