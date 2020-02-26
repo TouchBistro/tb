@@ -837,3 +837,6 @@ services:
       args:
         HOMEBREW_GITHUB_API_TOKEN: $HOMEBREW_GITHUB_API_TOKEN
       dockerfilePath: ${@REPOPATH}
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      ORDERING_EXTERNAL_BASE_URL: http://ordering-ooa-service:8080/external
