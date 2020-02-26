@@ -11,6 +11,7 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 func dumpFile(from, to, dir string, box *packr.Box) error {
@@ -66,7 +67,7 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
-	err = util.DecodeYaml(bytes.NewReader(sBuf), &serviceConfig)
+	err = yaml.NewDecoder(bytes.NewReader(sBuf)).Decode(&serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
@@ -75,7 +76,8 @@ func legacyInit() error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to find packr box %s", playlistPath)
 	}
-	err = util.DecodeYaml(bytes.NewReader(pBuf), &playlists)
+
+	err = yaml.NewDecoder(bytes.NewReader(pBuf)).Decode(&playlists)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}

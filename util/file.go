@@ -74,13 +74,6 @@ func ReadYaml(path string, val interface{}) error {
 	}
 	defer file.Close()
 
-	err = DecodeYaml(file, val)
+	err = yaml.NewDecoder(file).Decode(val)
 	return errors.Wrapf(err, "failed to decode yaml file %s", path)
-}
-
-func DecodeYaml(r io.Reader, val interface{}) error {
-	dec := yaml.NewDecoder(r)
-	err := dec.Decode(val)
-
-	return err
 }

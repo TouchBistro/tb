@@ -11,6 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+var tbrc userConfig
 var serviceConfig ServiceConfig
 var playlists map[string]Playlist
 var tbRoot string
