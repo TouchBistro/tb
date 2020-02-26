@@ -313,6 +313,27 @@ services:
       enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
+  partners-auth-service:
+    dependencies:
+      - postgres
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      DB_HOST: postgres
+      HTTP_PORT: 8080
+    preRun: yarn db:prepare
+    ports:
+      - '9453:8080'
+    repo: TouchBistro/partners-auth-service
+    build:
+      <<: *build-node-dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+          named: true
+    remote:
+      command: *command-serve
+      enabled: true
+      image: ${ecr}/partners-auth-service
+      tag: master
   postgres:
     envVars:
       POSTGRES_USER: core
@@ -409,8 +430,10 @@ services:
       DB_USER: root
       DB_PASSWORD: root
       DB_DISABLE_SSL: "true"
+      JWT_PAS_ISSUER_URI: 'urn:touchbistro:oauth:iss:partners'
       INFRASTRUCTURE_AUTH_SERVICE_URL: http://infrastructure-auth-service:8080
       JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
+      JWT_PAS_ISSUER_JWKS_URI: http://partners-auth-service:8080/jwks
       ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
       SINGLEAPP_BASE_URL: http://yp-singleapp-api:80
       LOYALTY_GATEWAY_SERVICE_URL: http://loyalty-gateway-service:8080

@@ -60,6 +60,7 @@ online-ordering:
     - ordering-engine-service
     - ordering-online-frontend
     - infrastructure-auth-service
+    - partners-auth-service
     - loyalty-gateway-service
     - yp-singleapp-api
 partners:
