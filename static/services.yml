@@ -318,6 +318,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
+      DB_HOST: postgres
       HTTP_PORT: 8080
     preRun: yarn db:prepare
     ports:
