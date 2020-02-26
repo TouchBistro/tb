@@ -100,3 +100,5 @@ To add a new service do the following:
     Any unneeded fields can be omitted.
 2. Add the service to any necessary playlists in `static/playlists.yml` (optional):  
     Simply add the service as an entry to the `services` array of any playlist.
+
+3. If `go.sum` gets modified on build, please run `go mod tidy` to clean it up before committing and pushing changes.
