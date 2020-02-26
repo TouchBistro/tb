@@ -136,6 +136,7 @@ func Init(opts InitOptions) error {
 		return nil
 	}
 
+	// TODO scope if there's a way to pass lazydocker a custom tb specific config
 	// Create default lazydocker config if it doesn't exist
 	ldDirPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
 	err = os.MkdirAll(ldDirPath, 0766)

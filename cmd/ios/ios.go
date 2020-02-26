@@ -27,6 +27,7 @@ var iosCmd = &cobra.Command{
 		}
 
 		// Run root setup
+		// TODO dont call super fam
 		cmd.Root().PersistentPreRun(cmd, args)
 
 		err := simulator.LoadSimulators()

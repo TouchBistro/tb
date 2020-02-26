@@ -86,6 +86,8 @@ func resolveRecipe(r Recipe, shouldUpdate bool) (Recipe, error) {
 		if err != nil {
 			return r, errors.Wrapf(err, "failed to clone recipe to %s", r.Path)
 		}
+
+		return r, nil
 	}
 
 	if !isLocal && shouldUpdate {
