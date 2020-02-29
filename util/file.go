@@ -9,7 +9,6 @@ import (
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
 )
 
 func Untar(src string, cleanup bool) error {
@@ -65,22 +64,4 @@ func DownloadFile(downloadPath string, r io.Reader) (int64, error) {
 	w.Flush()
 
 	return nBytes, nil
-}
-
-func ReadYaml(path string, val interface{}) error {
-	file, err := os.Open(path)
-	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", path)
-	}
-	defer file.Close()
-
-	err = DecodeYaml(file, val)
-	return errors.Wrapf(err, "failed to decode yaml file %s", path)
-}
-
-func DecodeYaml(r io.Reader, val interface{}) error {
-	dec := yaml.NewDecoder(r)
-	err := dec.Decode(val)
-
-	return err
 }

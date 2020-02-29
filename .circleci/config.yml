@@ -1,7 +1,7 @@
 version: 2.1
 
 jobs:
-  lint-build:
+  lint-build-test:
     docker:
       - image: circleci/golang:1.12
     working_directory: ~/tb
@@ -26,10 +26,13 @@ jobs:
           name: Build tb
           command: make build
       - run:
+          name: Run tests
+          command: make test-ci
+      - run:
           name: Verify tb runs
           command: ./tb
 
 workflows:
-  lint-build:
+  lint-build-test:
     jobs:
-      - lint-build
+      - lint-build-test

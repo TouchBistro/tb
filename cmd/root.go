@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/TouchBistro/tb/cmd/ios"
 	"github.com/TouchBistro/goutils/color"
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/cmd/ios"
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
 	"github.com/blang/semver"
@@ -40,26 +40,9 @@ func init() {
 }
 
 func initConfig() {
-	err := config.InitRC()
+	err := config.LoadTBRC()
 	if err != nil {
 		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
-	}
-
-	var logLevel log.Level
-	if config.TBRC().DebugEnabled {
-		logLevel = log.DebugLevel
-	} else {
-		logLevel = log.InfoLevel
-	}
-
-	log.SetLevel(logLevel)
-	log.SetFormatter(&log.TextFormatter{
-		// TODO: Remove the log level - its quite ugly
-		DisableTimestamp: true,
-	})
-
-	if logLevel != log.DebugLevel {
-		fatal.ShowStackTraces = false
 	}
 
 	err = config.Init()
@@ -71,6 +54,12 @@ func initConfig() {
 }
 
 func checkVersion() {
+	// If version isn't set it means it was built manually so don't bother checking version
+	if version == "" {
+		log.Info(color.Blue("tb was built from source. Skipping latest version check."))
+		return
+	}
+
 	// Check if there is a newer version available and let the user know
 	// If it fails just ignore and continue normal operation
 	// Log to debug for troubleshooting

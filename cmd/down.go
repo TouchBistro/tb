@@ -1,9 +1,9 @@
 package cmd
 
 import (
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/goutils/fatal"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -20,6 +20,12 @@ var downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		log.Debug("stopping compose services...")
+		for _, serviceName := range args {
+			if _, ok := config.Services()[serviceName]; !ok {
+				fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+			}
+		}
+
 		err := docker.ComposeStop(args)
 		if err != nil {
 			fatal.ExitErr(err, "failed stopping compose services")

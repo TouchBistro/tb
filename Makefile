@@ -18,6 +18,8 @@ build:
 clean:
 	packr2 clean
 	rm -rf dist
+	rm -rf coverage
+	rm -f tb
 .PHONY: clean
 
 # Run the linter
@@ -29,3 +31,17 @@ lint:
 go-uninstall:
 	rm $(shell go env GOPATH)/bin/tb
 .PHONY: go-uninstall
+
+# Run tests and collect coverage data
+test:
+	mkdir -p coverage
+	go test -coverprofile=coverage/coverage.txt ./...
+	go tool cover -html=coverage/coverage.txt -o coverage/coverage.html
+.PHONY: test
+
+# Run tests and print coverage data to stdout
+test-ci:
+	mkdir -p coverage
+	go test -coverprofile=coverage/coverage.txt ./...
+	go tool cover -func=coverage/coverage.txt
+.PHONY: test-ci
