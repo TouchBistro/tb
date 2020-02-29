@@ -19,7 +19,7 @@ deploy:
 
 ci:
   require:
-    - 'ci/circleci: lint-build'
+    - 'ci/circleci: lint-build-test'
 
 review:
   checklist:
