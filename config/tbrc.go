@@ -45,7 +45,7 @@ type userConfig struct {
 
 /* Getters for private & computed vars */
 
-func ExperimentalEnabled() bool {
+func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
 }
 
@@ -55,7 +55,7 @@ func CustomPlaylists() map[string]Playlist {
 	return tbrc.Playlists
 }
 
-func InitTBRC() error {
+func LoadTBRC() error {
 	tbrcPath := filepath.Join(os.Getenv("HOME"), tbrcName)
 
 	// Create default tbrc if it doesn't exist
@@ -101,10 +101,17 @@ experimental: false
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
-  # <name>:
-    # extends: <playlist>
+  # db:
     # services:
-      # - <service>
+      # - postgres
+  # dev-tools:
+    # extends: db
+    # services:
+      # - localstack
 # Override service configuration
 overrides:
+  # venue-admin-frontend
+    # remote:
+    # enabled: true
+    # tag: feat/new-menu
 `

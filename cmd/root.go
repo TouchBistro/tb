@@ -40,7 +40,7 @@ func init() {
 }
 
 func initConfig() {
-	err := config.InitTBRC()
+	err := config.LoadTBRC()
 	if err != nil {
 		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
 	}
