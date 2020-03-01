@@ -6,17 +6,13 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/playlist"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
 
 const tbrcName = ".tbrc.yml"
-
-type Playlist struct {
-	Extends  string   `yaml:"extends"`
-	Services []string `yaml:"services"`
-}
 
 type BuildOverride struct {
 	Command string `yaml:"command"`
@@ -37,22 +33,16 @@ type ServiceOverride struct {
 }
 
 type userConfig struct {
-	DebugEnabled        bool                       `yaml:"debug"`
-	ExperimentalEnabled bool                       `yaml:"experimental"`
-	Playlists           map[string]Playlist        `yaml:"playlists"`
-	Overrides           map[string]ServiceOverride `yaml:"overrides"`
+	DebugEnabled        bool                         `yaml:"debug"`
+	ExperimentalEnabled bool                         `yaml:"experimental"`
+	Playlists           map[string]playlist.Playlist `yaml:"playlists"`
+	Overrides           map[string]ServiceOverride   `yaml:"overrides"`
 }
 
 /* Getters for private & computed vars */
 
 func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
-}
-
-// TODO remove this once recipe stuff is implemented
-// This is a temp hack so tb list still works
-func CustomPlaylists() map[string]Playlist {
-	return tbrc.Playlists
 }
 
 func LoadTBRC() error {

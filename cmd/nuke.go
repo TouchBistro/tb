@@ -4,9 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +41,7 @@ var nukeCmd = &cobra.Command{
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
 
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos()
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -96,7 +98,16 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing repos...")
-			for _, repo := range config.Repos(config.Services()) {
+
+			repos := make([]string, 0)
+			config.Services().ForEach(func(s service.Service) {
+				if s.HasGitRepo() {
+					repos = append(repos, s.GitRepo)
+				}
+			})
+			repos = util.UniqueStrings(repos)
+
+			for _, repo := range repos {
 				log.Debugf("Removing repo %s...", repo)
 				repoPath := filepath.Join(config.ReposPath(), repo)
 				err := os.RemoveAll(repoPath)

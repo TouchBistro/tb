@@ -2,49 +2,16 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
-	"github.com/TouchBistro/goutils/file"
-	"github.com/TouchBistro/goutils/spinner"
-	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 /* Types */
 
-type volume struct {
-	Value   string `yaml:"value"`
-	IsNamed bool   `yaml:"named"`
-}
-
-type Service struct {
-	Build struct {
-		Args           map[string]string `yaml:"args"`
-		Command        string            `yaml:"command"`
-		DockerfilePath string            `yaml:"dockerfilePath"`
-		Target         string            `yaml:"target"`
-		Volumes        []volume          `yaml:"volumes"`
-	} `yaml:"build"`
-	Dependencies []string          `yaml:"dependencies"`
-	Entrypoint   []string          `yaml:"entrypoint"`
-	EnvFile      string            `yaml:"envFile"`
-	EnvVars      map[string]string `yaml:"envVars"`
-	GitRepo      string            `yaml:"repo"`
-	Ports        []string          `yaml:"ports"`
-	PreRun       string            `yaml:"preRun"`
-	Remote       struct {
-		Command string   `yaml:"command"`
-		Enabled bool     `yaml:"enabled"`
-		Image   string   `yaml:"image"`
-		Tag     string   `yaml:"tag"`
-		Volumes []volume `yaml:"volumes"`
-	} `yaml:"remote"`
-}
-
-type ServiceMap map[string]Service
+type ServiceMap map[string]service.Service
 
 type ServiceConfig struct {
 	Global struct {
@@ -53,37 +20,6 @@ type ServiceConfig struct {
 		Variables      map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services ServiceMap `yaml:"services"`
-}
-
-/* Methods & computed properties */
-
-func (s Service) HasGitRepo() bool {
-	return s.GitRepo != ""
-}
-
-func (s Service) UseRemote() bool {
-	return s.Remote.Enabled
-}
-
-func (s Service) CanBuild() bool {
-	return s.Build.DockerfilePath != ""
-}
-
-func (s Service) ImageURI() string {
-	if s.Remote.Tag == "" {
-		return s.Remote.Image
-	}
-
-	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
-}
-
-func (sm ServiceMap) Names() []string {
-	names := make([]string, 0, len(sm))
-	for name := range sm {
-		names = append(names, name)
-	}
-
-	return names
 }
 
 /* Private helpers */
@@ -189,74 +125,4 @@ func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (
 	}
 
 	return newServices, nil
-}
-
-/* Public funtions */
-
-func CloneMissingRepos(services ServiceMap) error {
-	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
-
-	repos := Repos(services)
-
-	successCh := make(chan string)
-	failedCh := make(chan error)
-
-	count := 0
-	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	for _, repo := range repos {
-		path := filepath.Join(ReposPath(), repo)
-
-		if file.FileOrDirExists(path) {
-			dirlen, err := file.DirLen(path)
-			if err != nil {
-				return errors.Wrap(err, "Could not read project directory")
-			}
-			// Directory exists but only contains .git subdirectory, rm and clone again
-			if dirlen > 2 {
-				continue
-			}
-			err = os.RemoveAll(path)
-			if err != nil {
-				return errors.Wrapf(err, "Couldn't remove project directory for %s", path)
-			}
-		}
-
-		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
-		go func(successCh chan string, failedCh chan error, repo, destPath string) {
-			err := git.Clone(repo, destPath)
-			if err != nil {
-				failedCh <- err
-			} else {
-				successCh <- repo
-			}
-		}(successCh, failedCh, repo, path)
-		count++
-	}
-
-	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
-
-	log.Info("☑ finished checking git repos")
-	return nil
-}
-
-func Repos(services ServiceMap) []string {
-	var repos []string
-	seenRepos := make(map[string]bool)
-
-	for _, s := range services {
-		if !s.HasGitRepo() {
-			continue
-		}
-		repo := s.GitRepo
-
-		// repo has already been added to the list, don't add it again
-		if seenRepos[repo] {
-			continue
-		}
-
-		repos = append(repos, repo)
-		seenRepos[repo] = true
-	}
-
-	return repos
 }

@@ -26,7 +26,7 @@ Examples:
 	tb exec core-database bash`,
 	Args: cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos()
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -35,16 +35,16 @@ Examples:
 		serviceName := args[0]
 
 		// Make sure it's a valid service
-		_, ok := config.Services()[serviceName]
-		if !ok {
-			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		s, err := config.Services().Get(serviceName)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
-		composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), serviceName)
+		composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), s.FullName())
 		composeCmdArgs := strings.Split(composeCmd, " ")
 		composeCmdArgs = append(composeCmdArgs, args[1:]...)
 
-		err := command.Exec("docker-compose", composeCmdArgs, "docker-compose-exec", func(cmd *exec.Cmd) {
+		err = command.Exec("docker-compose", composeCmdArgs, "docker-compose-exec", func(cmd *exec.Cmd) {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			cmd.Stdin = os.Stdin

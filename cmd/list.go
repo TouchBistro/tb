@@ -6,6 +6,7 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/service"
 	"github.com/spf13/cobra"
 )
 
@@ -38,23 +39,21 @@ var listCmd = &cobra.Command{
 
 		if shouldListPlaylists {
 			fmt.Println("Playlists:")
-			listPlaylists(config.Playlists(), isTreeMode)
+			listPlaylists(config.Playlists().Names(), isTreeMode)
 		}
 
 		if shouldListCustomPlaylists {
 			fmt.Println("Custom Playlists:")
-			listPlaylists(config.CustomPlaylists(), isTreeMode)
+			listPlaylists(config.Playlists().CustomNames(), isTreeMode)
 		}
 	},
 }
 
-func listServices(services config.ServiceMap) {
-	names := make([]string, len(services))
-	i := 0
-	for name := range services {
-		names[i] = name
-		i++
-	}
+func listServices(services *service.ServiceCollection) {
+	names := make([]string, 0)
+	services.ForEach(func(s service.Service) {
+		names = append(names, s.FullName())
+	})
 
 	sort.Strings(names)
 	for _, name := range names {
@@ -62,24 +61,19 @@ func listServices(services config.ServiceMap) {
 	}
 }
 
-func listPlaylists(playlists map[string]config.Playlist, tree bool) {
-	names := make([]string, len(playlists))
-	i := 0
-	for name := range playlists {
-		names[i] = name
-		i++
-	}
-
+func listPlaylists(names []string, tree bool) {
 	sort.Strings(names)
 	for _, name := range names {
 		fmt.Printf("  - %s\n", name)
 		if !tree {
 			continue
 		}
-		list, err := config.GetPlaylist(name, make(map[string]bool))
+
+		list, err := config.Playlists().GetServices(name)
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed resolving service playlist")
 		}
+
 		for _, s := range list {
 			fmt.Printf("    - %s\n", s)
 		}
