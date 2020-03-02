@@ -22,6 +22,12 @@ var apps = map[string]IOSApp{
 			"debug.autoAcceptTOS": "true",
 		},
 	},
+	"TBUIKitDemo": {
+		BundleID:     "com.touchbistro.TBUIKitDemo",
+		Branch:       "master",
+		Organisation: "TouchBistro",
+		Repo:         "TBUIKit",
+	},
 }
 
 func Apps() map[string]IOSApp {
