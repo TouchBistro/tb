@@ -24,3 +24,4 @@ ci:
 review:
   checklist:
     - Do you know what you are doing?
+    - If you start a deploy do not abort it. A git tag will be created immediately which makes it irreversible. Are you sure you chose the right version?
