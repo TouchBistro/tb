@@ -31,9 +31,9 @@ services:
       - infrastructure-auth-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
+      JWT_AUTH_ISSUER_JWKS_URL: http://${@infrastructure-auth-service}:8080/jwks
       TASK_PROVIDER: inmemory
     ports:
       - '8700:8080'
@@ -57,7 +57,8 @@ services:
     entrypoint: ["bash", "./docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.compose
     envVars:
-      MSSQL_HOST: legacy-database
+      MSSQL_HOST: ${@legacy-database}
+      REDIS_HOST: ${@redis}
     ports:
       - '3000:3000'
     repo: TouchBistro/cloud-server
@@ -81,6 +82,8 @@ services:
     dependencies:
       - cloud-server
     envFile: ${@REPOPATH}/packages/frontend/.env.example
+    envVars:
+      UNICORN_URL: http://${@cloud-server}:3000
     ports:
       - '8080:80'
     repo: TouchBistro/cloud-server-frontend
@@ -132,9 +135,9 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      OKTA_BASE_URL: http://mokta:8080
+      OKTA_BASE_URL: http://{@mokta}:8080
       INSECURE_DISABLE_SSL_VALIDATION: "true"
     ports:
       - '8777:8080'
@@ -152,7 +155,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '8073:8080'
@@ -172,7 +175,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '8181:8080'
@@ -192,7 +195,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: legacy-database
+      DB_HOST: ${@legacy-database}
       HTTP_PORT: 8080
     ports:
       - '8101:8080'
@@ -213,7 +216,7 @@ services:
       - legacy-database
     envFile: ${@REPOPATH}/.env.compose
     envVars:
-      DB_HOST: legacy-database
+      DB_HOST: ${@legacy-database}
       HTTP_PORT: 8080
     ports:
       - '8999:8080'
@@ -258,7 +261,7 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '8009:8080'
@@ -298,7 +301,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '8600:8080'
@@ -318,7 +321,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     preRun: yarn db:prepare
     ports:
@@ -359,7 +362,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '9443:8080'
@@ -377,11 +380,11 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       DELIVEROO_DISABLED: "true"
-      ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
-      URL_CALLBACK_URL: http://ordering-demo-frontend:8080/callback
+      ORDERING_BASE_URL: http://${@ordering-ooa-service}:8080/external
+      URL_CALLBACK_URL: http://${@ordering-demo-frontend}:8080/callback
     ports:
       - '8010:8080'
     preRun: yarn db:prepare
@@ -402,9 +405,9 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      INVENUE_BASE_URL: http://ordering-ooa-service:8080/external
+      INVENUE_BASE_URL: http://${@ordering-ooa-service}:8080/external
       MODE: venue
     ports:
       - '8020:8080'
@@ -425,18 +428,18 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
-      DB_HOST: singleapp-database
+      DB_HOST: ${@singleapp-database}
       DB_PORT: 3306
       DB_USER: root
       DB_PASSWORD: root
       DB_DISABLE_SSL: "true"
       JWT_PAS_ISSUER_URI: 'urn:touchbistro:oauth:iss:partners'
-      INFRASTRUCTURE_AUTH_SERVICE_URL: http://infrastructure-auth-service:8080
-      JWT_AUTH_ISSUER_JWKS_URL: http://infrastructure-auth-service:8080/jwks
-      JWT_PAS_ISSUER_JWKS_URI: http://partners-auth-service:8080/jwks
-      ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
-      SINGLEAPP_BASE_URL: http://yp-singleapp-api:80
-      LOYALTY_GATEWAY_SERVICE_URL: http://loyalty-gateway-service:8080
+      INFRASTRUCTURE_AUTH_SERVICE_URL: http://${@infrastructure-auth-service}:8080
+      JWT_AUTH_ISSUER_JWKS_URL: http://${@infrastructure-auth-service}:8080/jwks
+      JWT_PAS_ISSUER_JWKS_URI: http://${@partners-auth-service}:8080/jwks
+      ORDERING_INTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/internal
+      SINGLEAPP_BASE_URL: http://${@yp-singleapp-api}:80
+      LOYALTY_GATEWAY_SERVICE_URL: http://${@loyalty-gateway-service}:8080
     ports:
       - '8610:8080'
     repo: TouchBistro/ordering-engine-service
@@ -458,8 +461,8 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
-      INFRASTRUCTURE_AUTH_BASE_URL: http://infrastructure-auth-service:8080/v1
-      ORDERING_ENGINE_URL: http://ordering-engine-service:8080/v1
+      INFRASTRUCTURE_AUTH_BASE_URL: http://${@infrastructure-auth-service}:8080/v1
+      ORDERING_ENGINE_URL: http://${@ordering-engine-service}:8080/v1
     ports:
       - '8611:8080'
     repo: TouchBistro/ordering-online-frontend
@@ -477,8 +480,8 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
-      ORDERING_BASE_URL: http://ordering-ooa-service:8080/external
-      ORDERING_INTERNAL_BASE_URL: http://ordering-ooa-service:8080/internal
+      ORDERING_BASE_URL: http://${@ordering-ooa-service}:8080/external
+      ORDERING_INTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/internal
     ports:
       - '8030:8080'
     repo: TouchBistro/ordering-gateways-frontend
@@ -496,56 +499,56 @@ services:
   ordering-ooa-service:
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
           "ordering.notification.venue.menuUpdate": {
-            "queueURL": "http://localstack:4576/queue/menuUpdate",
+            "queueURL": "http://${@localstack:4576}/queue/menuUpdate",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "ordering.notification.venue.orderCancelled": {
-            "queueURL": "http://localstack:4576/queue/orderCancelled",
+            "queueURL": "http://${@localstack:4576}/queue/orderCancelled",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "ordering.notification.venue.ordersPending": {
-            "queueURL": "http://localstack:4576/queue/ordersPending",
+            "queueURL": "http://${@localstack}:4576/queue/ordersPending",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "ordering.notification.gateway.ordersStatus": {
-            "queueURL": "http://localstack:4576/queue/ordersStatus",
+            "queueURL": "http://${@localstack}:4576/queue/ordersStatus",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "ordering.order.expiryCheck": {
-            "queueURL": "http://localstack:4576/queue/expiryCheck",
+            "queueURL": "http://${@localstack}:4576/queue/expiryCheck",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "ordering.order.validate": {
-            "queueURL": "http://localstack:4576/queue/orderValidate",
+            "queueURL": "http://${@localstack}:4576/queue/orderValidate",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           }
         }
-      TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
-      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+      TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
     dependencies:
       - postgres
       - localstack
@@ -570,24 +573,24 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      LEGACY_CLOUD_SERVICE_URL: http://legacy-bridge-cloud-service:8080
-      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
-      PARTNERS_RESERVATIONS_SERVICE_URL: http://partners-reservations-service:8080
-      VENUE_PROVISIONING_SERVICE_URL: http://venue-provisioning-service:8080/internal
+      LEGACY_CLOUD_SERVICE_URL: http://${@legacy-bridge-cloud-service}:8080
+      PARTNER_CONFIG_SERVICE_URL: http://${@partners-config-service}:8080
+      PARTNERS_RESERVATIONS_SERVICE_URL: http://${@partners-reservations-service}:8080
+      VENUE_PROVISIONING_SERVICE_URL: http://${@venue-provisioning-service}:8080/internal
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
           "workflow.runNextInstruction": {
-            "queueURL": "http://localstack:4576/queue/workflowRunNextInstruction",
+            "queueURL": "http://${@localstack}:4576/queue/workflowRunNextInstruction",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
             "sleepTimeSeconds": 5
           },
           "partners-config.task.venueIntegrationUpdate": {
-            "queueURL": "http://localstack:4576/queue/venueIntegrationUpdate",
+            "queueURL": "http://${@localstack}:4576/queue/venueIntegrationUpdate",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
@@ -615,16 +618,16 @@ services:
       - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      AWS_S3_ENDPOINT: http://localstack:4572
+      AWS_S3_ENDPOINT: http://${@localstack}:4572
       AWS_S3_STUB: "false"
-      PARTNER_CONFIG_SERVICE_URL: http://partners-config-service:8080
+      PARTNER_CONFIG_SERVICE_URL: http://${@partners-config-service}:8080
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
           "etl.job.execute": {
-            "queueURL": "http://localstack:4576/queue/etlExecute",
+            "queueURL": "http://${@localstack}:4576/queue/etlExecute",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
@@ -655,14 +658,14 @@ services:
       - legacy-bridge-cloud-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      AWS_S3_ENDPOINT: http://localstack:4572
+      AWS_S3_ENDPOINT: http://${@localstack}:4572
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
           "venue-upload.task.venueUpload": {
-            "queueURL": "http://localstack:4576/queue/venueUpload",
+            "queueURL": "http://${@localstack}:4576/queue/venueUpload",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
@@ -689,7 +692,7 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
     ports:
       - '8008:8080'
@@ -728,11 +731,11 @@ services:
     entrypoint: ["bash", "../docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      CORE_BACKEND_URL_BASE: http://venue-core-service:8080
-      TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://partners-config-service:8080
-      TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE: http://legacy-bridge-cloud-service:8080
-      INFRASTRUCTURE_AUTH_SERVICE_URL: http://infrastructure-auth-service:8080
-      OKTA_APPLICATION_URL_BASE: http://mokta:8080
+      CORE_BACKEND_URL_BASE: http://${@venue-core-service}:8080
+      TOUCHBISTRO_PARTNER_CONFIG_URL_BASE: http://${@partners-config-service}:8080
+      TOUCHBISTRO_LEGACY_BRIDGE_API_URL_BASE: http://${@legacy-bridge-cloud-service}:8080
+      INFRASTRUCTURE_AUTH_SERVICE_URL: http://${@infrastructure-auth-service}:8080
+      OKTA_APPLICATION_URL_BASE: http://${@mokta}:8080
       HTTP_PORT: 9002 # VAF will default to :5000 for local server development.
       NODE_ENV: production
     ports:
@@ -756,20 +759,20 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
-      DB_HOST: postgres
-      PROVISIONING_JWKS_URI: http://venue-provisioning-service:8080/external/jwks
-      AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
-      AWS_S3_CORE_FILE_URL_TEMPLATE: http://localstack:4572/%%s3Bucket%%/%%s3ObjectKey%%
-      AWS_S3_ENDPOINT: http://localstack:4572
-      LOCALSTACK_SQS_URL: http://localstack:4576
+      DB_HOST: ${@postgres}
+      PROVISIONING_JWKS_URI: http://${@venue-provisioning-service}:8080/external/jwks
+      AWS_S3_CORE_IMAGE_URL_TEMPLATE: http://${@localstack}:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_CORE_FILE_URL_TEMPLATE: http://${@localstack}:4572/%%s3Bucket%%/%%s3ObjectKey%%
+      AWS_S3_ENDPOINT: http://${@localstack}:4572
+      LOCALSTACK_SQS_URL: http://${@localstack}:4576
       TASK_AWS_SQS_CONFIG_JSON: >
-        {"core.task.data.migration":{"queueURL":"http://localstack:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
+        {"core.task.data.migration":{"queueURL":"http://${@localstack}:4576/queue/coreTest","messageThrottle":1,"visibilityTimeout":10,"waitTimeSeconds":5,"sleepTimeSeconds":5}}
       # Note: Remove USE_INSECURE_IMPERSONATE after https://github.com/TouchBistro/venue-core-service/pull/239 is merged.
       # Keeping for backwards compatibility.
       USE_INSECURE_IMPERSONATE: insecure
-      INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://infrastructure-auth-service:8080/jwks
+      INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://${@infrastructure-auth-service}:8080/jwks
       INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
-      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
     ports:
       - '8081:8080' # Main HTTP port
       - '9901:9229' # 9229, 9330: Node debugger
@@ -795,10 +798,10 @@ services:
       - postgres
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      DB_HOST: postgres
+      DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://cloud-server:3000
-      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://legacy-bridge-cloud-service:8080
+      TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://${@cloud-server}:3000
+      TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
     ports:
       - '8666:8080'
     preRun: yarn db:prepare
@@ -816,12 +819,12 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
-      AWS_S3_ENDPOINT: http://localstack:4572
+      AWS_S3_ENDPOINT: http://${@localstack}:4572
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
         {
           "venue-upload.task.venueUpload": {
-            "queueURL": "http://localstack:4576/queue/venueUpload",
+            "queueURL": "http://${@localstack}:4576/queue/venueUpload",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
@@ -829,7 +832,7 @@ services:
             "sendOnly": true
           },
           "venue-upload.task.validateOrder": {
-            "queueURL": "http://localstack:4576/queue/validateOrder",
+            "queueURL": "http://${@localstack}:4576/queue/validateOrder",
             "messageThrottle": 1,
             "visibilityTimeout": 10,
             "waitTimeSeconds": 5,
@@ -862,4 +865,4 @@ services:
       dockerfilePath: ${@REPOPATH}
     envFile: ${@REPOPATH}/.env.example
     envVars:
-      ORDERING_EXTERNAL_BASE_URL: http://ordering-ooa-service:8080/external
+      ORDERING_EXTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/external

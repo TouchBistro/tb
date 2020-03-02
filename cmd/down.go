@@ -28,7 +28,7 @@ var downCmd = &cobra.Command{
 				fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 			}
 
-			names = append(names, s.FullName())
+			names = append(names, s.DockerName())
 		}
 
 		err := docker.ComposeStop(names)

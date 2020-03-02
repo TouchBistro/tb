@@ -28,6 +28,14 @@ type ServiceConfig struct {
 func parseServices(config ServiceConfig) (ServiceMap, error) {
 	parsedServices := make(ServiceMap)
 
+	vars := config.Global.Variables
+	vars["@ROOTPATH"] = TBRootPath()
+
+	// Add vars for each service name
+	for name := range config.Services {
+		vars["@"+name] = "touchbistro-tb-recipe-" + name
+	}
+
 	// Validate each service and perform any necessary actions
 	for name, service := range config.Services {
 		// Make sure either local or remote usage is specified
@@ -43,11 +51,10 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 		}
 
 		// Set special service specific vars
-		vars := config.Global.Variables
-		vars["@ROOTPATH"] = TBRootPath()
-
 		if service.HasGitRepo() {
 			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.GitRepo)
+		} else {
+			vars["@REPOPATH"] = ""
 		}
 
 		// Expand any vars

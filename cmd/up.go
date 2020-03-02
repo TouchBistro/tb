@@ -98,7 +98,7 @@ func dockerComposeBuild(services []service.Service) {
 	var names []string
 	for _, s := range services {
 		if !s.UseRemote() {
-			names = append(names, s.FullName())
+			names = append(names, s.DockerName())
 		}
 	}
 
@@ -194,8 +194,10 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedServices := selectServices()
 		serviceNames := make([]string, len(selectedServices))
+		serviceDockerNames := make([]string, len(selectedServices))
 		for i, s := range selectedServices {
 			serviceNames[i] = s.FullName()
+			serviceDockerNames[i] = s.DockerName()
 		}
 
 		log.Infof("running the following services: %s", strings.Join(serviceNames, ", "))
@@ -224,7 +226,7 @@ Examples:
 		failedCh := make(chan error)
 
 		go func() {
-			cleanupPrevDocker(serviceNames)
+			cleanupPrevDocker(serviceDockerNames)
 			successCh <- "Docker Cleanup"
 		}()
 
@@ -336,7 +338,7 @@ Examples:
 
 				name := s.FullName()
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
-				composeArgs := fmt.Sprintf("%s run --rm %s %s", docker.ComposeFile(), name, s.PreRun)
+				composeArgs := fmt.Sprintf("%s run --rm %s %s", docker.ComposeFile(), s.DockerName(), s.PreRun)
 				go func(successCh chan string, failedCh chan error, name string, args []string) {
 					err := command.Exec("docker-compose", args, name)
 					if err != nil {
@@ -344,7 +346,7 @@ Examples:
 						return
 					}
 					successCh <- name
-				}(successCh, failedCh, s.FullName(), strings.Fields(composeArgs))
+				}(successCh, failedCh, name, strings.Fields(composeArgs))
 				count++
 				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				// Any ideas better than a sleep hack are appreciated
@@ -358,7 +360,7 @@ Examples:
 
 		log.Info("☐ starting docker-compose up in detached mode")
 
-		err = docker.ComposeUp(serviceNames)
+		err = docker.ComposeUp(serviceDockerNames)
 		if err != nil {
 			fatal.ExitErr(err, "could not run docker-compose up")
 		}

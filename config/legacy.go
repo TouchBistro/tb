@@ -121,6 +121,10 @@ func legacyInit() error {
 	// Bridge old world to new world
 	services = service.NewServiceCollection()
 	for n, s := range serviceMap {
+		for i, d := range s.Dependencies {
+			s.Dependencies[i] = "touchbistro-tb-recipe-" + d
+		}
+
 		s.Name = n
 		s.RecipeName = "TouchBistro/tb-recipe"
 		err := services.Set(s)

@@ -34,7 +34,7 @@ var logsCmd = &cobra.Command{
 					fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 				}
 
-				b.WriteString(s.FullName())
+				b.WriteString(s.DockerName())
 				b.WriteString(" ")
 			}
 

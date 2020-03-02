@@ -36,7 +36,7 @@ type composeFile struct {
 
 func createComposeService(s service.Service) composeService {
 	cs := composeService{
-		ContainerName: s.FullName(),
+		ContainerName: s.DockerName(),
 		DependsOn:     s.Dependencies,
 		Entrypoint:    s.Entrypoint,
 		EnvFile:       []string{},
@@ -83,7 +83,7 @@ func CreateComposeFile(services *service.ServiceCollection, w io.Writer) error {
 	for it.HasNext() {
 		s := it.Next()
 
-		name := s.FullName()
+		name := s.DockerName()
 		composeServices[name] = createComposeService(s)
 
 		// Add named volumes
