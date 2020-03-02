@@ -68,7 +68,8 @@ func (s Service) FullName() string {
 }
 
 type ServiceCollection struct {
-	sm map[string][]Service
+	sm  map[string][]Service
+	len int
 }
 
 func NewServiceCollection() *ServiceCollection {
@@ -105,16 +106,21 @@ func (sc *ServiceCollection) Get(name string) (Service, error) {
 	return Service{}, errors.Errorf("No such service %s", name)
 }
 
-func (sc *ServiceCollection) Set(name string, value Service) error {
+func (sc *ServiceCollection) Set(value Service) error {
+	if value.Name == "" || value.RecipeName == "" {
+		return errors.Errorf("Name and RecipeName fields must not be empty to set Service")
+	}
 
-	recipeName, serviceName, err := util.SplitNameParts(name)
+	fullName := value.FullName()
+	recipeName, serviceName, err := util.SplitNameParts(fullName)
 	if err != nil {
-		return errors.Wrapf(err, "invalid service name %s", name)
+		return errors.Wrapf(err, "invalid service name %s", fullName)
 	}
 
 	bucket, ok := sc.sm[serviceName]
 	if !ok {
 		sc.sm[serviceName] = []Service{value}
+		sc.len++
 		return nil
 	}
 
@@ -128,13 +134,62 @@ func (sc *ServiceCollection) Set(name string, value Service) error {
 
 	// No matching playlist found, add a new one
 	sc.sm[serviceName] = append(bucket, value)
+	sc.len++
 	return nil
 }
 
-func (sc *ServiceCollection) ForEach(f func(Service)) {
-	for _, bucket := range sc.sm {
-		for _, s := range bucket {
-			f(s)
-		}
+func (sc *ServiceCollection) Len() int {
+	return sc.len
+}
+
+type iterator struct {
+	sc   *ServiceCollection
+	keys []string
+	// Index of the current map key
+	i int
+	// Index of the current element in the bucket
+	j int
+}
+
+func (sc *ServiceCollection) Iter() *iterator {
+	it := iterator{
+		sc:   sc,
+		keys: make([]string, len(sc.sm)),
 	}
+
+	i := 0
+	for k := range sc.sm {
+		it.keys[i] = k
+		i++
+	}
+
+	return &it
+}
+
+// Next returns the next element in the ServiceCollection currently being iterated.
+// NOTE: This does not check if a next element exists. It is the callers responsibilty
+// to ensure there is a next element using the HasNext() method.
+func (it *iterator) Next() Service {
+	// Get value at current index
+	key := it.keys[it.i]
+	bucket := it.sc.sm[key]
+	val := bucket[it.j]
+
+	// Update indices
+	if it.j == len(bucket)-1 {
+		// Move to next bucket
+		it.i++
+		it.j = 0
+	} else {
+		it.j++
+	}
+
+	return val
+}
+
+func (it *iterator) HasNext() bool {
+	sm := it.sc.sm
+	// Another element exists if i isn't on the last map key
+	// and j isn't on the last bucket index
+	return it.i < len(sm) && it.j < len(sm[it.keys[it.i]])
 }

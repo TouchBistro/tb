@@ -50,10 +50,14 @@ var listCmd = &cobra.Command{
 }
 
 func listServices(services *service.ServiceCollection) {
-	names := make([]string, 0)
-	services.ForEach(func(s service.Service) {
-		names = append(names, s.FullName())
-	})
+	names := make([]string, services.Len())
+	i := 0
+	it := services.Iter()
+	for it.HasNext() {
+		s := it.Next()
+		names[i] = s.FullName()
+		i++
+	}
 
 	sort.Strings(names)
 	for _, name := range names {

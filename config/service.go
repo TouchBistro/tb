@@ -11,6 +11,7 @@ import (
 
 /* Types */
 
+// Legacy, don't use!
 type ServiceMap map[string]service.Service
 
 type ServiceConfig struct {
@@ -70,59 +71,4 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 	}
 
 	return parsedServices, nil
-}
-
-func applyOverrides(services ServiceMap, overrides map[string]ServiceOverride) (ServiceMap, error) {
-	newServices := make(ServiceMap)
-	for name, s := range services {
-		newServices[name] = s
-	}
-
-	for name, override := range overrides {
-		s, ok := services[name]
-		if !ok {
-			return nil, fmt.Errorf("%s is not a valid service", name)
-		}
-
-		// Validate overrides
-		if override.Remote.Enabled && s.Remote.Image == "" {
-			msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", name)
-			return nil, errors.New(msg)
-		} else if !override.Remote.Enabled && !s.HasGitRepo() {
-			msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", name)
-			return nil, errors.New(msg)
-		}
-
-		// Apply overrides to service
-		if override.Build.Command != "" {
-			s.Build.Command = override.Build.Command
-		}
-
-		if override.Build.Target != "" {
-			s.Build.Target = override.Build.Target
-		}
-
-		if override.EnvVars != nil {
-			for v, val := range override.EnvVars {
-				s.EnvVars[v] = val
-			}
-		}
-
-		if override.PreRun != "" {
-			s.PreRun = override.PreRun
-		}
-
-		if override.Remote.Command != "" {
-			s.Remote.Command = override.Remote.Command
-		}
-
-		s.Remote.Enabled = override.Remote.Enabled
-		if override.Remote.Tag != "" {
-			s.Remote.Tag = override.Remote.Tag
-		}
-
-		newServices[name] = s
-	}
-
-	return newServices, nil
 }

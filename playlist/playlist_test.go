@@ -20,35 +20,38 @@ func TestGetPlaylist(t *testing.T) {
 		},
 	})
 
-	err := pc.Set("TouchBistro/tb-recipe/core", Playlist{
+	err := pc.Set(Playlist{
 		Services: []string{
 			"postgres",
 			"venue-core-service",
 		},
+		Name:       "core",
 		RecipeName: "TouchBistro/tb-recipe",
 	})
 	if err != nil {
 		assert.FailNow("Failed to set playlist")
 	}
 
-	err = pc.Set("ExampleZone/tb-recipe/core", Playlist{
+	err = pc.Set(Playlist{
 		Services: []string{
 			"redis",
 			"postgres",
 			"node",
 		},
+		Name:       "core",
 		RecipeName: "ExampleZone/tb-recipe",
 	})
 	if err != nil {
 		assert.FailNow("Failed to set playlist")
 	}
 
-	err = pc.Set("vaf-core", Playlist{
+	err = pc.Set(Playlist{
 		Extends: "TouchBistro/tb-recipe/core",
 		Services: []string{
 			"venue-admin-frontend",
 			"partners-config-service",
 		},
+		Name:       "vaf-core",
 		RecipeName: "TouchBistro/tb-recipe",
 	})
 	if err != nil {
@@ -73,22 +76,24 @@ func TestGetPlaylistCircularDependency(t *testing.T) {
 	assert := assert.New(t)
 
 	pc := NewPlaylistCollection(nil)
-	err := pc.Set("core", Playlist{
+	err := pc.Set(Playlist{
 		Extends: "core-2",
 		Services: []string{
 			"postgres",
 		},
+		Name:       "core",
 		RecipeName: "TouchBistro/tb-recipe",
 	})
 	if err != nil {
 		assert.FailNow("Failed to set playlist")
 	}
 
-	err = pc.Set("core-2", Playlist{
+	err = pc.Set(Playlist{
 		Extends: "TouchBistro/tb-recipe/core",
 		Services: []string{
 			"localstack",
 		},
+		Name:       "core-2",
 		RecipeName: "TouchBistro/tb-recipe",
 	})
 	if err != nil {
@@ -117,7 +122,7 @@ func TestNames(t *testing.T) {
 
 	pc := NewPlaylistCollection(nil)
 
-	err := pc.Set("TouchBistro/tb-recipe/core", Playlist{
+	err := pc.Set(Playlist{
 		Services: []string{
 			"postgres",
 			"venue-core-service",
@@ -129,7 +134,7 @@ func TestNames(t *testing.T) {
 		assert.FailNow("Failed to set playlist")
 	}
 
-	err = pc.Set("ExampleZone/tb-recipe/core", Playlist{
+	err = pc.Set(Playlist{
 		Services: []string{
 			"redis",
 			"postgres",
@@ -142,7 +147,7 @@ func TestNames(t *testing.T) {
 		assert.FailNow("Failed to set playlist")
 	}
 
-	err = pc.Set("vaf-core", Playlist{
+	err = pc.Set(Playlist{
 		Extends: "TouchBistro/tb-recipe/core",
 		Services: []string{
 			"venue-admin-frontend",

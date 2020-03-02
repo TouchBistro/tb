@@ -86,11 +86,13 @@ func CloneMissingRepos() error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
 	repos := make([]string, 0)
-	services.ForEach(func(s service.Service) {
+	it := services.Iter()
+	for it.HasNext() {
+		s := it.Next()
 		if s.HasGitRepo() {
 			repos = append(repos, s.GitRepo)
 		}
-	})
+	}
 	repos = util.UniqueStrings(repos)
 
 	successCh := make(chan string)

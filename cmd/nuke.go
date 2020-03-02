@@ -7,7 +7,6 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -100,11 +99,13 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing repos...")
 
 			repos := make([]string, 0)
-			config.Services().ForEach(func(s service.Service) {
+			it := config.Services().Iter()
+			for it.HasNext() {
+				s := it.Next()
 				if s.HasGitRepo() {
 					repos = append(repos, s.GitRepo)
 				}
-			})
+			}
 			repos = util.UniqueStrings(repos)
 
 			for _, repo := range repos {

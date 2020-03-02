@@ -79,7 +79,10 @@ func CreateComposeFile(services *service.ServiceCollection, w io.Writer) error {
 	// docker-compose seems cool with this
 	composeVolumes := make(map[string]interface{})
 
-	services.ForEach(func(s service.Service) {
+	it := services.Iter()
+	for it.HasNext() {
+		s := it.Next()
+
 		name := s.FullName()
 		composeServices[name] = createComposeService(s)
 
@@ -98,7 +101,7 @@ func CreateComposeFile(services *service.ServiceCollection, w io.Writer) error {
 			namedVolume := strings.Split(v.Value, ":")[0]
 			composeVolumes[namedVolume] = nil
 		}
-	})
+	}
 
 	composeFile := composeFile{
 		Version:  "3.7",

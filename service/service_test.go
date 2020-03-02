@@ -8,7 +8,7 @@ import (
 
 func createServiceCollection(t *testing.T) *ServiceCollection {
 	sc := NewServiceCollection()
-	err := sc.Set("ExampleZone/tb-recipe/postgres", Service{
+	err := sc.Set(Service{
 		EnvVars: map[string]string{
 			"POSTGRES_USER":     "user",
 			"POSTGRES_PASSWORD": "password",
@@ -25,7 +25,7 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 		assert.FailNow(t, "Failed to set playlist")
 	}
 
-	err = sc.Set("TouchBistro/tb-recipe/postgres", Service{
+	err = sc.Set(Service{
 		EnvVars: map[string]string{
 			"POSTGRES_USER":     "core",
 			"POSTGRES_PASSWORD": "localdev",
@@ -42,7 +42,7 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 		assert.FailNow(t, "Failed to set playlist")
 	}
 
-	err = sc.Set("venue-core-service", Service{
+	err = sc.Set(Service{
 		EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
 		EnvVars: map[string]string{
 			"HTTP_PORT": "8080",
@@ -60,6 +60,7 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 			Target:         "release",
 		},
+		Name:       "venue-core-service",
 		RecipeName: "TouchBistro/tb-recipe",
 	})
 	if err != nil {
@@ -115,6 +116,7 @@ func TestServiceCollectionGetShortName(t *testing.T) {
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 			Target:         "release",
 		},
+		Name:       "venue-core-service",
 		RecipeName: "TouchBistro/tb-recipe",
 	}, s)
 	assert.NoError(err)
@@ -161,7 +163,7 @@ func TestServiceCollectionSetUpdate(t *testing.T) {
 	}
 	s.PreRun = "setup_db.sh -v"
 
-	err = sc.Set(name, s)
+	err = sc.Set(s)
 
 	assert.NoError(err)
 
@@ -182,4 +184,33 @@ func TestServiceCollectionSetUpdate(t *testing.T) {
 		RecipeName: "TouchBistro/tb-recipe",
 	}, s)
 	assert.NoError(err)
+}
+
+func TestServiceCollectionLen(t *testing.T) {
+	assert := assert.New(t)
+	sc := createServiceCollection(t)
+
+	expectedLen := 3
+
+	assert.Equal(expectedLen, sc.Len())
+}
+
+func TestServiceCollectionIter(t *testing.T) {
+	assert := assert.New(t)
+	sc := createServiceCollection(t)
+	it := sc.Iter()
+
+	names := make([]string, 0)
+	for it.HasNext() {
+		s := it.Next()
+		names = append(names, s.FullName())
+	}
+
+	expectedNames := []string{
+		"ExampleZone/tb-recipe/postgres",
+		"TouchBistro/tb-recipe/postgres",
+		"TouchBistro/tb-recipe/venue-core-service",
+	}
+
+	assert.ElementsMatch(expectedNames, names)
 }

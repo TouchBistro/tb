@@ -89,16 +89,15 @@ func (pc *PlaylistCollection) Get(name string) (Playlist, error) {
 	return Playlist{}, errors.Errorf("No such playlist %s", name)
 }
 
-func (pc *PlaylistCollection) Set(name string, value Playlist) error {
-	// Check custom playlists first
-	if _, ok := pc.customPlaylists[name]; ok {
-		pc.customPlaylists[name] = value
-		return nil
+func (pc *PlaylistCollection) Set(value Playlist) error {
+	if value.Name == "" || value.RecipeName == "" {
+		return errors.Errorf("Name and RecipeName fields must not be empty to set Service")
 	}
 
-	recipeName, playlistName, err := util.SplitNameParts(name)
+	fullName := value.FullName()
+	recipeName, playlistName, err := util.SplitNameParts(fullName)
 	if err != nil {
-		return errors.Wrapf(err, "invalid playlist name %s", name)
+		return errors.Wrapf(err, "invalid playlist name %s", fullName)
 	}
 
 	bucket, ok := pc.playlists[playlistName]

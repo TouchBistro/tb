@@ -90,7 +90,8 @@ func legacyInit() error {
 	playlists = playlist.NewPlaylistCollection(tbrc.Playlists)
 	for n, p := range playlistMap {
 		p.Name = n
-		err := playlists.Set(n, p)
+		p.RecipeName = "TouchBistro/tb-recipe"
+		err := playlists.Set(p)
 		if err != nil {
 			return errors.Wrapf(err, "failed to add playlist %s to collection", n)
 		}
@@ -117,19 +118,21 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to load services")
 	}
 
-	serviceMap, err = applyOverrides(serviceMap, tbrc.Overrides)
-	if err != nil {
-		return errors.Wrap(err, "failed to apply overrides from tbrc")
-	}
-
 	// Bridge old world to new world
 	services = service.NewServiceCollection()
 	for n, s := range serviceMap {
 		s.Name = n
-		err := services.Set(n, s)
+		s.RecipeName = "TouchBistro/tb-recipe"
+		err := services.Set(s)
 		if err != nil {
 			return errors.Wrapf(err, "failed to add service %s to collection", n)
 		}
+	}
+
+	// Apply overrides from .tbrc.yml
+	err = services.ApplyOverrides(tbrc.Overrides)
+	if err != nil {
+		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
 
 	// Create docker-compose.yml
