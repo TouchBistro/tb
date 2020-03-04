@@ -7,6 +7,9 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/compose"
+	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
 	"github.com/gobuffalo/packr/v2"
 	"github.com/pkg/errors"
@@ -77,9 +80,21 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to find packr box %s", playlistPath)
 	}
 
-	err = yaml.NewDecoder(bytes.NewReader(pBuf)).Decode(&playlists)
+	// Bridge old world to new world
+	playlistMap := make(map[string]playlist.Playlist)
+	err = yaml.NewDecoder(bytes.NewReader(pBuf)).Decode(&playlistMap)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
+	}
+
+	playlists = playlist.NewPlaylistCollection(tbrc.Playlists)
+	for n, p := range playlistMap {
+		p.Name = n
+		p.RegistryName = "TouchBistro/tb-registry"
+		err := playlists.Set(p)
+		if err != nil {
+			return errors.Wrapf(err, "failed to add playlist %s to collection", n)
+		}
 	}
 
 	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
@@ -98,12 +113,28 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to dump file to %s", lazydockerConfigPath)
 	}
 
-	services, err := parseServices(serviceConfig)
+	serviceMap, err := parseServices(serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load services")
 	}
 
-	services, err = applyOverrides(services, tbrc.Overrides)
+	// Bridge old world to new world
+	services = service.NewServiceCollection()
+	for n, s := range serviceMap {
+		for i, d := range s.Dependencies {
+			s.Dependencies[i] = "touchbistro-tb-registry-" + d
+		}
+
+		s.Name = n
+		s.RegistryName = "TouchBistro/tb-registry"
+		err := services.Set(s)
+		if err != nil {
+			return errors.Wrapf(err, "failed to add service %s to collection", n)
+		}
+	}
+
+	// Apply overrides from .tbrc.yml
+	err = services.ApplyOverrides(tbrc.Overrides)
 	if err != nil {
 		return errors.Wrap(err, "failed to apply overrides from tbrc")
 	}
@@ -117,13 +148,11 @@ func legacyInit() error {
 	defer file.Close()
 
 	log.Debugln("Generating docker-compose.yml file...")
-	err = CreateComposeFile(services, file)
+	err = compose.CreateComposeFile(services, file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
 	log.Debugln("Successfully generated docker-compose.yml")
-
-	serviceConfig.Services = services
 
 	return nil
 }

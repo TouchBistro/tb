@@ -1,19 +1,24 @@
 package config
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/spinner"
+	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
+	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
 var tbrc userConfig
 var serviceConfig ServiceConfig
-var playlists map[string]Playlist
+var services *service.ServiceCollection
+var playlists *playlist.PlaylistCollection
 var tbRoot string
 
 const (
@@ -34,14 +39,6 @@ func ReposPath() string {
 	return filepath.Join(tbRoot, "repos")
 }
 
-func Services() ServiceMap {
-	return serviceConfig.Services
-}
-
-func Playlists() map[string]Playlist {
-	return playlists
-}
-
 func LoginStategies() ([]login.LoginStrategy, error) {
 	s, err := login.ParseStrategies(serviceConfig.Global.LoginStategies)
 	return s, errors.Wrap(err, "Failed to parse login strategies")
@@ -49,6 +46,14 @@ func LoginStategies() ([]login.LoginStrategy, error) {
 
 func BaseImages() []string {
 	return serviceConfig.Global.BaseImages
+}
+
+func LoadedServices() *service.ServiceCollection {
+	return services
+}
+
+func LoadedPlaylists() *playlist.PlaylistCollection {
+	return playlists
 }
 
 /* Private functions */
@@ -77,40 +82,56 @@ func Init() error {
 	return legacyInit()
 }
 
-func GetPlaylist(name string, deps map[string]bool) ([]string, error) {
-	// TODO: Make this less yolo if Init() wasn't called
-	if playlists == nil {
-		log.Panic("this is a bug. playlists is not initialised")
-	}
-	customList := tbrc.Playlists
+func CloneMissingRepos() error {
+	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
-	// Check custom playlists first
-	if playlist, ok := customList[name]; ok {
-		// Resolve parent playlist defined in extends
-		if playlist.Extends != "" {
-			deps[name] = true
-			if deps[playlist.Extends] {
-				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
-				return []string{}, errors.New(msg)
+	repos := make([]string, 0)
+	it := services.Iter()
+	for it.HasNext() {
+		s := it.Next()
+		if s.HasGitRepo() {
+			repos = append(repos, s.GitRepo)
+		}
+	}
+	repos = util.UniqueStrings(repos)
+
+	successCh := make(chan string)
+	failedCh := make(chan error)
+
+	count := 0
+	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
+	for _, repo := range repos {
+		path := filepath.Join(ReposPath(), repo)
+
+		if file.FileOrDirExists(path) {
+			dirlen, err := file.DirLen(path)
+			if err != nil {
+				return errors.Wrap(err, "Could not read project directory")
 			}
-			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
-			return append(parentPlaylist, playlist.Services...), err
+			// Directory exists but only contains .git subdirectory, rm and clone again
+			if dirlen > 2 {
+				continue
+			}
+			err = os.RemoveAll(path)
+			if err != nil {
+				return errors.Wrapf(err, "Couldn't remove project directory for %s", path)
+			}
 		}
 
-		return playlist.Services, nil
-	} else if playlist, ok := playlists[name]; ok {
-		if playlist.Extends != "" {
-			deps[name] = true
-			if deps[playlist.Extends] {
-				msg := fmt.Sprintf("Circular dependency of services, %s and %s", playlist.Extends, name)
-				return []string{}, errors.New(msg)
+		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
+		go func(successCh chan string, failedCh chan error, repo, destPath string) {
+			err := git.Clone(repo, destPath)
+			if err != nil {
+				failedCh <- err
+			} else {
+				successCh <- repo
 			}
-			parentPlaylist, err := GetPlaylist(playlist.Extends, deps)
-			return append(parentPlaylist, playlist.Services...), err
-		}
-
-		return playlist.Services, nil
+		}(successCh, failedCh, repo, path)
+		count++
 	}
 
-	return []string{}, nil
+	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
+
+	log.Info("☑ finished checking git repos")
+	return nil
 }

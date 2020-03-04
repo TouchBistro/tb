@@ -2,6 +2,7 @@ package awsecr
 
 import (
 	"context"
+	"regexp"
 	"sort"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -10,11 +11,16 @@ import (
 	"github.com/pkg/errors"
 )
 
-func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
+func FetchRepoImages(ecrImage string, limit int) ([]ecr.ImageDetail, error) {
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
+
+	// Need to strip ECR registry prefix from the image to get repo name
+	// i.e. <aws_ccount_id>.dkr.ecr.<region>.amazonaws.com/<repo>
+	regex := regexp.MustCompile(`.+\.dkr\.ecr\..+\.amazonaws\.com\/(.+)`)
+	repoName := regex.FindStringSubmatch(ecrImage)[1]
 
 	// Unforunately there's no way to get the latest images from ECR
 	// it just seems to return them in a random order
@@ -22,7 +28,7 @@ func FetchRepoImages(repoName string, limit int) ([]ecr.ImageDetail, error) {
 	// and sort them ourselves to get the newest ones
 	const max = 1000
 	input := ecr.DescribeImagesInput{
-		RepositoryName: &repoName,
+		RepositoryName: aws.String(repoName),
 		MaxResults:     aws.Int64(int64(max)),
 	}
 

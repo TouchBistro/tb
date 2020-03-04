@@ -6,6 +6,8 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/service"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -13,46 +15,17 @@ import (
 
 const tbrcName = ".tbrc.yml"
 
-type Playlist struct {
-	Extends  string   `yaml:"extends"`
-	Services []string `yaml:"services"`
-}
-
-type BuildOverride struct {
-	Command string `yaml:"command"`
-	Target  string `yaml:"target"`
-}
-
-type RemoteOverride struct {
-	Command string `yaml:"command"`
-	Enabled bool   `yaml:"enabled"`
-	Tag     string `yaml:"tag"`
-}
-
-type ServiceOverride struct {
-	Build   BuildOverride     `yaml:"build"`
-	EnvVars map[string]string `yaml:"envVars"`
-	PreRun  string            `yaml:"preRun"`
-	Remote  RemoteOverride    `yaml:"remote"`
-}
-
 type userConfig struct {
-	DebugEnabled        bool                       `yaml:"debug"`
-	ExperimentalEnabled bool                       `yaml:"experimental"`
-	Playlists           map[string]Playlist        `yaml:"playlists"`
-	Overrides           map[string]ServiceOverride `yaml:"overrides"`
+	DebugEnabled        bool                               `yaml:"debug"`
+	ExperimentalEnabled bool                               `yaml:"experimental"`
+	Playlists           map[string]playlist.Playlist       `yaml:"playlists"`
+	Overrides           map[string]service.ServiceOverride `yaml:"overrides"`
 }
 
 /* Getters for private & computed vars */
 
 func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
-}
-
-// TODO remove this once recipe stuff is implemented
-// This is a temp hack so tb list still works
-func CustomPlaylists() map[string]Playlist {
-	return tbrc.Playlists
 }
 
 func LoadTBRC() error {

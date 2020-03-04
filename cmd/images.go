@@ -22,16 +22,16 @@ var imagesCmd = &cobra.Command{
 	Args:    cobra.ExactArgs(1),
 	Short:   "List latest available images for a service",
 	Long: `List latest available images for a service.
-	
+
 Examples:
 - List the last 10 images available for venue-core-service in the container registry
 	tb images venue-core-service --max 10
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
-		s, ok := config.Services()[serviceName]
-		if !ok {
-			fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+		s, err := config.LoadedServices().Get(serviceName)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		} else if s.Remote.Image == "" {
 			fatal.Exitf("%s is not available from a remote docker registry\n", serviceName)
 		}
@@ -43,7 +43,7 @@ Examples:
 
 		// Do it for the spinner!
 		go func() {
-			imgs, err := awsecr.FetchRepoImages(serviceName, max)
+			imgs, err := awsecr.FetchRepoImages(s.Remote.Image, max)
 			if err != nil {
 				failedCh <- err
 				return

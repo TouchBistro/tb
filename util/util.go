@@ -81,3 +81,16 @@ func UniqueStrings(s []string) []string {
 
 	return us
 }
+
+func SplitNameParts(name string) (string, string, error) {
+	// Full form of item name in a registry is
+	// <org>/<repo>/<item> where an item is a service, playlist or app
+	regex := regexp.MustCompile(`^(?:([\w-]+\/[\w-]+)\/)?([\w-]+)$`)
+	matches := regex.FindStringSubmatch(name)
+
+	if len(matches) == 0 {
+		return "", "", errors.Errorf("%s is not a valid tb item name. Format is <org>/<repo>/<item>", name)
+	}
+
+	return matches[1], matches[2], nil
+}

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
 
 	log "github.com/sirupsen/logrus"
@@ -23,17 +23,17 @@ var cloneCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
 
-		service, ok := config.Services()[serviceName]
-		if !ok {
-			fatal.Exitf("%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
+		s, err := config.LoadedServices().Get(serviceName)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
 		}
 
-		if !service.HasGitRepo() {
+		if !s.HasGitRepo() {
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		repoPath := fmt.Sprintf("./%s", strings.Split(service.GitRepo, "/")[1])
-		err := git.Clone(service.GitRepo, repoPath)
+		repoPath := fmt.Sprintf("./%s", strings.Split(s.GitRepo, "/")[1])
+		err = git.Clone(s.GitRepo, repoPath)
 		if err != nil {
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}

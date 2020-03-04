@@ -12,7 +12,7 @@ var downCmd = &cobra.Command{
 	Use:   "down [services...]",
 	Short: "Stop and remove containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos(config.Services())
+		err := config.CloneMissingRepos()
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -20,13 +20,18 @@ var downCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		log.Debug("stopping compose services...")
+
+		names := make([]string, len(args))
 		for _, serviceName := range args {
-			if _, ok := config.Services()[serviceName]; !ok {
-				fatal.Exitf("%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
+			s, err := config.LoadedServices().Get(serviceName)
+			if err != nil {
+				fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 			}
+
+			names = append(names, s.DockerName())
 		}
 
-		err := docker.ComposeStop(args)
+		err := docker.ComposeStop(names)
 		if err != nil {
 			fatal.ExitErr(err, "failed stopping compose services")
 		}
@@ -36,7 +41,7 @@ var downCmd = &cobra.Command{
 		}
 
 		log.Println("removing stopped containers...")
-		err = docker.ComposeRm(args)
+		err = docker.ComposeRm(names)
 		if err != nil {
 			fatal.ExitErr(err, "could not remove stopped containers")
 		}
