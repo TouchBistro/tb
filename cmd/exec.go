@@ -35,7 +35,7 @@ Examples:
 		serviceName := args[0]
 
 		// Make sure it's a valid service
-		s, err := config.Services().Get(serviceName)
+		s, err := config.LoadedServices().Get(serviceName)
 		if err != nil {
 			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}

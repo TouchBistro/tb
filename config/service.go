@@ -33,7 +33,7 @@ func parseServices(config ServiceConfig) (ServiceMap, error) {
 
 	// Add vars for each service name
 	for name := range config.Services {
-		vars["@"+name] = "touchbistro-tb-recipe-" + name
+		vars["@"+name] = "touchbistro-tb-registry-" + name
 	}
 
 	// Validate each service and perform any necessary actions

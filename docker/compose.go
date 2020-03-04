@@ -48,3 +48,10 @@ func ComposeRm(services []string) error {
 
 	return errors.Wrap(err, "could not exec docker-compose rm")
 }
+
+func ComposeRun(serviceName, cmd string) error {
+	runArgs := fmt.Sprintf("%s run --rm %s %s", ComposeFile(), serviceName, cmd)
+	err := command.Exec("docker-compose", strings.Fields(runArgs), "docker-compose-run")
+
+	return errors.Wrap(err, "could not execute docker-compose run")
+}

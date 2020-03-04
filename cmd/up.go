@@ -55,15 +55,20 @@ func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 	log.Info("☑ Finished logging into services")
 }
 
-func cleanupPrevDocker(serviceNames []string) {
+func cleanupPrevDocker(services []service.Service) {
 	log.Debug("stopping compose services...")
 
-	err := docker.ComposeStop(serviceNames)
+	dockerNames := make([]string, len(services))
+	for i, s := range services {
+		dockerNames[i] = s.DockerName()
+	}
+
+	err := docker.ComposeStop(dockerNames)
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
 
-	err = docker.ComposeRm(serviceNames)
+	err = docker.ComposeRm(dockerNames)
 	if err != nil {
 		fatal.ExitErr(err, "failed removing containers")
 	}
@@ -116,6 +121,22 @@ func dockerComposeBuild(services []service.Service) {
 	fmt.Println()
 }
 
+func dockerComposeUp(services []service.Service) {
+	log.Info("☐ starting docker-compose up in detached mode")
+
+	dockerNames := make([]string, len(services))
+	for i, s := range services {
+		dockerNames[i] = s.DockerName()
+	}
+
+	err := docker.ComposeUp(dockerNames)
+	if err != nil {
+		fatal.ExitErr(err, "could not run docker-compose up")
+	}
+
+	log.Info("☑ finished starting docker-compose up in detached mode")
+}
+
 func selectServices() []service.Service {
 	if len(opts.cliServiceNames) > 0 && opts.playlistName != "" {
 		fatal.Exit("you can only specify one of --playlist or --services.\nTry tb up --help for some examples.")
@@ -130,7 +151,7 @@ func selectServices() []service.Service {
 			fatal.Exit("playlist name cannot be blank. try running tb up --help")
 		}
 		var err error
-		names, err = config.Playlists().GetServices(name)
+		names, err = config.LoadedPlaylists().ServiceNames(name)
 		if err != nil {
 			fatal.ExitErr(err, "☒ failed resolving service playlist")
 		}
@@ -146,7 +167,7 @@ func selectServices() []service.Service {
 
 	selectedServices := make([]service.Service, len(names))
 	for i, name := range names {
-		s, err := config.Services().Get(name)
+		s, err := config.LoadedServices().Get(name)
 		if err != nil {
 			fatal.ExitErrf(err, "%s is not a tb service name.\n Try tb list to see all available servies.\n", name)
 		}
@@ -194,10 +215,8 @@ Examples:
 	Run: func(cmd *cobra.Command, args []string) {
 		selectedServices := selectServices()
 		serviceNames := make([]string, len(selectedServices))
-		serviceDockerNames := make([]string, len(selectedServices))
 		for i, s := range selectedServices {
 			serviceNames[i] = s.FullName()
-			serviceDockerNames[i] = s.DockerName()
 		}
 
 		log.Infof("running the following services: %s", strings.Join(serviceNames, ", "))
@@ -226,7 +245,7 @@ Examples:
 		failedCh := make(chan error)
 
 		go func() {
-			cleanupPrevDocker(serviceDockerNames)
+			cleanupPrevDocker(selectedServices)
 			successCh <- "Docker Cleanup"
 		}()
 
@@ -338,15 +357,14 @@ Examples:
 
 				name := s.FullName()
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
-				composeArgs := fmt.Sprintf("%s run --rm %s %s", docker.ComposeFile(), s.DockerName(), s.PreRun)
-				go func(successCh chan string, failedCh chan error, name string, args []string) {
-					err := command.Exec("docker-compose", args, name)
+				go func(successCh chan string, failedCh chan error, name, preRun string) {
+					err := docker.ComposeRun(name, preRun)
 					if err != nil {
 						failedCh <- err
 						return
 					}
 					successCh <- name
-				}(successCh, failedCh, name, strings.Fields(composeArgs))
+				}(successCh, failedCh, s.DockerName(), s.PreRun)
 				count++
 				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
 				// Any ideas better than a sleep hack are appreciated
@@ -358,14 +376,7 @@ Examples:
 			fmt.Println()
 		}
 
-		log.Info("☐ starting docker-compose up in detached mode")
-
-		err = docker.ComposeUp(serviceDockerNames)
-		if err != nil {
-			fatal.ExitErr(err, "could not run docker-compose up")
-		}
-
-		log.Info("☑ finished starting docker-compose up in detached mode")
+		dockerComposeUp(selectedServices)
 		fmt.Println()
 
 		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?

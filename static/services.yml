@@ -137,7 +137,7 @@ services:
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
-      OKTA_BASE_URL: http://{@mokta}:8080
+      OKTA_BASE_URL: http://${@mokta}:8080
       INSECURE_DISABLE_SSL_VALIDATION: "true"
     ports:
       - '8777:8080'

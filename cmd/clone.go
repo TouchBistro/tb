@@ -23,7 +23,7 @@ var cloneCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
 
-		s, err := config.Services().Get(serviceName)
+		s, err := config.LoadedServices().Get(serviceName)
 		if err != nil {
 			fatal.ExitErrf(err, "%s is not a valid service.\nTry running `tb list` to see available services\n", serviceName)
 		}

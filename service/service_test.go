@@ -18,8 +18,8 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			Image:   "postgres",
 			Tag:     "12",
 		},
-		Name:       "postgres",
-		RecipeName: "ExampleZone/tb-recipe",
+		Name:         "postgres",
+		RegistryName: "ExampleZone/tb-registry",
 	})
 	if err != nil {
 		assert.FailNow(t, "Failed to set playlist")
@@ -35,8 +35,8 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			Image:   "postgres",
 			Tag:     "12-alpine",
 		},
-		Name:       "postgres",
-		RecipeName: "TouchBistro/tb-recipe",
+		Name:         "postgres",
+		RegistryName: "TouchBistro/tb-registry",
 	})
 	if err != nil {
 		assert.FailNow(t, "Failed to set playlist")
@@ -60,8 +60,8 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 			Target:         "release",
 		},
-		Name:       "venue-core-service",
-		RecipeName: "TouchBistro/tb-recipe",
+		Name:         "venue-core-service",
+		RegistryName: "TouchBistro/tb-registry",
 	})
 	if err != nil {
 		assert.FailNow(t, "Failed to set playlist")
@@ -74,7 +74,7 @@ func TestServiceCollectionGetFullName(t *testing.T) {
 	assert := assert.New(t)
 	sc := createServiceCollection(t)
 
-	s, err := sc.Get("TouchBistro/tb-recipe/postgres")
+	s, err := sc.Get("TouchBistro/tb-registry/postgres")
 
 	assert.Equal(Service{
 		EnvVars: map[string]string{
@@ -86,8 +86,8 @@ func TestServiceCollectionGetFullName(t *testing.T) {
 			Image:   "postgres",
 			Tag:     "12-alpine",
 		},
-		Name:       "postgres",
-		RecipeName: "TouchBistro/tb-recipe",
+		Name:         "postgres",
+		RegistryName: "TouchBistro/tb-registry",
 	}, s)
 	assert.NoError(err)
 }
@@ -116,8 +116,8 @@ func TestServiceCollectionGetShortName(t *testing.T) {
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 			Target:         "release",
 		},
-		Name:       "venue-core-service",
-		RecipeName: "TouchBistro/tb-recipe",
+		Name:         "venue-core-service",
+		RegistryName: "TouchBistro/tb-registry",
 	}, s)
 	assert.NoError(err)
 }
@@ -136,7 +136,7 @@ func TestServiceCollectionGetNonexistent(t *testing.T) {
 	assert := assert.New(t)
 	sc := createServiceCollection(t)
 
-	s, err := sc.Get("TouchBistro/tb-recipe/not-a-service")
+	s, err := sc.Get("TouchBistro/tb-registry/not-a-service")
 
 	assert.Zero(s)
 	assert.Error(err)
@@ -150,40 +150,6 @@ func TestServiceCollectionGetInvalidName(t *testing.T) {
 
 	assert.Zero(s)
 	assert.Error(err)
-}
-
-func TestServiceCollectionSetUpdate(t *testing.T) {
-	assert := assert.New(t)
-	sc := createServiceCollection(t)
-	name := "TouchBistro/tb-recipe/postgres"
-
-	s, err := sc.Get(name)
-	if err != nil {
-		assert.FailNow("Failed to get service")
-	}
-	s.PreRun = "setup_db.sh -v"
-
-	err = sc.Set(s)
-
-	assert.NoError(err)
-
-	s, err = sc.Get(name)
-
-	assert.Equal(Service{
-		EnvVars: map[string]string{
-			"POSTGRES_USER":     "core",
-			"POSTGRES_PASSWORD": "localdev",
-		},
-		PreRun: "setup_db.sh -v",
-		Remote: Remote{
-			Enabled: true,
-			Image:   "postgres",
-			Tag:     "12-alpine",
-		},
-		Name:       "postgres",
-		RecipeName: "TouchBistro/tb-recipe",
-	}, s)
-	assert.NoError(err)
 }
 
 func TestServiceCollectionLen(t *testing.T) {
@@ -207,9 +173,9 @@ func TestServiceCollectionIter(t *testing.T) {
 	}
 
 	expectedNames := []string{
-		"ExampleZone/tb-recipe/postgres",
-		"TouchBistro/tb-recipe/postgres",
-		"TouchBistro/tb-recipe/venue-core-service",
+		"ExampleZone/tb-registry/postgres",
+		"TouchBistro/tb-registry/postgres",
+		"TouchBistro/tb-registry/venue-core-service",
 	}
 
 	assert.ElementsMatch(expectedNames, names)

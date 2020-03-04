@@ -1,11 +1,9 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"strings"
-
-	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
 )
 
 type Volume struct {
@@ -40,8 +38,8 @@ type Service struct {
 	PreRun       string            `yaml:"preRun"`
 	Remote       Remote            `yaml:"remote"`
 	// Not part of yaml, set at runtime
-	Name       string `yaml:"-"`
-	RecipeName string `yaml:"-"`
+	Name         string `yaml:"-"`
+	RegistryName string `yaml:"-"`
 }
 
 func (s Service) HasGitRepo() bool {
@@ -64,10 +62,14 @@ func (s Service) ImageURI() string {
 	return fmt.Sprintf("%s:%s", s.Remote.Image, s.Remote.Tag)
 }
 
+// FullName returns the service name prefixed with the registry name.
+// i.e. <registry>/<service>
 func (s Service) FullName() string {
-	return util.JoinNameParts(s.RecipeName, s.Name)
+	return fmt.Sprintf("%s/%s", s.RegistryName, s.Name)
 }
 
+// DockerName returns a variation of FullName that
+// has been modified to meet docker naming requirements.
 func (s Service) DockerName() string {
 	// docker does not allow slashes in container names
 	// so we'll replace them with dashes
@@ -77,129 +79,61 @@ func (s Service) DockerName() string {
 	return strings.ToLower(sanitized)
 }
 
-type ServiceCollection struct {
-	sm  map[string][]Service
-	len int
+type BuildOverride struct {
+	Command string `yaml:"command"`
+	Target  string `yaml:"target"`
 }
 
-func NewServiceCollection() *ServiceCollection {
-	return &ServiceCollection{sm: make(map[string][]Service)}
+type RemoteOverride struct {
+	Command string `yaml:"command"`
+	Enabled bool   `yaml:"enabled"`
+	Tag     string `yaml:"tag"`
 }
 
-func (sc *ServiceCollection) Get(name string) (Service, error) {
-	recipeName, serviceName, err := util.SplitNameParts(name)
-	if err != nil {
-		return Service{}, errors.Wrapf(err, "invalid service name %s", name)
-	}
-
-	bucket, ok := sc.sm[serviceName]
-	if !ok {
-		return Service{}, errors.Errorf("No such service %s", serviceName)
-	}
-
-	// Handle shorthand syntax
-	if recipeName == "" {
-		if len(bucket) > 1 {
-			return Service{}, errors.Errorf("Muliple services named %s found", serviceName)
-		}
-
-		return bucket[0], nil
-	}
-
-	// Handle long syntax
-	for _, s := range bucket {
-		if s.RecipeName == recipeName {
-			return s, nil
-		}
-	}
-
-	return Service{}, errors.Errorf("No such service %s", name)
+type ServiceOverride struct {
+	Build   BuildOverride     `yaml:"build"`
+	EnvVars map[string]string `yaml:"envVars"`
+	PreRun  string            `yaml:"preRun"`
+	Remote  RemoteOverride    `yaml:"remote"`
 }
 
-func (sc *ServiceCollection) Set(value Service) error {
-	if value.Name == "" || value.RecipeName == "" {
-		return errors.Errorf("Name and RecipeName fields must not be empty to set Service")
+func (s Service) applyOverride(o ServiceOverride) (Service, error) {
+	// Validate overrides
+	if o.Remote.Enabled && s.Remote.Image == "" {
+		msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", s.FullName())
+		return s, errors.New(msg)
+	} else if !o.Remote.Enabled && !s.HasGitRepo() {
+		msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", s.FullName())
+		return s, errors.New(msg)
 	}
 
-	fullName := value.FullName()
-	recipeName, serviceName, err := util.SplitNameParts(fullName)
-	if err != nil {
-		return errors.Wrapf(err, "invalid service name %s", fullName)
+	// Apply overrides to service
+	if o.Build.Command != "" {
+		s.Build.Command = o.Build.Command
 	}
 
-	bucket, ok := sc.sm[serviceName]
-	if !ok {
-		sc.sm[serviceName] = []Service{value}
-		sc.len++
-		return nil
+	if o.Build.Target != "" {
+		s.Build.Target = o.Build.Target
 	}
 
-	// Check for existing playlist to update
-	for i, s := range bucket {
-		if s.RecipeName == recipeName {
-			sc.sm[serviceName][i] = value
-			return nil
+	if o.EnvVars != nil {
+		for v, val := range o.EnvVars {
+			s.EnvVars[v] = val
 		}
 	}
 
-	// No matching playlist found, add a new one
-	sc.sm[serviceName] = append(bucket, value)
-	sc.len++
-	return nil
-}
-
-func (sc *ServiceCollection) Len() int {
-	return sc.len
-}
-
-type iterator struct {
-	sc   *ServiceCollection
-	keys []string
-	// Index of the current map key
-	i int
-	// Index of the current element in the bucket
-	j int
-}
-
-func (sc *ServiceCollection) Iter() *iterator {
-	it := iterator{
-		sc:   sc,
-		keys: make([]string, len(sc.sm)),
+	if o.PreRun != "" {
+		s.PreRun = o.PreRun
 	}
 
-	i := 0
-	for k := range sc.sm {
-		it.keys[i] = k
-		i++
+	if o.Remote.Command != "" {
+		s.Remote.Command = o.Remote.Command
 	}
 
-	return &it
-}
-
-// Next returns the next element in the ServiceCollection currently being iterated.
-// NOTE: This does not check if a next element exists. It is the callers responsibilty
-// to ensure there is a next element using the HasNext() method.
-func (it *iterator) Next() Service {
-	// Get value at current index
-	key := it.keys[it.i]
-	bucket := it.sc.sm[key]
-	val := bucket[it.j]
-
-	// Update indices
-	if it.j == len(bucket)-1 {
-		// Move to next bucket
-		it.i++
-		it.j = 0
-	} else {
-		it.j++
+	s.Remote.Enabled = o.Remote.Enabled
+	if o.Remote.Tag != "" {
+		s.Remote.Tag = o.Remote.Tag
 	}
 
-	return val
-}
-
-func (it *iterator) HasNext() bool {
-	sm := it.sc.sm
-	// Another element exists if i isn't on the last map key
-	// and j isn't on the last bucket index
-	return it.i < len(sm) && it.j < len(sm[it.keys[it.i]])
+	return s, nil
 }

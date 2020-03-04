@@ -83,7 +83,7 @@ func UniqueStrings(s []string) []string {
 }
 
 func SplitNameParts(name string) (string, string, error) {
-	// Full form of item name in a recipe is
+	// Full form of item name in a registry is
 	// <org>/<repo>/<item> where an item is a service, playlist or app
 	regex := regexp.MustCompile(`^(?:([\w-]+\/[\w-]+)\/)?([\w-]+)$`)
 	matches := regex.FindStringSubmatch(name)
@@ -93,13 +93,4 @@ func SplitNameParts(name string) (string, string, error) {
 	}
 
 	return matches[1], matches[2], nil
-}
-
-func JoinNameParts(recipeName, itemName string) string {
-	// Doing this to abstract the notion of how the names are combined to form the full name
-	if recipeName == "" {
-		return itemName
-	}
-
-	return fmt.Sprintf("%s/%s", recipeName, itemName)
 }

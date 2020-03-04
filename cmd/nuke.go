@@ -99,7 +99,7 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("Removing repos...")
 
 			repos := make([]string, 0)
-			it := config.Services().Iter()
+			it := config.LoadedServices().Iter()
 			for it.HasNext() {
 				s := it.Next()
 				if s.HasGitRepo() {

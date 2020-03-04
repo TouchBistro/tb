@@ -90,7 +90,7 @@ func legacyInit() error {
 	playlists = playlist.NewPlaylistCollection(tbrc.Playlists)
 	for n, p := range playlistMap {
 		p.Name = n
-		p.RecipeName = "TouchBistro/tb-recipe"
+		p.RegistryName = "TouchBistro/tb-registry"
 		err := playlists.Set(p)
 		if err != nil {
 			return errors.Wrapf(err, "failed to add playlist %s to collection", n)
@@ -122,11 +122,11 @@ func legacyInit() error {
 	services = service.NewServiceCollection()
 	for n, s := range serviceMap {
 		for i, d := range s.Dependencies {
-			s.Dependencies[i] = "touchbistro-tb-recipe-" + d
+			s.Dependencies[i] = "touchbistro-tb-registry-" + d
 		}
 
 		s.Name = n
-		s.RecipeName = "TouchBistro/tb-recipe"
+		s.RegistryName = "TouchBistro/tb-registry"
 		err := services.Set(s)
 		if err != nil {
 			return errors.Wrapf(err, "failed to add service %s to collection", n)

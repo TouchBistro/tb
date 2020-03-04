@@ -1,6 +1,8 @@
 package playlist
 
 import (
+	"fmt"
+
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 )
@@ -9,16 +11,16 @@ type Playlist struct {
 	Extends  string   `yaml:"extends,omitempty"`
 	Services []string `yaml:"services"`
 	// Not part of yaml, set at runtime
-	Name       string `yaml:"-"`
-	RecipeName string `yaml:"-"`
+	Name         string `yaml:"-"`
+	RegistryName string `yaml:"-"`
 }
 
 func (p Playlist) FullName() string {
-	return util.JoinNameParts(p.RecipeName, p.Name)
+	return fmt.Sprintf("%s/%s", p.RegistryName, p.Name)
 }
 
 type PlaylistCollection struct {
-	playlists       map[string][]Playlist
+	playlistMap     map[string][]Playlist
 	customPlaylists map[string]Playlist
 }
 
@@ -29,12 +31,12 @@ func NewPlaylistCollection(customPlaylists map[string]Playlist) *PlaylistCollect
 	}
 
 	return &PlaylistCollection{
-		playlists:       make(map[string][]Playlist),
+		playlistMap:     make(map[string][]Playlist),
 		customPlaylists: cp,
 	}
 }
 
-func (pc *PlaylistCollection) getServices(name string, deps map[string]bool) ([]string, error) {
+func (pc *PlaylistCollection) resolveServiceNames(name string, deps map[string]bool) ([]string, error) {
 	playlist, err := pc.Get(name)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get playlist %s", name)
@@ -50,7 +52,7 @@ func (pc *PlaylistCollection) getServices(name string, deps map[string]bool) ([]
 		return nil, errors.Errorf("Circular dependency of services, %s and %s", playlist.Extends, name)
 	}
 
-	parentServices, err := pc.getServices(playlist.Extends, deps)
+	parentServices, err := pc.resolveServiceNames(playlist.Extends, deps)
 	return append(parentServices, playlist.Services...), err
 }
 
@@ -60,18 +62,18 @@ func (pc *PlaylistCollection) Get(name string) (Playlist, error) {
 		return p, nil
 	}
 
-	recipeName, playlistName, err := util.SplitNameParts(name)
+	registryName, playlistName, err := util.SplitNameParts(name)
 	if err != nil {
 		return Playlist{}, errors.Wrapf(err, "invalid playlist name %s", name)
 	}
 
-	bucket, ok := pc.playlists[playlistName]
+	bucket, ok := pc.playlistMap[playlistName]
 	if !ok {
 		return Playlist{}, errors.Errorf("No such playlist %s", playlistName)
 	}
 
 	// Handle shorthand syntax
-	if recipeName == "" {
+	if registryName == "" {
 		if len(bucket) > 1 {
 			return Playlist{}, errors.Errorf("Muliple playlists named %s found", playlistName)
 		}
@@ -81,7 +83,7 @@ func (pc *PlaylistCollection) Get(name string) (Playlist, error) {
 
 	// Handle long syntax
 	for _, p := range bucket {
-		if p.RecipeName == recipeName {
+		if p.RegistryName == registryName {
 			return p, nil
 		}
 	}
@@ -90,39 +92,39 @@ func (pc *PlaylistCollection) Get(name string) (Playlist, error) {
 }
 
 func (pc *PlaylistCollection) Set(value Playlist) error {
-	if value.Name == "" || value.RecipeName == "" {
-		return errors.Errorf("Name and RecipeName fields must not be empty to set Service")
+	if value.Name == "" || value.RegistryName == "" {
+		return errors.Errorf("Name and RegistryName fields must not be empty to set Service")
 	}
 
 	fullName := value.FullName()
-	recipeName, playlistName, err := util.SplitNameParts(fullName)
+	registryName, playlistName, err := util.SplitNameParts(fullName)
 	if err != nil {
 		return errors.Wrapf(err, "invalid playlist name %s", fullName)
 	}
 
-	bucket, ok := pc.playlists[playlistName]
+	bucket, ok := pc.playlistMap[playlistName]
 	if !ok {
-		pc.playlists[playlistName] = []Playlist{value}
+		pc.playlistMap[playlistName] = []Playlist{value}
 		return nil
 	}
 
 	// Check for existing playlist to update
 	for i, p := range bucket {
-		if p.RecipeName == recipeName {
-			pc.playlists[playlistName][i] = value
+		if p.RegistryName == registryName {
+			pc.playlistMap[playlistName][i] = value
 			return nil
 		}
 	}
 
 	// No matching playlist found, add a new one
-	pc.playlists[playlistName] = append(bucket, value)
+	pc.playlistMap[playlistName] = append(bucket, value)
 	return nil
 }
 
-func (pc *PlaylistCollection) GetServices(name string) ([]string, error) {
-	serviceNames, err := pc.getServices(name, make(map[string]bool))
+func (pc *PlaylistCollection) ServiceNames(playlistName string) ([]string, error) {
+	serviceNames, err := pc.resolveServiceNames(playlistName, make(map[string]bool))
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get services of plylist %s", name)
+		return nil, errors.Wrapf(err, "Failed to get services of plylist %s", playlistName)
 	}
 
 	return util.UniqueStrings(serviceNames), nil
@@ -130,7 +132,7 @@ func (pc *PlaylistCollection) GetServices(name string) ([]string, error) {
 
 func (pc *PlaylistCollection) Names() []string {
 	names := make([]string, 0)
-	for _, bucket := range pc.playlists {
+	for _, bucket := range pc.playlistMap {
 		for _, p := range bucket {
 			names = append(names, p.FullName())
 		}

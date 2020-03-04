@@ -48,11 +48,11 @@ func BaseImages() []string {
 	return serviceConfig.Global.BaseImages
 }
 
-func Services() *service.ServiceCollection {
+func LoadedServices() *service.ServiceCollection {
 	return services
 }
 
-func Playlists() *playlist.PlaylistCollection {
+func LoadedPlaylists() *playlist.PlaylistCollection {
 	return playlists
 }
 
