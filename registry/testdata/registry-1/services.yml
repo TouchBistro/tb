@@ -1,0 +1,49 @@
+global:
+  baseImages:
+    - swift
+    - touchbistro/alpine-node:12-runtime
+  loginStrategies:
+    - ecr
+    - npm
+  variables:
+    ecr: 12345.dkr.ecr.us-east-1.amazonaws.com
+
+services:
+  postgres:
+    envVars:
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: localdev
+    ports:
+      - '5432:5432'
+    remote:
+      enabled: true
+      image: postgres
+      tag: 10.6-alpine
+      volumes:
+        - value: postgres:/var/lib/postgresql/data
+          named: true
+  venue-core-service:
+    dependencies:
+      - ${@postgres}
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      DB_HOST: ${@postgres}
+    ports:
+      - '8081:8080'
+    preRun: yarn db:prepare
+    repo: TouchBistro/venue-core-service
+    build:
+      args:
+        NODE_ENV: development
+        NPM_TOKEN: $NPM_TOKEN
+      command: yarn start
+      dockerfilePath: ${@REPOPATH}
+      target: dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+    remote:
+      command: yarn serve
+      enabled: true
+      image: ${ecr}/venue-core-service
+      tag: master

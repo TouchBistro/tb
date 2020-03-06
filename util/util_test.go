@@ -30,3 +30,46 @@ func TestUnqiueStrings(t *testing.T) {
 
 	assert.Equal(expected, result)
 }
+
+func TestSplitNameParts(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "TouchBistro/tb-registry/touchbistro-node-boilerplate"
+	registryName, serviceName, err := SplitNameParts(name)
+
+	assert.Equal("TouchBistro/tb-registry", registryName)
+	assert.Equal("touchbistro-node-boilerplate", serviceName)
+	assert.NoError(err)
+}
+
+func TestSplitNamePartsShortName(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "touchbistro-node-boilerplate"
+	registryName, serviceName, err := SplitNameParts(name)
+
+	assert.Empty(registryName)
+	assert.Equal("touchbistro-node-boilerplate", serviceName)
+	assert.NoError(err)
+}
+
+func TestSplitNamePartsInvalid(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "TouchBistro/touchbistro-node-boilerplate"
+	registryName, serviceName, err := SplitNameParts(name)
+
+	assert.Empty(registryName)
+	assert.Empty(serviceName)
+	assert.Error(err)
+}
+
+func TestDockerName(t *testing.T) {
+	assert := assert.New(t)
+
+	name := "TouchBistro/tb-registry/touchbistro-node-boilerplate"
+	dockerName := DockerName(name)
+
+	expected := "touchbistro-tb-registry-touchbistro-node-boilerplate"
+	assert.Equal(expected, dockerName)
+}

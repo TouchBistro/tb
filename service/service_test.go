@@ -7,6 +7,8 @@ import (
 )
 
 func createServiceCollection(t *testing.T) *ServiceCollection {
+	// Creates two services with the same name but different registries
+	// and one service that's a unique name
 	sc, err := NewServiceCollection([]Service{
 		Service{
 			EnvVars: map[string]string{
@@ -61,6 +63,113 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 	}
 
 	return sc
+}
+
+func TestServiceMethods(t *testing.T) {
+	assert := assert.New(t)
+
+	s := Service{
+		GitRepo: "TouchBistro/venue-core-service",
+		Build: Build{
+			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
+		},
+		Remote: Remote{
+			Enabled: true,
+			Image:   "venue-core-service",
+			Tag:     "master",
+		},
+		Name:         "venue-core-service",
+		RegistryName: "TouchBistro/tb-registry",
+	}
+
+	assert.True(s.HasGitRepo())
+	assert.True(s.UseRemote())
+	assert.True(s.CanBuild())
+	assert.Equal("venue-core-service:master", s.ImageURI())
+	assert.Equal("TouchBistro/tb-registry/venue-core-service", s.FullName())
+	assert.Equal("touchbistro-tb-registry-venue-core-service", s.DockerName())
+}
+
+func TestNewServiceCollectionOverrides(t *testing.T) {
+	assert := assert.New(t)
+
+	sc, err := NewServiceCollection([]Service{
+		Service{
+			EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
+			EnvVars: map[string]string{
+				"HTTP_PORT": "8080",
+			},
+			Ports: []string{
+				"8081:8080",
+			},
+			PreRun:  "yarn db:prepare:dev",
+			GitRepo: "TouchBistro/venue-core-service",
+			Build: Build{
+				Args: map[string]string{
+					"NODE_ENV": "development",
+				},
+				Command:        "yarn start",
+				DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
+				Target:         "release",
+			},
+			Remote: Remote{
+				Image: "venue-core-service",
+			},
+			Name:         "venue-core-service",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+	}, map[string]ServiceOverride{
+		"TouchBistro/tb-registry/venue-core-service": ServiceOverride{
+			EnvVars: map[string]string{
+				"LOGGER_LEVEL": "debug",
+			},
+			PreRun: "yarn db:prepare",
+			Build: BuildOverride{
+				Command: "yarn start:dev",
+				Target:  "dev",
+			},
+			Remote: RemoteOverride{
+				Command: "tail -f /dev/null",
+				Enabled: true,
+				Tag:     "master",
+			},
+		},
+	})
+	if err != nil {
+		assert.FailNow("Failed to create ServiceCollection")
+	}
+
+	s, err := sc.Get("TouchBistro/tb-registry/venue-core-service")
+
+	assert.Equal(Service{
+		EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
+		EnvVars: map[string]string{
+			"HTTP_PORT":    "8080",
+			"LOGGER_LEVEL": "debug",
+		},
+		Ports: []string{
+			"8081:8080",
+		},
+		PreRun:  "yarn db:prepare",
+		GitRepo: "TouchBistro/venue-core-service",
+		Build: Build{
+			Args: map[string]string{
+				"NODE_ENV": "development",
+			},
+			Command:        "yarn start:dev",
+			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
+			Target:         "dev",
+		},
+		Remote: Remote{
+			Command: "tail -f /dev/null",
+			Enabled: true,
+			Image:   "venue-core-service",
+			Tag:     "master",
+		},
+		Name:         "venue-core-service",
+		RegistryName: "TouchBistro/tb-registry",
+	}, s)
+	assert.NoError(err)
 }
 
 func TestServiceCollectionGetFullName(t *testing.T) {
@@ -130,6 +239,16 @@ func TestServiceCollectionGetNonexistent(t *testing.T) {
 	sc := createServiceCollection(t)
 
 	s, err := sc.Get("TouchBistro/tb-registry/not-a-service")
+
+	assert.Zero(s)
+	assert.Error(err)
+}
+
+func TestServiceCollectionGetNoRecipe(t *testing.T) {
+	assert := assert.New(t)
+	sc := createServiceCollection(t)
+
+	s, err := sc.Get("ExampleZone/tb-registry/venue-core-service")
 
 	assert.Zero(s)
 	assert.Error(err)

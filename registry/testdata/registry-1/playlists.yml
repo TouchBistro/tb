@@ -1,0 +1,7 @@
+db:
+  services:
+    - postgres
+core:
+  extends: db
+  services:
+    - venue-core-service
