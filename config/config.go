@@ -1,33 +1,43 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/spinner"
+	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
 
+// Package state for storing config info
 var tbrc userConfig
-var serviceConfig ServiceConfig
+var globalConfig registry.GlobalConfig
 var services *service.ServiceCollection
 var playlists *playlist.PlaylistCollection
 var tbRoot string
 
-const (
-	servicesPath             = "services.yml"
-	playlistPath             = "playlists.yml"
-	dockerComposePath        = "docker-compose.yml"
-	localstackEntrypointPath = "localstack-entrypoint.sh"
-	lazydockerConfigPath     = "lazydocker.yml"
-)
+const lazydockerConfig = `
+reporting: "off"
+gui:
+  wrapMainPanel: true
+update:
+  dockerRefreshInterval: 2000ms`
+
+type InitOptions struct {
+	LoadServices     bool
+	LoadApps         bool
+	UpdateRegistries bool
+}
 
 /* Getters for private & computed vars */
 
@@ -39,13 +49,17 @@ func ReposPath() string {
 	return filepath.Join(tbRoot, "repos")
 }
 
+func RegistriesPath() string {
+	return filepath.Join(tbRoot, "registries")
+}
+
 func LoginStategies() ([]login.LoginStrategy, error) {
-	s, err := login.ParseStrategies(serviceConfig.Global.LoginStategies)
+	s, err := login.ParseStrategies(globalConfig.LoginStrategies)
 	return s, errors.Wrap(err, "Failed to parse login strategies")
 }
 
 func BaseImages() []string {
-	return serviceConfig.Global.BaseImages
+	return globalConfig.BaseImages
 }
 
 func LoadedServices() *service.ServiceCollection {
@@ -73,13 +87,146 @@ func setupEnv() error {
 	return nil
 }
 
-func Init() error {
-	err := setupEnv()
-	if err != nil {
-		return errors.Wrap(err, "failed to setup $TB_ROOT env")
+func resolveRegistry(r registry.Registry, shouldUpdate bool) (registry.Registry, error) {
+	isLocal := r.LocalPath != ""
+
+	// Set true path for usage later
+	if isLocal {
+		// Local paths can be prefixed with ~ for convenience
+		if strings.HasPrefix(r.LocalPath, "~") {
+			r.Path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
+		} else {
+			path, err := filepath.Abs(r.LocalPath)
+			if err != nil {
+				return r, errors.Wrapf(err, "failed to resolve absolute path to local registry %s", r.Name)
+			}
+
+			r.Path = path
+		}
+	} else {
+		r.Path = filepath.Join(RegistriesPath(), r.Name)
 	}
 
-	return legacyInit()
+	// Clone if missing and not local
+	if !isLocal && !file.FileOrDirExists(r.Path) {
+		log.Debugf("Registry %s is missing, cloning...", r.Name)
+		err := git.Clone(r.Name, RegistriesPath())
+		if err != nil {
+			return r, errors.Wrapf(err, "failed to clone registry to %s", r.Path)
+		}
+
+		return r, nil
+	}
+
+	if !isLocal && shouldUpdate {
+		log.Debugf("Updating registry %s...", r.Name)
+		err := git.Pull(r.Name, RegistriesPath())
+		if err != nil {
+			return r, errors.Wrapf(err, "failed to update registry %s", r.Name)
+		}
+	}
+
+	return r, nil
+}
+
+func Init(opts InitOptions) error {
+	err := setupEnv()
+	if err != nil {
+		return errors.Wrap(err, "failed to setup tb environment")
+	}
+
+	if !IsExperimentalEnabled() {
+		log.Debugln("Using legacy config init")
+		return legacyInit()
+	}
+
+	// TODO scope if there's a way to pass lazydocker a custom tb specific config
+	// Create lazydocker config
+	ldDirPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
+	err = os.MkdirAll(ldDirPath, 0766)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
+	}
+
+	ldConfigPath := filepath.Join(ldDirPath, "lazydocker.yml")
+	err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
+	if err != nil {
+		return errors.Wrap(err, "failed to create lazydocker config file")
+	}
+
+	// THE REGISTRY ZONE
+
+	log.Debugln("Resolving registries...")
+	if len(tbrc.Registries) == 0 {
+		return errors.New("No registries defined in tbrc")
+	}
+
+	// Make sure registries exist and resolve path
+	for i, r := range tbrc.Registries {
+		resolvedRegistry, err := resolveRegistry(r, opts.UpdateRegistries)
+		if err != nil {
+			return errors.Wrapf(err, "failed to resolve registry %s", r.Name)
+		}
+		tbrc.Registries[i] = resolvedRegistry
+	}
+
+	if opts.LoadServices {
+		log.Debugln("Loading services...")
+
+		serviceList := make([]service.Service, 0)
+		playlistList := make([]playlist.Playlist, 0)
+
+		for _, r := range tbrc.Registries {
+			log.Debugf("Reading services from registry %s", r.Name)
+
+			registryServices, conf, err := registry.ReadServices(r, TBRootPath(), ReposPath())
+			if err != nil {
+				return errors.Wrapf(err, "failed to read services for registry %s", r.Name)
+			}
+
+			log.Debugf("Reading playlists from registry %s", r.Name)
+			registryPlaylists, err := registry.ReadPlaylists(r)
+			if err != nil {
+				return errors.Wrapf(err, "failed to read playlists for registry %s", r.Name)
+			}
+
+			globalConfig.BaseImages = append(globalConfig.BaseImages, conf.BaseImages...)
+			globalConfig.LoginStrategies = append(globalConfig.LoginStrategies, conf.LoginStrategies...)
+
+			serviceList = append(serviceList, registryServices...)
+			playlistList = append(playlistList, registryPlaylists...)
+		}
+
+		log.Debugln("Merging services and applying overrides...")
+		services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
+		if err != nil {
+			return errors.Wrap(err, "failed to merge services into ServiceCollection")
+		}
+
+		log.Debugln("Merging playlists and custom playlists...")
+		playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
+		if err != nil {
+			return errors.Wrap(err, "failed to merge playlists into PlaylistCollection")
+		}
+
+		// Create docker-compose.yml
+		log.Debugln("Generating docker-compose.yml file...")
+
+		composePath := filepath.Join(tbRoot, dockerComposePath)
+		file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open file %s", composePath)
+		}
+		defer file.Close()
+
+		err = compose.CreateComposeFile(services, file)
+		if err != nil {
+			return errors.Wrap(err, "failed to generated docker-compose file")
+		}
+		log.Debugln("Successfully generated docker-compose.yml")
+	}
+
+	return nil
 }
 
 func CloneMissingRepos() error {

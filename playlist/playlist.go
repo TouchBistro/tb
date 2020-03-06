@@ -24,16 +24,26 @@ type PlaylistCollection struct {
 	customPlaylists map[string]Playlist
 }
 
-func NewPlaylistCollection(customPlaylists map[string]Playlist) *PlaylistCollection {
+func NewPlaylistCollection(playlists []Playlist, customPlaylists map[string]Playlist) (*PlaylistCollection, error) {
+	// Copy custom playlists
 	cp := make(map[string]Playlist)
 	for n, p := range customPlaylists {
 		cp[n] = p
 	}
 
-	return &PlaylistCollection{
+	pc := &PlaylistCollection{
 		playlistMap:     make(map[string][]Playlist),
 		customPlaylists: cp,
 	}
+
+	for _, p := range playlists {
+		err := pc.set(p)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to add playlist %s to PlaylistCollection", p.FullName())
+		}
+	}
+
+	return pc, nil
 }
 
 func (pc *PlaylistCollection) resolveServiceNames(name string, deps map[string]bool) ([]string, error) {
@@ -91,7 +101,7 @@ func (pc *PlaylistCollection) Get(name string) (Playlist, error) {
 	return Playlist{}, errors.Errorf("No such playlist %s", name)
 }
 
-func (pc *PlaylistCollection) Set(value Playlist) error {
+func (pc *PlaylistCollection) set(value Playlist) error {
 	if value.Name == "" || value.RegistryName == "" {
 		return errors.Errorf("Name and RegistryName fields must not be empty to set Service")
 	}

@@ -27,8 +27,7 @@ global:
 services:
   backoffice-customer-service:
     dependencies:
-      - postgres
-      - infrastructure-auth-service
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -52,8 +51,8 @@ services:
       tag: master
   cloud-server:
     dependencies:
-      - redis
-      - legacy-database
+      - ${@redis}
+      - ${@legacy-database}
     entrypoint: ["bash", "./docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.compose
     envVars:
@@ -80,7 +79,7 @@ services:
       tag: master
   cloud-server-frontend:
     dependencies:
-      - cloud-server
+      - ${@cloud-server}
     envFile: ${@REPOPATH}/packages/frontend/.env.example
     envVars:
       UNICORN_URL: http://${@cloud-server}:3000
@@ -97,7 +96,7 @@ services:
       tag: master
   dotnet-api:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envVars:
       MONO_OPTIONS: --debug
     ports:
@@ -107,7 +106,7 @@ services:
       dockerfilePath: ${@REPOPATH}/api
   dotnet-manage:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envVars:
       MONO_OPTIONS: --debug
     ports:
@@ -132,7 +131,7 @@ services:
       tag: master
   identity-user-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -152,7 +151,7 @@ services:
       tag: master
   infrastructure-auth-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -172,7 +171,7 @@ services:
       tag: master
   infrastructure-scratchpad-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -192,7 +191,7 @@ services:
       tag: master
   legacy-bridge-cloud-service:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@legacy-database}
@@ -213,7 +212,7 @@ services:
       tag: master
   legacy-bridge-manage-service:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envFile: ${@REPOPATH}/.env.compose
     envVars:
       DB_HOST: ${@legacy-database}
@@ -257,8 +256,8 @@ services:
           named: true
   legacy-upload-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -298,7 +297,7 @@ services:
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
   loyalty-gateway-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -318,7 +317,7 @@ services:
       tag: master
   partners-auth-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -359,7 +358,7 @@ services:
       tag: 4-alpine
   mokta:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -377,7 +376,7 @@ services:
       tag: master
   ordering-demo-frontend:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -402,7 +401,7 @@ services:
       tag: master
   ordering-demo-frontend-venue:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -419,12 +418,6 @@ services:
         - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
           named: true
   ordering-engine-service:
-    dependencies:
-      - ordering-ooa-service
-      - singleapp-database
-      - yp-singleapp-api
-      - infrastructure-auth-service
-      - loyalty-gateway-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -455,9 +448,6 @@ services:
       image: ${ecr}/ordering-engine-service
       tag: master
   ordering-online-frontend:
-    dependencies:
-      - infrastructure-auth-service
-      - ordering-engine-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -550,8 +540,8 @@ services:
       TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     ports:
       - '8005:8080'
     preRun: yarn db:prepare
@@ -569,8 +559,8 @@ services:
       tag: master
   partners-config-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -614,8 +604,8 @@ services:
       tag: master
   partners-etl-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -651,11 +641,8 @@ services:
       tag: master
   partners-reservations-service:
     dependencies:
-      - postgres
-      - localstack
-      - venue-upload-service
-      - partners-config-service
-      - legacy-bridge-cloud-service
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -689,7 +676,7 @@ services:
       tag: master
   payments-gateway-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -722,11 +709,6 @@ services:
         - value: singleapp-database:/var/lib/mysql/
           named: true
   venue-admin-frontend:
-    dependencies:
-      - venue-core-service
-      - cloud-server
-      - legacy-bridge-cloud-service
-      - partners-config-service
     # Note the `../`, since the Dockerfile executes from $HOME/app/dist
     entrypoint: ["bash", "../docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
@@ -753,8 +735,8 @@ services:
       tag: master
   venue-core-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
@@ -795,7 +777,7 @@ services:
       tag: master
   venue-provisioning-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -814,8 +796,6 @@ services:
       image: ${ecr}/venue-provisioning-service
       tag: master
   venue-upload-service:
-    dependencies:
-      - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -855,7 +835,7 @@ services:
       tag: master
   yp-singleapp-api:
     dependencies:
-      - singleapp-database
+      - ${@singleapp-database}
     ports:
       - '8023:80'
     repo: TouchBistro/yp-singleapp-api

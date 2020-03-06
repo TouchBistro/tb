@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +17,82 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
+
+const (
+	servicesPath             = "services.yml"
+	playlistPath             = "playlists.yml"
+	dockerComposePath        = "docker-compose.yml"
+	localstackEntrypointPath = "localstack-entrypoint.sh"
+	lazydockerConfigPath     = "lazydocker.yml"
+)
+
+type legacyServiceConfig struct {
+	Global struct {
+		BaseImages      []string          `yaml:"baseImages"`
+		LoginStrategies []string          `yaml:"loginStrategies"`
+		Variables       map[string]string `yaml:"variables"`
+	} `yaml:"global"`
+	Services map[string]service.Service `yaml:"services"`
+}
+
+func parseServices(config legacyServiceConfig) (map[string]service.Service, error) {
+	parsedServices := make(map[string]service.Service)
+
+	vars := config.Global.Variables
+	vars["@ROOTPATH"] = TBRootPath()
+
+	// Add vars for each service name
+	for name := range config.Services {
+		vars["@"+name] = "touchbistro-tb-registry-" + name
+	}
+
+	// Validate each service and perform any necessary actions
+	for name, service := range config.Services {
+		// Make sure either local or remote usage is specified
+		if !service.CanBuild() && service.Remote.Image == "" {
+			msg := fmt.Sprintf("Must specify at least one of 'build.dockerfilePath' or 'remote.image' for service %s", name)
+			return nil, errors.New(msg)
+		}
+
+		// Make sure repo is specified if not using remote
+		if !service.UseRemote() && !service.CanBuild() {
+			msg := fmt.Sprintf("'remote.enabled: false' is set but 'build.dockerfilePath' was not provided for service %s", name)
+			return nil, errors.New(msg)
+		}
+
+		// Set special service specific vars
+		if service.HasGitRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.GitRepo)
+		} else {
+			vars["@REPOPATH"] = ""
+		}
+
+		// Expand any vars
+		for i, dep := range service.Dependencies {
+			service.Dependencies[i] = util.ExpandVars(dep, vars)
+		}
+
+		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
+		service.EnvFile = util.ExpandVars(service.EnvFile, vars)
+		service.Remote.Image = util.ExpandVars(service.Remote.Image, vars)
+
+		for key, value := range service.EnvVars {
+			service.EnvVars[key] = util.ExpandVars(value, vars)
+		}
+
+		for i, volume := range service.Build.Volumes {
+			service.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		for i, volume := range service.Remote.Volumes {
+			service.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		parsedServices[name] = service
+	}
+
+	return parsedServices, nil
+}
 
 func dumpFile(from, to, dir string, box *packr.Box) error {
 	path := filepath.Join(dir, to)
@@ -70,10 +147,14 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
+	serviceConfig := legacyServiceConfig{}
 	err = yaml.NewDecoder(bytes.NewReader(sBuf)).Decode(&serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
+
+	globalConfig.BaseImages = serviceConfig.Global.BaseImages
+	globalConfig.LoginStrategies = serviceConfig.Global.LoginStrategies
 
 	pBuf, err := box.Find(playlistPath)
 	if err != nil {
@@ -87,14 +168,16 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	playlists = playlist.NewPlaylistCollection(tbrc.Playlists)
+	playlistList := make([]playlist.Playlist, 0, len(playlistMap))
 	for n, p := range playlistMap {
 		p.Name = n
 		p.RegistryName = "TouchBistro/tb-registry"
-		err := playlists.Set(p)
-		if err != nil {
-			return errors.Wrapf(err, "failed to add playlist %s to collection", n)
-		}
+		playlistList = append(playlistList, p)
+	}
+
+	playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create PlaylistCollection")
 	}
 
 	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
@@ -119,24 +202,16 @@ func legacyInit() error {
 	}
 
 	// Bridge old world to new world
-	services = service.NewServiceCollection()
+	serviceList := make([]service.Service, 0, len(serviceMap))
 	for n, s := range serviceMap {
-		for i, d := range s.Dependencies {
-			s.Dependencies[i] = "touchbistro-tb-registry-" + d
-		}
-
 		s.Name = n
 		s.RegistryName = "TouchBistro/tb-registry"
-		err := services.Set(s)
-		if err != nil {
-			return errors.Wrapf(err, "failed to add service %s to collection", n)
-		}
+		serviceList = append(serviceList, s)
 	}
 
-	// Apply overrides from .tbrc.yml
-	err = services.ApplyOverrides(tbrc.Overrides)
+	services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
 	if err != nil {
-		return errors.Wrap(err, "failed to apply overrides from tbrc")
+		return errors.Wrap(err, "failed add services to ServiceCollection and apply overrides from tbrc")
 	}
 
 	// Create docker-compose.yml

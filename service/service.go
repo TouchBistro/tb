@@ -3,7 +3,8 @@ package service
 import (
 	"errors"
 	"fmt"
-	"strings"
+
+	"github.com/TouchBistro/tb/util"
 )
 
 type Volume struct {
@@ -71,12 +72,7 @@ func (s Service) FullName() string {
 // DockerName returns a variation of FullName that
 // has been modified to meet docker naming requirements.
 func (s Service) DockerName() string {
-	// docker does not allow slashes in container names
-	// so we'll replace them with dashes
-	sanitized := strings.ReplaceAll(s.FullName(), "/", "-")
-	// docker does not allow upper case letters in image names
-	// need to convert it all to lower case or docker-compose build breaks
-	return strings.ToLower(sanitized)
+	return util.DockerName(s.FullName())
 }
 
 type BuildOverride struct {

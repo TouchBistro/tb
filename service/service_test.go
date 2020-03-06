@@ -7,64 +7,57 @@ import (
 )
 
 func createServiceCollection(t *testing.T) *ServiceCollection {
-	sc := NewServiceCollection()
-	err := sc.Set(Service{
-		EnvVars: map[string]string{
-			"POSTGRES_USER":     "user",
-			"POSTGRES_PASSWORD": "password",
-		},
-		Remote: Remote{
-			Enabled: true,
-			Image:   "postgres",
-			Tag:     "12",
-		},
-		Name:         "postgres",
-		RegistryName: "ExampleZone/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow(t, "Failed to set playlist")
-	}
-
-	err = sc.Set(Service{
-		EnvVars: map[string]string{
-			"POSTGRES_USER":     "core",
-			"POSTGRES_PASSWORD": "localdev",
-		},
-		Remote: Remote{
-			Enabled: true,
-			Image:   "postgres",
-			Tag:     "12-alpine",
-		},
-		Name:         "postgres",
-		RegistryName: "TouchBistro/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow(t, "Failed to set playlist")
-	}
-
-	err = sc.Set(Service{
-		EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
-		EnvVars: map[string]string{
-			"HTTP_PORT": "8080",
-		},
-		Ports: []string{
-			"8081:8080",
-		},
-		PreRun:  "yarn db:prepare:dev",
-		GitRepo: "TouchBistro/venue-core-service",
-		Build: Build{
-			Args: map[string]string{
-				"NODE_ENV": "development",
+	sc, err := NewServiceCollection([]Service{
+		Service{
+			EnvVars: map[string]string{
+				"POSTGRES_USER":     "user",
+				"POSTGRES_PASSWORD": "password",
 			},
-			Command:        "yarn start",
-			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
-			Target:         "release",
+			Remote: Remote{
+				Enabled: true,
+				Image:   "postgres",
+				Tag:     "12",
+			},
+			Name:         "postgres",
+			RegistryName: "ExampleZone/tb-registry",
 		},
-		Name:         "venue-core-service",
-		RegistryName: "TouchBistro/tb-registry",
-	})
+		Service{
+			EnvVars: map[string]string{
+				"POSTGRES_USER":     "core",
+				"POSTGRES_PASSWORD": "localdev",
+			},
+			Remote: Remote{
+				Enabled: true,
+				Image:   "postgres",
+				Tag:     "12-alpine",
+			},
+			Name:         "postgres",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+		Service{
+			EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
+			EnvVars: map[string]string{
+				"HTTP_PORT": "8080",
+			},
+			Ports: []string{
+				"8081:8080",
+			},
+			PreRun:  "yarn db:prepare:dev",
+			GitRepo: "TouchBistro/venue-core-service",
+			Build: Build{
+				Args: map[string]string{
+					"NODE_ENV": "development",
+				},
+				Command:        "yarn start",
+				DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
+				Target:         "release",
+			},
+			Name:         "venue-core-service",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+	}, nil)
 	if err != nil {
-		assert.FailNow(t, "Failed to set playlist")
+		assert.FailNow(t, "Failed to create ServiceCollection")
 	}
 
 	return sc

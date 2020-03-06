@@ -7,6 +7,7 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/service"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +21,7 @@ type userConfig struct {
 	ExperimentalEnabled bool                               `yaml:"experimental"`
 	Playlists           map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides           map[string]service.ServiceOverride `yaml:"overrides"`
+	Registries          []registry.Registry                `yaml:"registries"`
 }
 
 /* Getters for private & computed vars */
@@ -71,6 +73,10 @@ const rcTemplate = `# Toggle debug mode for more verbose logging
 debug: false
 # Toggle experimental mode to test new features
 experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  # - ExampleOrg/tb-registry
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:

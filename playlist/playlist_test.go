@@ -9,7 +9,34 @@ import (
 func TestGetPlaylist(t *testing.T) {
 	assert := assert.New(t)
 
-	pc := NewPlaylistCollection(map[string]Playlist{
+	pc, err := NewPlaylistCollection([]Playlist{
+		Playlist{
+			Services: []string{
+				"postgres",
+				"venue-core-service",
+			},
+			Name:         "core",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+		Playlist{
+			Services: []string{
+				"redis",
+				"postgres",
+				"node",
+			},
+			Name:         "core",
+			RegistryName: "ExampleZone/tb-registry",
+		},
+		Playlist{
+			Extends: "TouchBistro/tb-registry/core",
+			Services: []string{
+				"venue-admin-frontend",
+				"partners-config-service",
+			},
+			Name:         "vaf-core",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+	}, map[string]Playlist{
 		"my-core": {
 			Extends: "vaf-core",
 			Services: []string{
@@ -19,43 +46,8 @@ func TestGetPlaylist(t *testing.T) {
 			},
 		},
 	})
-
-	err := pc.Set(Playlist{
-		Services: []string{
-			"postgres",
-			"venue-core-service",
-		},
-		Name:         "core",
-		RegistryName: "TouchBistro/tb-registry",
-	})
 	if err != nil {
-		assert.FailNow("Failed to set playlist")
-	}
-
-	err = pc.Set(Playlist{
-		Services: []string{
-			"redis",
-			"postgres",
-			"node",
-		},
-		Name:         "core",
-		RegistryName: "ExampleZone/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow("Failed to set playlist")
-	}
-
-	err = pc.Set(Playlist{
-		Extends: "TouchBistro/tb-registry/core",
-		Services: []string{
-			"venue-admin-frontend",
-			"partners-config-service",
-		},
-		Name:         "vaf-core",
-		RegistryName: "TouchBistro/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow("Failed to set playlist")
+		assert.FailNow("Failed to create PlaylistCollection")
 	}
 
 	list, err := pc.ServiceNames("my-core")
@@ -75,29 +67,26 @@ func TestGetPlaylist(t *testing.T) {
 func TestGetPlaylistCircularDependency(t *testing.T) {
 	assert := assert.New(t)
 
-	pc := NewPlaylistCollection(nil)
-	err := pc.Set(Playlist{
-		Extends: "core-2",
-		Services: []string{
-			"postgres",
+	pc, err := NewPlaylistCollection([]Playlist{
+		Playlist{
+			Extends: "core-2",
+			Services: []string{
+				"postgres",
+			},
+			Name:         "core",
+			RegistryName: "TouchBistro/tb-registry",
 		},
-		Name:         "core",
-		RegistryName: "TouchBistro/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow("Failed to set playlist")
-	}
-
-	err = pc.Set(Playlist{
-		Extends: "TouchBistro/tb-registry/core",
-		Services: []string{
-			"localstack",
+		Playlist{
+			Extends: "TouchBistro/tb-registry/core",
+			Services: []string{
+				"localstack",
+			},
+			Name:         "core-2",
+			RegistryName: "TouchBistro/tb-registry",
 		},
-		Name:         "core-2",
-		RegistryName: "TouchBistro/tb-registry",
-	})
+	}, nil)
 	if err != nil {
-		assert.FailNow("Failed to set playlist")
+		assert.FailNow("Failed to create PlaylistCollection")
 	}
 
 	list, err := pc.ServiceNames("core-2")
@@ -109,7 +98,10 @@ func TestGetPlaylistCircularDependency(t *testing.T) {
 func TestGetPlaylistNonexistent(t *testing.T) {
 	assert := assert.New(t)
 
-	pc := NewPlaylistCollection(nil)
+	pc, err := NewPlaylistCollection(nil, nil)
+	if err != nil {
+		assert.FailNow("Failed to create PlaylistCollection")
+	}
 
 	list, err := pc.ServiceNames("core")
 
@@ -120,44 +112,36 @@ func TestGetPlaylistNonexistent(t *testing.T) {
 func TestNames(t *testing.T) {
 	assert := assert.New(t)
 
-	pc := NewPlaylistCollection(nil)
-
-	err := pc.Set(Playlist{
-		Services: []string{
-			"postgres",
-			"venue-core-service",
+	pc, err := NewPlaylistCollection([]Playlist{
+		Playlist{
+			Services: []string{
+				"postgres",
+				"venue-core-service",
+			},
+			Name:         "core",
+			RegistryName: "TouchBistro/tb-registry",
 		},
-		Name:         "core",
-		RegistryName: "TouchBistro/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow("Failed to set playlist")
-	}
-
-	err = pc.Set(Playlist{
-		Services: []string{
-			"redis",
-			"postgres",
-			"node",
+		Playlist{
+			Services: []string{
+				"redis",
+				"postgres",
+				"node",
+			},
+			Name:         "core",
+			RegistryName: "ExampleZone/tb-registry",
 		},
-		Name:         "core",
-		RegistryName: "ExampleZone/tb-registry",
-	})
-	if err != nil {
-		assert.FailNow("Failed to set playlist")
-	}
-
-	err = pc.Set(Playlist{
-		Extends: "TouchBistro/tb-registry/core",
-		Services: []string{
-			"venue-admin-frontend",
-			"partners-config-service",
+		Playlist{
+			Extends: "TouchBistro/tb-registry/core",
+			Services: []string{
+				"venue-admin-frontend",
+				"partners-config-service",
+			},
+			Name:         "vaf-core",
+			RegistryName: "TouchBistro/tb-registry",
 		},
-		Name:         "vaf-core",
-		RegistryName: "TouchBistro/tb-registry",
-	})
+	}, nil)
 	if err != nil {
-		assert.FailNow("Failed to set playlist")
+		assert.FailNow("Failed to create PlaylistCollection")
 	}
 
 	names := pc.Names()
@@ -173,7 +157,7 @@ func TestNames(t *testing.T) {
 func TestCustomNames(t *testing.T) {
 	assert := assert.New(t)
 
-	pc := NewPlaylistCollection(map[string]Playlist{
+	pc, err := NewPlaylistCollection(nil, map[string]Playlist{
 		"my-core": Playlist{
 			Extends: "TouchBistro/tb-registry/core",
 			Services: []string{
@@ -186,6 +170,9 @@ func TestCustomNames(t *testing.T) {
 			},
 		},
 	})
+	if err != nil {
+		assert.FailNow("Failed to create PlaylistCollection")
+	}
 
 	names := pc.CustomNames()
 	expectedNames := []string{"my-core", "db"}

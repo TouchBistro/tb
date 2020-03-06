@@ -4,6 +4,7 @@ import (
 	"runtime"
 
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/simulator"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,9 @@ import (
 var (
 	iosVersion string
 	deviceName string
+	iosOpts    struct {
+		noUpdateRegistries bool
+	}
 )
 
 var iosCmd = &cobra.Command{
@@ -26,11 +30,22 @@ var iosCmd = &cobra.Command{
 			fatal.Exit("Error: tb ios is only supported on macOS")
 		}
 
-		err := simulator.LoadSimulators()
+		err := config.Init(config.InitOptions{
+			UpdateRegistries: !iosOpts.noUpdateRegistries,
+		})
+		if err != nil {
+			fatal.ExitErr(err, "Failed to initialize config files")
+		}
+
+		err = simulator.LoadSimulators()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to find available iOS simulators")
 		}
 	},
+}
+
+func init() {
+	iosCmd.PersistentFlags().BoolVar(&iosOpts.noUpdateRegistries, "no-update-registries", false, "Don't update registries when tb is run")
 }
 
 func IOS() *cobra.Command {
