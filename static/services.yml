@@ -421,6 +421,8 @@ services:
         - value: ordering-gateways-frontend-node_modules:/home/node/app/node_modules
           named: true
   ordering-engine-service:
+    dependencies:
+      - ${@singleapp-database}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080

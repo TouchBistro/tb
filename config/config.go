@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/spinner"
@@ -26,16 +25,8 @@ var services *service.ServiceCollection
 var playlists *playlist.PlaylistCollection
 var tbRoot string
 
-const lazydockerConfig = `
-reporting: "off"
-gui:
-  wrapMainPanel: true
-update:
-  dockerRefreshInterval: 2000ms`
-
 type InitOptions struct {
 	LoadServices     bool
-	LoadApps         bool
 	UpdateRegistries bool
 }
 
@@ -87,46 +78,29 @@ func setupEnv() error {
 	return nil
 }
 
-func resolveRegistry(r registry.Registry, shouldUpdate bool) (registry.Registry, error) {
+func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 	isLocal := r.LocalPath != ""
-
-	// Set true path for usage later
-	if isLocal {
-		// Local paths can be prefixed with ~ for convenience
-		if strings.HasPrefix(r.LocalPath, "~") {
-			r.Path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
-		} else {
-			path, err := filepath.Abs(r.LocalPath)
-			if err != nil {
-				return r, errors.Wrapf(err, "failed to resolve absolute path to local registry %s", r.Name)
-			}
-
-			r.Path = path
-		}
-	} else {
-		r.Path = filepath.Join(RegistriesPath(), r.Name)
-	}
 
 	// Clone if missing and not local
 	if !isLocal && !file.FileOrDirExists(r.Path) {
 		log.Debugf("Registry %s is missing, cloning...", r.Name)
 		err := git.Clone(r.Name, RegistriesPath())
 		if err != nil {
-			return r, errors.Wrapf(err, "failed to clone registry to %s", r.Path)
+			return errors.Wrapf(err, "failed to clone registry to %s", r.Path)
 		}
 
-		return r, nil
+		return nil
 	}
 
 	if !isLocal && shouldUpdate {
 		log.Debugf("Updating registry %s...", r.Name)
 		err := git.Pull(r.Name, RegistriesPath())
 		if err != nil {
-			return r, errors.Wrapf(err, "failed to update registry %s", r.Name)
+			return errors.Wrapf(err, "failed to update registry %s", r.Name)
 		}
 	}
 
-	return r, nil
+	return nil
 }
 
 func Init(opts InitOptions) error {
@@ -141,12 +115,20 @@ func Init(opts InitOptions) error {
 	}
 
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
+	// Also consider creating a lazydocker package to abstract this logic so it doesn't seem so ad hoc
 	// Create lazydocker config
 	ldDirPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
 	err = os.MkdirAll(ldDirPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
 	}
+
+	const lazydockerConfig = `
+reporting: "off"
+gui:
+  wrapMainPanel: true
+update:
+  dockerRefreshInterval: 2000ms`
 
 	ldConfigPath := filepath.Join(ldDirPath, "lazydocker.yml")
 	err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
@@ -161,13 +143,12 @@ func Init(opts InitOptions) error {
 		return errors.New("No registries defined in tbrc")
 	}
 
-	// Make sure registries exist and resolve path
-	for i, r := range tbrc.Registries {
-		resolvedRegistry, err := resolveRegistry(r, opts.UpdateRegistries)
+	// Clone missing registries and pull existing ones
+	for _, r := range tbrc.Registries {
+		err := cloneOrPullRegistry(r, opts.UpdateRegistries)
 		if err != nil {
 			return errors.Wrapf(err, "failed to resolve registry %s", r.Name)
 		}
-		tbrc.Registries[i] = resolvedRegistry
 	}
 
 	if opts.LoadServices {
@@ -196,6 +177,10 @@ func Init(opts InitOptions) error {
 			serviceList = append(serviceList, registryServices...)
 			playlistList = append(playlistList, registryPlaylists...)
 		}
+
+		// Dedup slices
+		globalConfig.BaseImages = util.UniqueStrings(globalConfig.BaseImages)
+		globalConfig.LoginStrategies = util.UniqueStrings(globalConfig.LoginStrategies)
 
 		log.Debugln("Merging services and applying overrides...")
 		services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)

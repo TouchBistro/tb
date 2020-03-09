@@ -16,7 +16,7 @@ import (
 
 var version string
 var rootOpts struct {
-	noUpdateRegistries bool
+	noRegistryPull bool
 }
 
 var rootCmd = &cobra.Command{
@@ -25,7 +25,7 @@ var rootCmd = &cobra.Command{
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		err := config.Init(config.InitOptions{
-			UpdateRegistries: !rootOpts.noUpdateRegistries,
+			UpdateRegistries: !rootOpts.noRegistryPull,
 			LoadServices:     true,
 		})
 		if err != nil {
@@ -41,7 +41,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&rootOpts.noUpdateRegistries, "no-update-registries", false, "Don't update registries when tb is run")
+	rootCmd.PersistentFlags().BoolVar(&rootOpts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
 
 	// Add subcommands
 	rootCmd.AddCommand(ios.IOS())
