@@ -16,7 +16,7 @@ builds:
     goos:
       - darwin
     hooks:
-      pre: packr2
+      pre: packr2 --ignore-imports
       post: go run build/build.go
     ignore:
       - goos: darwin
