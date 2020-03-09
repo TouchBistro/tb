@@ -15,10 +15,10 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 				"POSTGRES_USER":     "user",
 				"POSTGRES_PASSWORD": "password",
 			},
+			Mode: ModeRemote,
 			Remote: Remote{
-				Enabled: true,
-				Image:   "postgres",
-				Tag:     "12",
+				Image: "postgres",
+				Tag:   "12",
 			},
 			Name:         "postgres",
 			RegistryName: "ExampleZone/tb-registry",
@@ -28,10 +28,10 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 				"POSTGRES_USER":     "core",
 				"POSTGRES_PASSWORD": "localdev",
 			},
+			Mode: ModeRemote,
 			Remote: Remote{
-				Enabled: true,
-				Image:   "postgres",
-				Tag:     "12-alpine",
+				Image: "postgres",
+				Tag:   "12-alpine",
 			},
 			Name:         "postgres",
 			RegistryName: "TouchBistro/tb-registry",
@@ -41,6 +41,7 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			EnvVars: map[string]string{
 				"HTTP_PORT": "8080",
 			},
+			Mode: ModeBuild,
 			Ports: []string{
 				"8081:8080",
 			},
@@ -70,13 +71,13 @@ func TestServiceMethods(t *testing.T) {
 
 	s := Service{
 		GitRepo: "TouchBistro/venue-core-service",
+		Mode:    ModeRemote,
 		Build: Build{
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 		},
 		Remote: Remote{
-			Enabled: true,
-			Image:   "venue-core-service",
-			Tag:     "master",
+			Image: "venue-core-service",
+			Tag:   "master",
 		},
 		Name:         "venue-core-service",
 		RegistryName: "TouchBistro/tb-registry",
@@ -99,6 +100,7 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 			EnvVars: map[string]string{
 				"HTTP_PORT": "8080",
 			},
+			Mode: ModeBuild,
 			Ports: []string{
 				"8081:8080",
 			},
@@ -147,6 +149,7 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 			"HTTP_PORT":    "8080",
 			"LOGGER_LEVEL": "debug",
 		},
+		Mode: ModeRemote,
 		Ports: []string{
 			"8081:8080",
 		},
@@ -162,7 +165,6 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 		},
 		Remote: Remote{
 			Command: "tail -f /dev/null",
-			Enabled: true,
 			Image:   "venue-core-service",
 			Tag:     "master",
 		},
@@ -183,10 +185,10 @@ func TestServiceCollectionGetFullName(t *testing.T) {
 			"POSTGRES_USER":     "core",
 			"POSTGRES_PASSWORD": "localdev",
 		},
+		Mode: ModeRemote,
 		Remote: Remote{
-			Enabled: true,
-			Image:   "postgres",
-			Tag:     "12-alpine",
+			Image: "postgres",
+			Tag:   "12-alpine",
 		},
 		Name:         "postgres",
 		RegistryName: "TouchBistro/tb-registry",
@@ -205,6 +207,7 @@ func TestServiceCollectionGetShortName(t *testing.T) {
 		EnvVars: map[string]string{
 			"HTTP_PORT": "8080",
 		},
+		Mode: ModeBuild,
 		Ports: []string{
 			"8081:8080",
 		},

@@ -47,48 +47,52 @@ func parseServices(config legacyServiceConfig) (map[string]service.Service, erro
 	}
 
 	// Validate each service and perform any necessary actions
-	for name, service := range config.Services {
-		// Make sure either local or remote usage is specified
-		if !service.CanBuild() && service.Remote.Image == "" {
-			msg := fmt.Sprintf("Must specify at least one of 'build.dockerfilePath' or 'remote.image' for service %s", name)
-			return nil, errors.New(msg)
+	for name, s := range config.Services {
+		// Make sure mode is a valid value
+		if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
+			return nil, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", name)
+		}
+
+		// Make sure image is specified if using remote
+		if s.UseRemote() && s.Remote.Image == "" {
+			return nil, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", name)
 		}
 
 		// Make sure repo is specified if not using remote
-		if !service.UseRemote() && !service.CanBuild() {
-			msg := fmt.Sprintf("'remote.enabled: false' is set but 'build.dockerfilePath' was not provided for service %s", name)
+		if !s.UseRemote() && !s.CanBuild() {
+			msg := fmt.Sprintf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", name)
 			return nil, errors.New(msg)
 		}
 
 		// Set special service specific vars
-		if service.HasGitRepo() {
-			vars["@REPOPATH"] = filepath.Join(ReposPath(), service.GitRepo)
+		if s.HasGitRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), s.GitRepo)
 		} else {
 			vars["@REPOPATH"] = ""
 		}
 
 		// Expand any vars
-		for i, dep := range service.Dependencies {
-			service.Dependencies[i] = util.ExpandVars(dep, vars)
+		for i, dep := range s.Dependencies {
+			s.Dependencies[i] = util.ExpandVars(dep, vars)
 		}
 
-		service.Build.DockerfilePath = util.ExpandVars(service.Build.DockerfilePath, vars)
-		service.EnvFile = util.ExpandVars(service.EnvFile, vars)
-		service.Remote.Image = util.ExpandVars(service.Remote.Image, vars)
+		s.Build.DockerfilePath = util.ExpandVars(s.Build.DockerfilePath, vars)
+		s.EnvFile = util.ExpandVars(s.EnvFile, vars)
+		s.Remote.Image = util.ExpandVars(s.Remote.Image, vars)
 
-		for key, value := range service.EnvVars {
-			service.EnvVars[key] = util.ExpandVars(value, vars)
+		for key, value := range s.EnvVars {
+			s.EnvVars[key] = util.ExpandVars(value, vars)
 		}
 
-		for i, volume := range service.Build.Volumes {
-			service.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		for i, volume := range s.Build.Volumes {
+			s.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
 		}
 
-		for i, volume := range service.Remote.Volumes {
-			service.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		for i, volume := range s.Remote.Volumes {
+			s.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
 		}
 
-		parsedServices[name] = service
+		parsedServices[name] = s
 	}
 
 	return parsedServices, nil

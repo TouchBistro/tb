@@ -91,15 +91,19 @@ func ReadServices(r Registry, rootPath, reposPath string) ([]service.Service, Gl
 		s.Name = n
 		s.RegistryName = r.Name
 
-		// Make sure either local or remote usage is specified
-		if !s.CanBuild() && s.Remote.Image == "" {
-			msg := fmt.Sprintf("Must specify at least one of 'build.dockerfilePath' or 'remote.image' for service %s", n)
-			return nil, GlobalConfig{}, errors.New(msg)
+		// Make sure mode is a valid value
+		if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
+			return nil, GlobalConfig{}, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", n)
+		}
+
+		// Make sure image is specified if using remote
+		if s.UseRemote() && s.Remote.Image == "" {
+			return nil, GlobalConfig{}, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", n)
 		}
 
 		// Make sure repo is specified if not using remote
 		if !s.UseRemote() && !s.CanBuild() {
-			msg := fmt.Sprintf("'remote.enabled: false' is set but 'build.dockerfilePath' was not provided for service %s", n)
+			msg := fmt.Sprintf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", n)
 			return nil, GlobalConfig{}, errors.New(msg)
 		}
 

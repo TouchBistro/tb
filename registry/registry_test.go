@@ -22,11 +22,11 @@ func TestReadServices(t *testing.T) {
 				"POSTGRES_USER":     "core",
 				"POSTGRES_PASSWORD": "localdev",
 			},
+			Mode:  service.ModeRemote,
 			Ports: []string{"5432:5432"},
 			Remote: service.Remote{
-				Enabled: true,
-				Image:   "postgres",
-				Tag:     "10.6-alpine",
+				Image: "postgres",
+				Tag:   "10.6-alpine",
 				Volumes: []service.Volume{
 					service.Volume{
 						Value:   "postgres:/var/lib/postgresql/data",
@@ -46,6 +46,7 @@ func TestReadServices(t *testing.T) {
 				"HTTP_PORT": "8080",
 				"DB_HOST":   "touchbistro-tb-registry-postgres",
 			},
+			Mode:    service.ModeRemote,
 			Ports:   []string{"8081:8080"},
 			PreRun:  "yarn db:prepare",
 			GitRepo: "TouchBistro/venue-core-service",
@@ -65,7 +66,6 @@ func TestReadServices(t *testing.T) {
 			},
 			Remote: service.Remote{
 				Command: "yarn serve",
-				Enabled: true,
 				Image:   "12345.dkr.ecr.us-east-1.amazonaws.com/venue-core-service",
 				Tag:     "master",
 			},

@@ -13,10 +13,10 @@ services:
     envVars:
       POSTGRES_USER: core
       POSTGRES_PASSWORD: localdev
+    mode: remote
     ports:
       - '5432:5432'
     remote:
-      enabled: true
       image: postgres
       tag: 10.6-alpine
       volumes:
@@ -29,6 +29,7 @@ services:
     envVars:
       HTTP_PORT: 8080
       DB_HOST: ${@postgres}
+    mode: remote
     ports:
       - '8081:8080'
     preRun: yarn db:prepare
@@ -44,6 +45,5 @@ services:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
       command: yarn serve
-      enabled: true
       image: ${ecr}/venue-core-service
       tag: master

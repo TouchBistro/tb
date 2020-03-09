@@ -7,6 +7,11 @@ import (
 	"github.com/TouchBistro/tb/util"
 )
 
+const (
+	ModeRemote = "remote"
+	ModeBuild  = "build"
+)
+
 type Volume struct {
 	Value   string `yaml:"value"`
 	IsNamed bool   `yaml:"named"`
@@ -22,7 +27,6 @@ type Build struct {
 
 type Remote struct {
 	Command string   `yaml:"command"`
-	Enabled bool     `yaml:"enabled"`
 	Image   string   `yaml:"image"`
 	Tag     string   `yaml:"tag"`
 	Volumes []Volume `yaml:"volumes"`
@@ -35,6 +39,7 @@ type Service struct {
 	EnvFile      string            `yaml:"envFile"`
 	EnvVars      map[string]string `yaml:"envVars"`
 	GitRepo      string            `yaml:"repo"`
+	Mode         string            `yaml:"mode"`
 	Ports        []string          `yaml:"ports"`
 	PreRun       string            `yaml:"preRun"`
 	Remote       Remote            `yaml:"remote"`
@@ -48,7 +53,7 @@ func (s Service) HasGitRepo() bool {
 }
 
 func (s Service) UseRemote() bool {
-	return s.Remote.Enabled
+	return s.Mode == ModeRemote
 }
 
 func (s Service) CanBuild() bool {
@@ -126,7 +131,12 @@ func (s Service) applyOverride(o ServiceOverride) (Service, error) {
 		s.Remote.Command = o.Remote.Command
 	}
 
-	s.Remote.Enabled = o.Remote.Enabled
+	if o.Remote.Enabled {
+		s.Mode = ModeRemote
+	} else {
+		s.Mode = ModeBuild
+	}
+
 	if o.Remote.Tag != "" {
 		s.Remote.Tag = o.Remote.Tag
 	}
