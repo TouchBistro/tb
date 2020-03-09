@@ -435,8 +435,8 @@ services:
       DB_DISABLE_SSL: "true"
       JWT_PAS_ISSUER_URI: 'urn:touchbistro:oauth:iss:partners'
       INFRASTRUCTURE_AUTH_SERVICE_URL: http://${@infrastructure-auth-service}:8080
-      JWT_AUTH_ISSUER_JWKS_URL: http://${@infrastructure-auth-service}:8080/jwks
-      JWT_PAS_ISSUER_JWKS_URI: http://${@partners-auth-service}:8080/jwks
+      JWT_IAS_ISSUER_JWKS_URL: http://${@infrastructure-auth-service}:8080/jwks
+      JWT_PAS_ISSUER_JWKS_URL: http://${@partners-auth-service}:8080/jwks
       ORDERING_INTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/internal
       SINGLEAPP_BASE_URL: http://${@yp-singleapp-api}:80
       LOYALTY_GATEWAY_SERVICE_URL: http://${@loyalty-gateway-service}:8080

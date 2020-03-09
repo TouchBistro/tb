@@ -30,7 +30,7 @@ jobs:
           command: make test-ci
       - run:
           name: Verify tb runs
-          command: ./tb
+          command: ./tb --help
 
 workflows:
   lint-build-test:
