@@ -31,6 +31,10 @@ func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
 }
 
+func Registries() []registry.Registry {
+	return tbrc.Registries
+}
+
 func LoadTBRC() error {
 	tbrcPath := filepath.Join(os.Getenv("HOME"), tbrcName)
 
