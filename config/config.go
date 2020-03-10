@@ -20,9 +20,7 @@ import (
 
 // Package state for storing config info
 var tbrc userConfig
-var globalConfig registry.GlobalConfig
-var services *service.ServiceCollection
-var playlists *playlist.PlaylistCollection
+var registryResult registry.RegistryResult
 var tbRoot string
 
 type InitOptions struct {
@@ -45,20 +43,20 @@ func RegistriesPath() string {
 }
 
 func LoginStategies() ([]login.LoginStrategy, error) {
-	s, err := login.ParseStrategies(globalConfig.LoginStrategies)
+	s, err := login.ParseStrategies(registryResult.LoginStrategies)
 	return s, errors.Wrap(err, "Failed to parse login strategies")
 }
 
 func BaseImages() []string {
-	return globalConfig.BaseImages
+	return registryResult.BaseImages
 }
 
 func LoadedServices() *service.ServiceCollection {
-	return services
+	return registryResult.Services
 }
 
 func LoadedPlaylists() *playlist.PlaylistCollection {
-	return playlists
+	return registryResult.Playlists
 }
 
 /* Private functions */
@@ -151,49 +149,18 @@ update:
 		}
 	}
 
+	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
+		ShouldReadServices: opts.LoadServices,
+		RootPath:           TBRootPath(),
+		ReposPath:          ReposPath(),
+		Overrides:          tbrc.Overrides,
+		CustomPlaylists:    tbrc.Playlists,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to read config files from registries")
+	}
+
 	if opts.LoadServices {
-		log.Debugln("Loading services...")
-
-		serviceList := make([]service.Service, 0)
-		playlistList := make([]playlist.Playlist, 0)
-
-		for _, r := range tbrc.Registries {
-			log.Debugf("Reading services from registry %s", r.Name)
-
-			registryServices, conf, err := registry.ReadServices(r, TBRootPath(), ReposPath())
-			if err != nil {
-				return errors.Wrapf(err, "failed to read services for registry %s", r.Name)
-			}
-
-			log.Debugf("Reading playlists from registry %s", r.Name)
-			registryPlaylists, err := registry.ReadPlaylists(r)
-			if err != nil {
-				return errors.Wrapf(err, "failed to read playlists for registry %s", r.Name)
-			}
-
-			globalConfig.BaseImages = append(globalConfig.BaseImages, conf.BaseImages...)
-			globalConfig.LoginStrategies = append(globalConfig.LoginStrategies, conf.LoginStrategies...)
-
-			serviceList = append(serviceList, registryServices...)
-			playlistList = append(playlistList, registryPlaylists...)
-		}
-
-		// Dedup slices
-		globalConfig.BaseImages = util.UniqueStrings(globalConfig.BaseImages)
-		globalConfig.LoginStrategies = util.UniqueStrings(globalConfig.LoginStrategies)
-
-		log.Debugln("Merging services and applying overrides...")
-		services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
-		if err != nil {
-			return errors.Wrap(err, "failed to merge services into ServiceCollection")
-		}
-
-		log.Debugln("Merging playlists and custom playlists...")
-		playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
-		if err != nil {
-			return errors.Wrap(err, "failed to merge playlists into PlaylistCollection")
-		}
-
 		// Create docker-compose.yml
 		log.Debugln("Generating docker-compose.yml file...")
 
@@ -204,7 +171,7 @@ update:
 		}
 		defer file.Close()
 
-		err = compose.CreateComposeFile(services, file)
+		err = compose.CreateComposeFile(registryResult.Services, file)
 		if err != nil {
 			return errors.Wrap(err, "failed to generated docker-compose file")
 		}
@@ -218,7 +185,7 @@ func CloneMissingRepos() error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
 	repos := make([]string, 0)
-	it := services.Iter()
+	it := registryResult.Services.Iter()
 	for it.HasNext() {
 		s := it.Next()
 		if s.HasGitRepo() {

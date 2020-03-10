@@ -36,7 +36,22 @@ type registryServiceConfig struct {
 	Services map[string]service.Service `yaml:"services"`
 }
 
-type GlobalConfig struct {
+type serviceGlobalConfig struct {
+	BaseImages      []string
+	LoginStrategies []string
+}
+
+type ReadOptions struct {
+	ShouldReadServices bool
+	RootPath           string
+	ReposPath          string
+	Overrides          map[string]service.ServiceOverride
+	CustomPlaylists    map[string]playlist.Playlist
+}
+
+type RegistryResult struct {
+	Services        *service.ServiceCollection
+	Playlists       *playlist.PlaylistCollection
 	BaseImages      []string
 	LoginStrategies []string
 }
@@ -61,11 +76,11 @@ func readRegistryFile(fileName string, r Registry, v interface{}) error {
 	return errors.Wrapf(err, "failed to read %s in registry %s", fileName, r.Name)
 }
 
-func ReadServices(r Registry, rootPath, reposPath string) ([]service.Service, GlobalConfig, error) {
+func readServices(r Registry, rootPath, reposPath string) ([]service.Service, serviceGlobalConfig, error) {
 	serviceConf := registryServiceConfig{}
 	err := readRegistryFile(servicesFileName, r, &serviceConf)
 	if err != nil {
-		return nil, GlobalConfig{}, errors.Wrapf(err, "failed to read services file from registry %s", r.Name)
+		return nil, serviceGlobalConfig{}, errors.Wrapf(err, "failed to read services file from registry %s", r.Name)
 	}
 
 	services := make([]service.Service, 0, len(serviceConf.Services))
@@ -93,18 +108,18 @@ func ReadServices(r Registry, rootPath, reposPath string) ([]service.Service, Gl
 
 		// Make sure mode is a valid value
 		if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
-			return nil, GlobalConfig{}, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", n)
+			return nil, serviceGlobalConfig{}, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", n)
 		}
 
 		// Make sure image is specified if using remote
 		if s.UseRemote() && s.Remote.Image == "" {
-			return nil, GlobalConfig{}, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", n)
+			return nil, serviceGlobalConfig{}, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", n)
 		}
 
 		// Make sure repo is specified if not using remote
 		if !s.UseRemote() && !s.CanBuild() {
 			msg := fmt.Sprintf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", n)
-			return nil, GlobalConfig{}, errors.New(msg)
+			return nil, serviceGlobalConfig{}, errors.New(msg)
 		}
 
 		// Set special service specific vars
@@ -138,7 +153,7 @@ func ReadServices(r Registry, rootPath, reposPath string) ([]service.Service, Gl
 		services = append(services, s)
 	}
 
-	globalConf := GlobalConfig{
+	globalConf := serviceGlobalConfig{
 		BaseImages:      serviceConf.Global.BaseImages,
 		LoginStrategies: serviceConf.Global.LoginStrategies,
 	}
@@ -146,7 +161,7 @@ func ReadServices(r Registry, rootPath, reposPath string) ([]service.Service, Gl
 	return services, globalConf, nil
 }
 
-func ReadPlaylists(r Registry) ([]playlist.Playlist, error) {
+func readPlaylists(r Registry) ([]playlist.Playlist, error) {
 	playlistMap := make(map[string]playlist.Playlist)
 	err := readRegistryFile(playlistsFileName, r, &playlistMap)
 	if err != nil {
@@ -192,4 +207,51 @@ func ReadPlaylists(r Registry) ([]playlist.Playlist, error) {
 	}
 
 	return playlists, nil
+}
+
+func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, error) {
+	serviceList := make([]service.Service, 0)
+	playlistList := make([]playlist.Playlist, 0)
+	baseImages := make([]string, 0)
+	loginStrategies := make([]string, 0)
+
+	for _, r := range registries {
+		if opts.ShouldReadServices {
+			log.Debugf("Reading services from registry %s", r.Name)
+
+			services, globalConf, err := readServices(r, opts.RootPath, opts.ReposPath)
+			if err != nil {
+				return RegistryResult{}, errors.Wrapf(err, "failed to read services from registry %s", r.Name)
+			}
+
+			log.Debugf("Reading playlists from registry %s", r.Name)
+
+			playlists, err := readPlaylists(r)
+			if err != nil {
+				return RegistryResult{}, errors.Wrapf(err, "failed to read playlists from registry %s", r.Name)
+			}
+
+			serviceList = append(serviceList, services...)
+			playlistList = append(playlistList, playlists...)
+			baseImages = append(baseImages, globalConf.BaseImages...)
+			loginStrategies = append(loginStrategies, globalConf.LoginStrategies...)
+		}
+	}
+
+	sc, err := service.NewServiceCollection(serviceList, opts.Overrides)
+	if err != nil {
+		return RegistryResult{}, errors.Wrap(err, "failed to create ServiceCollection")
+	}
+
+	pc, err := playlist.NewPlaylistCollection(playlistList, opts.CustomPlaylists)
+	if err != nil {
+		return RegistryResult{}, errors.Wrap(err, "failed to create PLaylistCollection")
+	}
+
+	return RegistryResult{
+		Services:        sc,
+		Playlists:       pc,
+		BaseImages:      util.UniqueStrings(baseImages),
+		LoginStrategies: util.UniqueStrings(loginStrategies),
+	}, nil
 }

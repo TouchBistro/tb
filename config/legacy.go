@@ -157,8 +157,8 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
 
-	globalConfig.BaseImages = serviceConfig.Global.BaseImages
-	globalConfig.LoginStrategies = serviceConfig.Global.LoginStrategies
+	registryResult.BaseImages = serviceConfig.Global.BaseImages
+	registryResult.LoginStrategies = serviceConfig.Global.LoginStrategies
 
 	pBuf, err := box.Find(playlistPath)
 	if err != nil {
@@ -179,7 +179,7 @@ func legacyInit() error {
 		playlistList = append(playlistList, p)
 	}
 
-	playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
+	registryResult.Playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create PlaylistCollection")
 	}
@@ -213,7 +213,7 @@ func legacyInit() error {
 		serviceList = append(serviceList, s)
 	}
 
-	services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
+	registryResult.Services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
 	if err != nil {
 		return errors.Wrap(err, "failed add services to ServiceCollection and apply overrides from tbrc")
 	}
@@ -227,7 +227,7 @@ func legacyInit() error {
 	defer file.Close()
 
 	log.Debugln("Generating docker-compose.yml file...")
-	err = compose.CreateComposeFile(services, file)
+	err = compose.CreateComposeFile(registryResult.Services, file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
