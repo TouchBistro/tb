@@ -21,7 +21,6 @@ import (
 // Package state for storing config info
 var tbrc userConfig
 var registryResult registry.RegistryResult
-var tbRoot string
 
 type InitOptions struct {
 	LoadServices     bool
@@ -31,15 +30,15 @@ type InitOptions struct {
 /* Getters for private & computed vars */
 
 func TBRootPath() string {
-	return tbRoot
+	return filepath.Join(os.Getenv("HOME"), ".tb")
 }
 
 func ReposPath() string {
-	return filepath.Join(tbRoot, "repos")
+	return filepath.Join(TBRootPath(), "repos")
 }
 
 func RegistriesPath() string {
-	return filepath.Join(tbRoot, "registries")
+	return filepath.Join(TBRootPath(), "registries")
 }
 
 func LoginStategies() ([]login.LoginStrategy, error) {
@@ -62,9 +61,7 @@ func LoadedPlaylists() *playlist.PlaylistCollection {
 /* Private functions */
 
 func setupEnv() error {
-	// Set $TB_ROOT so it works in the docker-compose file
-	tbRoot = filepath.Join(os.Getenv("HOME"), ".tb")
-	os.Setenv("TB_ROOT", tbRoot)
+	tbRoot := TBRootPath()
 
 	// Create $TB_ROOT directory if it doesn't exist
 	if !file.FileOrDirExists(tbRoot) {
@@ -82,7 +79,7 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 	// Clone if missing and not local
 	if !isLocal && !file.FileOrDirExists(r.Path) {
 		log.Debugf("Registry %s is missing, cloning...", r.Name)
-		err := git.Clone(r.Name, RegistriesPath())
+		err := git.Clone(r.Name, r.Path)
 		if err != nil {
 			return errors.Wrapf(err, "failed to clone registry to %s", r.Path)
 		}
@@ -164,7 +161,7 @@ update:
 		// Create docker-compose.yml
 		log.Debugln("Generating docker-compose.yml file...")
 
-		composePath := filepath.Join(tbRoot, dockerComposePath)
+		composePath := filepath.Join(TBRootPath(), dockerComposePath)
 		file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return errors.Wrapf(err, "failed to open file %s", composePath)

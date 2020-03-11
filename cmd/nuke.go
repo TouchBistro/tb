@@ -179,5 +179,6 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 }

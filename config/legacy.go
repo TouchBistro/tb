@@ -184,7 +184,7 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to create PlaylistCollection")
 	}
 
-	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
+	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, TBRootPath(), box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
@@ -219,7 +219,7 @@ func legacyInit() error {
 	}
 
 	// Create docker-compose.yml
-	composePath := filepath.Join(tbRoot, dockerComposePath)
+	composePath := filepath.Join(TBRootPath(), dockerComposePath)
 	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file %s", composePath)
@@ -241,7 +241,7 @@ func RmFiles() error {
 
 	for _, file := range files {
 		log.Debugf("Removing %s...\n", file)
-		path := filepath.Join(tbRoot, file)
+		path := filepath.Join(TBRootPath(), file)
 		err := os.Remove(path)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove file at %s", path)
