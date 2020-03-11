@@ -74,10 +74,12 @@ func setupEnv() error {
 }
 
 func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
-	isLocal := r.LocalPath != ""
+	if r.LocalPath != "" {
+		return nil
+	}
 
-	// Clone if missing and not local
-	if !isLocal && !file.FileOrDirExists(r.Path) {
+	// Clone if missing
+	if !file.FileOrDirExists(r.Path) {
 		log.Debugf("Registry %s is missing, cloning...", r.Name)
 		err := git.Clone(r.Name, r.Path)
 		if err != nil {
@@ -87,7 +89,7 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 		return nil
 	}
 
-	if !isLocal && shouldUpdate {
+	if shouldUpdate {
 		log.Debugf("Updating registry %s...", r.Name)
 		err := git.Pull(r.Name, RegistriesPath())
 		if err != nil {
@@ -133,18 +135,28 @@ update:
 
 	// THE REGISTRY ZONE
 
-	log.Debugln("Resolving registries...")
+	log.Infoln("Cloning/pulling registries...")
 	if len(tbrc.Registries) == 0 {
 		return errors.New("No registries defined in tbrc")
 	}
 
 	// Clone missing registries and pull existing ones
+	successCh := make(chan string)
+	failedCh := make(chan error)
+
 	for _, r := range tbrc.Registries {
-		err := cloneOrPullRegistry(r, opts.UpdateRegistries)
-		if err != nil {
-			return errors.Wrapf(err, "failed to resolve registry %s", r.Name)
-		}
+		go func(successCh chan string, failedCh chan error, r registry.Registry) {
+			err := cloneOrPullRegistry(r, opts.UpdateRegistries)
+			if err != nil {
+				failedCh <- err
+				return
+			}
+
+			successCh <- r.Name
+		}(successCh, failedCh, r)
 	}
+
+	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
 
 	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
 		ShouldReadServices: opts.LoadServices,
