@@ -108,6 +108,62 @@ func TestReadRegistries(t *testing.T) {
 		RegistryName: "TouchBistro/tb-registry",
 	}, vcs)
 
+	ezPostgres, err := result.Services.Get("ExampleZone/tb-registry/postgres")
+	if err != nil {
+		assert.FailNow("Failed to get service ExampleZone/tb-registry/postgres")
+	}
+
+	assert.Equal(service.Service{
+		EnvVars: map[string]string{
+			"POSTGRES_USER":     "user",
+			"POSTGRES_PASSWORD": "password",
+		},
+		Mode:  service.ModeRemote,
+		Ports: []string{"5432:5432"},
+		Remote: service.Remote{
+			Image: "postgres",
+			Tag:   "12",
+			Volumes: []service.Volume{
+				service.Volume{
+					Value:   "postgres:/var/lib/postgresql/data",
+					IsNamed: true,
+				},
+			},
+		},
+		Name:         "postgres",
+		RegistryName: "ExampleZone/tb-registry",
+	}, ezPostgres)
+
+	ves, err := result.Services.Get("venue-example-service")
+	if err != nil {
+		assert.FailNow("Failed to get service venue-example-service")
+	}
+
+	assert.Equal(service.Service{
+		Entrypoint: []string{"bash", "entrypoints/docker.sh"},
+		EnvFile:    "/home/test/.tb/repos/ExampleZone/venue-example-service/.env.compose",
+		EnvVars: map[string]string{
+			"HTTP_PORT":     "8000",
+			"POSTGRES_HOST": "examplezone-tb-registry-postgres",
+		},
+		Mode:    service.ModeRemote,
+		Ports:   []string{"9000:8000"},
+		PreRun:  "yarn db:prepare:dev",
+		GitRepo: "ExampleZone/venue-example-service",
+		Build: service.Build{
+			Command:        "yarn start",
+			DockerfilePath: "/home/test/.tb/repos/ExampleZone/venue-example-service",
+			Target:         "build",
+		},
+		Remote: service.Remote{
+			Command: "yarn serve",
+			Image:   "98765.dkr.ecr.us-east-1.amazonaws.com/venue-example-service",
+			Tag:     "staging",
+		},
+		Name:         "venue-example-service",
+		RegistryName: "ExampleZone/tb-registry",
+	}, ves)
+
 	dbPlaylist, err := result.Playlists.Get("db")
 	if err != nil {
 		assert.FailNow("Failed to get db playlist")
@@ -134,4 +190,31 @@ func TestReadRegistries(t *testing.T) {
 		Name:         "core",
 		RegistryName: "TouchBistro/tb-registry",
 	}, tbCorePlayist)
+
+	ezCorePlaylist, err := result.Playlists.Get("ExampleZone/tb-registry/core")
+	if err != nil {
+		assert.FailNow("Failed to get ExampleZone/tb-registry/core playlist")
+	}
+
+	assert.Equal(playlist.Playlist{
+		Services: []string{
+			"ExampleZone/tb-registry/postgres",
+		},
+		Name:         "core",
+		RegistryName: "ExampleZone/tb-registry",
+	}, ezCorePlaylist)
+
+	ezExampleZonePlaylist, err := result.Playlists.Get("example-zone")
+	if err != nil {
+		assert.FailNow("Failed to get example-zone playlist")
+	}
+
+	assert.Equal(playlist.Playlist{
+		Extends: "ExampleZone/tb-registry/core",
+		Services: []string{
+			"ExampleZone/tb-registry/venue-example-service",
+		},
+		Name:         "example-zone",
+		RegistryName: "ExampleZone/tb-registry",
+	}, ezExampleZonePlaylist)
 }
