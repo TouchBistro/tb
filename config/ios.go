@@ -35,5 +35,5 @@ func Apps() map[string]IOSApp {
 }
 
 func IOSBuildPath() string {
-	return filepath.Join(tbRoot, "ios")
+	return filepath.Join(TBRootPath(), "ios")
 }

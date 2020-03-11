@@ -20,6 +20,7 @@ type nukeOptions struct {
 	shouldNukeRepos      bool
 	shouldNukeConfig     bool
 	shouldNukeIOSBuilds  bool
+	shouldNukeRegistries bool
 	shouldNukeAll        bool
 }
 
@@ -30,12 +31,13 @@ var nukeCmd = &cobra.Command{
 	Short: "Removes all docker images, containers, volumes and networks",
 	PreRun: func(cmd *cobra.Command, args []string) {
 		if !nukeOpts.shouldNukeContainers &&
-			!nukeOpts.shouldNukeIOSBuilds &&
 			!nukeOpts.shouldNukeImages &&
 			!nukeOpts.shouldNukeVolumes &&
 			!nukeOpts.shouldNukeNetworks &&
 			!nukeOpts.shouldNukeRepos &&
 			!nukeOpts.shouldNukeConfig &&
+			!nukeOpts.shouldNukeIOSBuilds &&
+			!nukeOpts.shouldNukeRegistries &&
 			!nukeOpts.shouldNukeAll {
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
@@ -142,6 +144,29 @@ var nukeCmd = &cobra.Command{
 			}
 			log.Infoln("...done")
 		}
+
+		if nukeOpts.shouldNukeRegistries || nukeOpts.shouldNukeAll {
+			log.Infoln("Removing registries...")
+			for _, r := range config.Registries() {
+				// Don't remove local registries
+				if r.LocalPath != "" {
+					continue
+				}
+
+				log.Debugf("Removing registry %s...", r.Name)
+				err := os.RemoveAll(r.Path)
+				if err != nil {
+					fatal.ExitErrf(err, "Failed removing registry %s", r.Name)
+				}
+			}
+
+			log.Infoln("Removing any remaining registry directories...")
+			err := os.RemoveAll(config.RegistriesPath())
+			if err != nil {
+				fatal.ExitErr(err, "Failed removing registries.")
+			}
+			log.Infoln("...done")
+		}
 	},
 }
 
@@ -154,5 +179,6 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 }

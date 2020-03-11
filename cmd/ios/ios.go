@@ -4,6 +4,7 @@ import (
 	"runtime"
 
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/simulator"
 	"github.com/spf13/cobra"
 )
@@ -12,6 +13,9 @@ import (
 var (
 	iosVersion string
 	deviceName string
+	iosOpts    struct {
+		noRegistryPull bool
+	}
 )
 
 var iosCmd = &cobra.Command{
@@ -26,11 +30,25 @@ var iosCmd = &cobra.Command{
 			fatal.Exit("Error: tb ios is only supported on macOS")
 		}
 
-		err := simulator.LoadSimulators()
+		// Need to do this explicitly here since we are defining PersistentPreRun
+		// PersistentPreRun overrides the parent command's one if defined, so the one in root won't be run.
+		err := config.Init(config.InitOptions{
+			UpdateRegistries: !iosOpts.noRegistryPull,
+			LoadServices:     false,
+		})
+		if err != nil {
+			fatal.ExitErr(err, "Failed to initialize config files")
+		}
+
+		err = simulator.LoadSimulators()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to find available iOS simulators")
 		}
 	},
+}
+
+func init() {
+	iosCmd.PersistentFlags().BoolVar(&iosOpts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
 }
 
 func IOS() *cobra.Command {

@@ -15,11 +15,23 @@ import (
 )
 
 var version string
+var rootOpts struct {
+	noRegistryPull bool
+}
 
 var rootCmd = &cobra.Command{
 	Use:     "tb",
 	Version: version,
 	Short:   "tb is a CLI for running TouchBistro services on a development machine",
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		err := config.Init(config.InitOptions{
+			UpdateRegistries: !rootOpts.noRegistryPull,
+			LoadServices:     true,
+		})
+		if err != nil {
+			fatal.ExitErr(err, "Failed to initialise config files.")
+		}
+	},
 }
 
 func Execute() {
@@ -29,28 +41,22 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(&rootOpts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
+
 	// Add subcommands
 	rootCmd.AddCommand(ios.IOS())
 
 	cobra.OnInitialize(func() {
 		f := fortune.Random().String()
 		fmt.Println(color.Magenta(f))
-		initConfig()
+
+		err := config.LoadTBRC()
+		if err != nil {
+			fatal.ExitErr(err, "Failed to load tbrc.")
+		}
+
+		checkVersion()
 	})
-}
-
-func initConfig() {
-	err := config.LoadTBRC()
-	if err != nil {
-		fatal.ExitErr(err, "Failed to initialise .tbrc file.")
-	}
-
-	err = config.Init()
-	if err != nil {
-		fatal.ExitErr(err, "Failed to initialise config files.")
-	}
-
-	checkVersion()
 }
 
 func checkVersion() {

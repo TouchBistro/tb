@@ -27,14 +27,14 @@ global:
 services:
   backoffice-customer-service:
     dependencies:
-      - postgres
-      - infrastructure-auth-service
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       JWT_AUTH_ISSUER_JWKS_URL: http://${@infrastructure-auth-service}:8080/jwks
       TASK_PROVIDER: inmemory
+    mode: remote
     ports:
       - '8700:8080'
     preRun: yarn db:prepare
@@ -47,18 +47,18 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/backoffice-customer-service
       tag: master
   cloud-server:
     dependencies:
-      - redis
-      - legacy-database
+      - ${@redis}
+      - ${@legacy-database}
     entrypoint: ["bash", "./docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.compose
     envVars:
       MSSQL_HOST: ${@legacy-database}
       REDIS_HOST: ${@redis}
+    mode: remote
     ports:
       - '3000:3000'
     repo: TouchBistro/cloud-server
@@ -75,15 +75,15 @@ services:
             echo "Not starting server.."
             tail -f /dev/null
           fi'
-      enabled: true
       image: ${ecr}/cloud-server
       tag: master
   cloud-server-frontend:
     dependencies:
-      - cloud-server
+      - ${@cloud-server}
     envFile: ${@REPOPATH}/packages/frontend/.env.example
     envVars:
       UNICORN_URL: http://${@cloud-server}:3000
+    mode: remote
     ports:
       - '8080:80'
     repo: TouchBistro/cloud-server-frontend
@@ -92,14 +92,14 @@ services:
         USE_INSECURE_COOKIE: insecure
       dockerfilePath: ${@REPOPATH}/packages/frontend
     remote:
-      enabled: true
       image: ${ecr}/cloud-server-frontend
       tag: master
   dotnet-api:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envVars:
       MONO_OPTIONS: --debug
+    mode: build
     ports:
       - '9001:80'
     repo: TouchBistro/dotnet-depot
@@ -107,9 +107,10 @@ services:
       dockerfilePath: ${@REPOPATH}/api
   dotnet-manage:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envVars:
       MONO_OPTIONS: --debug
+    mode: build
     ports:
       - '9000:80'
     repo: TouchBistro/dotnet-depot
@@ -117,6 +118,7 @@ services:
       dockerfilePath: ${@REPOPATH}/Manage
   health-clinic:
     envFile: ${@REPOPATH}/.env.compose
+    mode: remote
     ports:
       - '8089:8089'
     repo: TouchBistro/health-clinic
@@ -127,18 +129,18 @@ services:
         - value: ${@REPOPATH}:/home/python/app
     remote:
       command: 'tail -f /dev/null'
-      enabled: true
       image: ${ecr}/health-clinic
       tag: master
   identity-user-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       OKTA_BASE_URL: http://${@mokta}:8080
       INSECURE_DISABLE_SSL_VALIDATION: "true"
+    mode: remote
     ports:
       - '8777:8080'
     preRun: yarn db:prepare
@@ -147,16 +149,16 @@ services:
       <<: *build-node-dev
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/identity-user-service
       tag: master
   infrastructure-auth-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8073:8080'
     preRun: yarn db:prepare
@@ -167,16 +169,16 @@ services:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/infrastructure-auth-service
       tag: master
   infrastructure-scratchpad-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8181:8080'
     preRun: yarn db:prepare
@@ -187,16 +189,16 @@ services:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/infrastructure-scratchpad-service
       tag: master
   legacy-bridge-cloud-service:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@legacy-database}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8101:8080'
     repo: TouchBistro/legacy-bridge-cloud-service
@@ -208,16 +210,16 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/legacy-bridge-cloud-service
       tag: master
   legacy-bridge-manage-service:
     dependencies:
-      - legacy-database
+      - ${@legacy-database}
     envFile: ${@REPOPATH}/.env.compose
     envVars:
       DB_HOST: ${@legacy-database}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8999:8080'
     repo: TouchBistro/legacy-bridge-manage-service
@@ -225,7 +227,6 @@ services:
       <<: *build-node-dev
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/legacy-bridge-manage-service
       tag: master
   legacy-database:
@@ -233,6 +234,7 @@ services:
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: localhost
+    mode: remote
     ports:
       - '1433:1433'
     preRun: yarn db:prepare
@@ -249,7 +251,6 @@ services:
           named: true
     remote:
       command: "tail -f /dev/null"
-      enabled: true
       image: ${ecr}/legacy-database
       tag: master-db-migrate-with-seeds
       volumes:
@@ -257,12 +258,13 @@ services:
           named: true
   legacy-upload-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8009:8080'
     repo: TouchBistro/legacy-upload-service
@@ -274,7 +276,6 @@ services:
           named: true
     remote:
       command: yarn serve
-      enabled: true
       image: ${ecr}/legacy-upload-service
       tag: master
   localstack:
@@ -282,11 +283,11 @@ services:
       SERVICES: s3,sqs,sns
       PORT_WEB_UI: '8080'
       DOCKER_HOST: unix:///var/run/docker.sock
+    mode: remote
     ports:
       - '9888:8080' # web interface
       - '4567-4584:4567-4584'
     remote:
-      enabled: true
       image: localstack/localstack
       volumes:
         - value: "/var/run/docker.sock:/var/run/docker.sock"
@@ -298,11 +299,12 @@ services:
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
   loyalty-gateway-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8600:8080'
     preRun: yarn db:prepare
@@ -313,16 +315,16 @@ services:
         - value: ${@REPOPATH}:/home/node/app:delegated
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/loyalty-gateway-service
       tag: master
   partners-auth-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     preRun: yarn db:prepare
     ports:
       - '9453:8080'
@@ -334,36 +336,36 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/partners-auth-service
       tag: master
   postgres:
     envVars:
       POSTGRES_USER: core
       POSTGRES_PASSWORD: localdev
+    mode: remote
     ports:
       - '5432:5432'
     remote:
-      enabled: true
       image: postgres
       tag: 10.6-alpine
       volumes:
         - value: postgres:/var/lib/postgresql/data
           named: true
   redis:
+    mode: remote
     ports:
       - '6379:6379'
     remote:
-      enabled: true
       image: redis
       tag: 4-alpine
   mokta:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '9443:8080'
     preRun: yarn db:prepare
@@ -372,12 +374,11 @@ services:
       <<: *build-node-dev
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/mokta
       tag: master
   ordering-demo-frontend:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -385,6 +386,7 @@ services:
       DELIVEROO_DISABLED: "true"
       ORDERING_BASE_URL: http://${@ordering-ooa-service}:8080/external
       URL_CALLBACK_URL: http://${@ordering-demo-frontend}:8080/callback
+    mode: remote
     ports:
       - '8010:8080'
     preRun: yarn db:prepare
@@ -397,18 +399,18 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/ordering-demo-frontend
       tag: master
   ordering-demo-frontend-venue:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       INVENUE_BASE_URL: http://${@ordering-ooa-service}:8080/external
       MODE: venue
+    mode: build
     ports:
       - '8020:8080'
     repo: TouchBistro/ordering-demo-frontend
@@ -420,11 +422,7 @@ services:
           named: true
   ordering-engine-service:
     dependencies:
-      - ordering-ooa-service
-      - singleapp-database
-      - yp-singleapp-api
-      - infrastructure-auth-service
-      - loyalty-gateway-service
+      - ${@singleapp-database}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -440,6 +438,7 @@ services:
       ORDERING_INTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/internal
       SINGLEAPP_BASE_URL: http://${@yp-singleapp-api}:80
       LOYALTY_GATEWAY_SERVICE_URL: http://${@loyalty-gateway-service}:8080
+    mode: remote
     ports:
       - '8610:8080'
     repo: TouchBistro/ordering-engine-service
@@ -451,18 +450,15 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/ordering-engine-service
       tag: master
   ordering-online-frontend:
-    dependencies:
-      - infrastructure-auth-service
-      - ordering-engine-service
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
       INFRASTRUCTURE_AUTH_BASE_URL: http://${@infrastructure-auth-service}:8080/v1
       ORDERING_ENGINE_URL: http://${@ordering-engine-service}:8080/v1
+    mode: remote
     ports:
       - '8611:8080'
     repo: TouchBistro/ordering-online-frontend
@@ -473,7 +469,6 @@ services:
         - value: ordering-online-frontend-node_modules:/home/node/app/node_module
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/ordering-online-frontend
       tag: master
   ordering-gateways-frontend:
@@ -482,6 +477,7 @@ services:
       HTTP_PORT: 8080
       ORDERING_BASE_URL: http://${@ordering-ooa-service}:8080/external
       ORDERING_INTERNAL_BASE_URL: http://${@ordering-ooa-service}:8080/internal
+    mode: remote
     ports:
       - '8030:8080'
     repo: TouchBistro/ordering-gateways-frontend
@@ -493,7 +489,6 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/ordering-gateways-frontend
       tag: master
   ordering-ooa-service:
@@ -550,8 +545,9 @@ services:
       TOUCHBISTRO_LEGACY_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
+    mode: remote
     ports:
       - '8005:8080'
     preRun: yarn db:prepare
@@ -564,13 +560,12 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/ordering-ooa-service
       tag: master
   partners-config-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -597,6 +592,7 @@ services:
             "sleepTimeSeconds": 5
           }
         }
+    mode: remote
     ports:
       - '8090:8080'
     preRun: yarn db:prepare
@@ -609,13 +605,12 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/partners-config-service
       tag: master
   partners-etl-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -634,6 +629,7 @@ services:
             "sleepTimeSeconds": 5
           }
         }
+    mode: remote
     ports:
       - '8888:8080'
     preRun: yarn db:prepare
@@ -646,16 +642,12 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/partners-etl-service
       tag: master
   partners-reservations-service:
     dependencies:
-      - postgres
-      - localstack
-      - venue-upload-service
-      - partners-config-service
-      - legacy-bridge-cloud-service
+      - ${@postgres}
+      - ${@localstack}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
@@ -672,6 +664,7 @@ services:
             "sleepTimeSeconds": 5
           }
         }
+    mode: remote
     ports:
       - '8602:8080'
     preRun: yarn db:prepare
@@ -684,16 +677,16 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/partners-reservations-service
       tag: master
   payments-gateway-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+    mode: remote
     ports:
       - '8008:8080'
     preRun: yarn db:prepare
@@ -702,10 +695,10 @@ services:
       <<: *build-node-dev
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/payments-gateway-service
       tag: master
   singleapp-database:
+    mode: remote
     ports:
       - '3306:3306'
     repo: TouchBistro/singleapp-database
@@ -715,18 +708,12 @@ services:
         - value: singleapp-database:/var/lib/mysql/
           named: true
     remote:
-      enabled: true
       image: ${ecr}/singleapp-database
       tag: master
       volumes:
         - value: singleapp-database:/var/lib/mysql/
           named: true
   venue-admin-frontend:
-    dependencies:
-      - venue-core-service
-      - cloud-server
-      - legacy-bridge-cloud-service
-      - partners-config-service
     # Note the `../`, since the Dockerfile executes from $HOME/app/dist
     entrypoint: ["bash", "../docker-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
@@ -738,6 +725,7 @@ services:
       OKTA_APPLICATION_URL_BASE: http://${@mokta}:8080
       HTTP_PORT: 9002 # VAF will default to :5000 for local server development.
       NODE_ENV: production
+    mode: remote
     ports:
       - '9002:9002'
     repo: TouchBistro/venue-admin-frontend
@@ -748,13 +736,12 @@ services:
       target: release
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/venue-admin-frontend
       tag: master
   venue-core-service:
     dependencies:
-      - postgres
-      - localstack
+      - ${@postgres}
+      - ${@localstack}
     entrypoint: ["bash", "./entrypoints/server-entrypoint.sh"]
     envFile: ${@REPOPATH}/.env.example
     envVars:
@@ -773,6 +760,7 @@ services:
       INFRASTRUCTURE_AUTH_SERVICE_JWKS_URI: http://${@infrastructure-auth-service}:8080/jwks
       INFRASTRUCTURE_AUTH_SERVICE_ISSUER: urn:touchbistro:oauth:iss:services:local
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
+    mode: remote
     ports:
       - '8081:8080' # Main HTTP port
       - '9901:9229' # 9229, 9330: Node debugger
@@ -790,18 +778,18 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/venue-core-service
       tag: master
   venue-provisioning-service:
     dependencies:
-      - postgres
+      - ${@postgres}
     envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
       TOUCHBISTRO_GEN1_CLOUD_BASE_URL: http://${@cloud-server}:3000
       TOUCHBISTRO_LEGACY_BRIDGE_CLOUD_BASE_URL: http://${@legacy-bridge-cloud-service}:8080
+    mode: remote
     ports:
       - '8666:8080'
     preRun: yarn db:prepare
@@ -810,12 +798,9 @@ services:
       <<: *build-node-dev
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/venue-provisioning-service
       tag: master
   venue-upload-service:
-    dependencies:
-      - localstack
     envFile: ${@REPOPATH}/.env.example
     envVars:
       HTTP_PORT: 8080
@@ -839,6 +824,7 @@ services:
             "sleepTimeSeconds": 5
           }
         }
+    mode: remote
     ports:
       - '8601:8080'
     repo: TouchBistro/venue-upload-service
@@ -850,12 +836,12 @@ services:
           named: true
     remote:
       command: *command-serve
-      enabled: true
       image: ${ecr}/venue-upload-service
       tag: master
   yp-singleapp-api:
     dependencies:
-      - singleapp-database
+      - ${@singleapp-database}
+    mode: build
     ports:
       - '8023:80'
     repo: TouchBistro/yp-singleapp-api

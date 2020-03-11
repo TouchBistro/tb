@@ -1,0 +1,42 @@
+global:
+  baseImages:
+    - swift
+    - alpine-node
+  loginStrategies:
+    - ecr
+  variables:
+    docker: 98765.dkr.ecr.us-east-1.amazonaws.com
+
+services:
+  postgres:
+    envVars:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    mode: remote
+    ports:
+      - '5432:5432'
+    remote:
+      image: postgres
+      tag: '12'
+      volumes:
+        - value: postgres:/var/lib/postgresql/data
+          named: true
+  venue-example-service:
+    entrypoint: ["bash", "entrypoints/docker.sh"]
+    envFile: ${@REPOPATH}/.env.compose
+    envVars:
+      HTTP_PORT: 8000
+      POSTGRES_HOST: ${@postgres}
+    mode: remote
+    ports:
+      - '9000:8000'
+    preRun: yarn db:prepare:dev
+    repo: ExampleZone/venue-example-service
+    build:
+      target: build
+      command: yarn start
+      dockerfilePath: ${@REPOPATH}
+    remote:
+      command: yarn serve
+      image: ${docker}/venue-example-service
+      tag: staging

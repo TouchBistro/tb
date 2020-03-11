@@ -10,8 +10,40 @@ type ServiceCollection struct {
 	len int
 }
 
-func NewServiceCollection() *ServiceCollection {
-	return &ServiceCollection{sm: make(map[string][]Service)}
+func NewServiceCollection(services []Service, overrides map[string]ServiceOverride) (*ServiceCollection, error) {
+	sc := &ServiceCollection{
+		sm: make(map[string][]Service),
+	}
+
+	for _, s := range services {
+		err := sc.set(s)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to add service %s to ServiceCollection", s.FullName())
+		}
+	}
+
+	for name, override := range overrides {
+		s, err := sc.Get(name)
+		if err != nil {
+			return nil, errors.Errorf("failed to get service %s to apply override to", name)
+		}
+
+		s, err = s.applyOverride(override)
+		if err != nil {
+			return nil, errors.Errorf("failed to apply override to service %s", s.FullName())
+		}
+
+		// Name and RegistryName are validated before a service is added to the ServiceCollection
+		// so it's safe to use them to directly update the service
+		for i, el := range sc.sm[s.Name] {
+			if el.RegistryName == s.RegistryName {
+				sc.sm[s.Name][i] = s
+				break
+			}
+		}
+	}
+
+	return sc, nil
 }
 
 func (sc *ServiceCollection) Get(name string) (Service, error) {
@@ -44,7 +76,7 @@ func (sc *ServiceCollection) Get(name string) (Service, error) {
 	return Service{}, errors.Errorf("No such service %s", name)
 }
 
-func (sc *ServiceCollection) Set(value Service) error {
+func (sc *ServiceCollection) set(value Service) error {
 	if value.Name == "" || value.RegistryName == "" {
 		return errors.Errorf("Name and RegistryName fields must not be empty to set Service")
 	}
@@ -78,31 +110,6 @@ func (sc *ServiceCollection) Set(value Service) error {
 
 func (sc *ServiceCollection) Len() int {
 	return sc.len
-}
-
-func (sc *ServiceCollection) ApplyOverrides(overrides map[string]ServiceOverride) error {
-	for name, override := range overrides {
-		s, err := sc.Get(name)
-		if err != nil {
-			return errors.Errorf("failed to get service %s to apply override to", name)
-		}
-
-		s, err = s.applyOverride(override)
-		if err != nil {
-			return errors.Errorf("failed to apply override to service %s", s.FullName())
-		}
-
-		// Name and RegistryName are validated before a service is added to the ServiceCollection
-		// so it's safe to use them to directly update the service
-		for i, el := range sc.sm[s.Name] {
-			if el.RegistryName == s.RegistryName {
-				sc.sm[s.Name][i] = s
-				break
-			}
-		}
-	}
-
-	return nil
 }
 
 type iterator struct {

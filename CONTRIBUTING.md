@@ -67,7 +67,7 @@ make go-uninstall
 
 To add a new service do the following:
 
-1. Add it to `static/services.yml`:  
+1. Add it to `static/services.yml`:
     The format is as follows:
     ```yaml
     <service-name>:
@@ -75,6 +75,7 @@ To add a new service do the following:
       entrypoint: string     # Custom Docker entrypoint
       envFile: string        # Path to env file
       envVars: map           # Env vars to set for the services
+      mode: remote | build   # What mode to use: remote or build
       ports: string[]        # List of ports to expose
       preRun: string         # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
       repo: string           # The repo name on GitHub
@@ -88,7 +89,6 @@ To add a new service do the following:
            named: boolean # Whether or not to create a named volume
       remote:
         command: string  # Command to run when the container starts
-        enabled: boolean # Whether or not to use the remote version
         image: string    # The image name or a valid URI pointing to a remote docker registry.
         tag: string      # The the image tag to use (ex: master)
         volumes:         # List of docker volumes to create
@@ -98,7 +98,7 @@ To add a new service do the following:
     At least one of `build` or `remote` are required. `build` is only required if the service can be built locally with `docker build`, `remote` is only required if the service can be pulled from a remote registry with `docker pull`.
 
     Any unneeded fields can be omitted.
-2. Add the service to any necessary playlists in `static/playlists.yml` (optional):  
+2. Add the service to any necessary playlists in `static/playlists.yml` (optional):
     Simply add the service as an entry to the `services` array of any playlist.
 
 3. If `go.sum` gets modified on build, please run `go mod tidy` to clean it up before committing and pushing changes.

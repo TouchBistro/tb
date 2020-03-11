@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -16,6 +17,86 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
+
+const (
+	servicesPath             = "services.yml"
+	playlistPath             = "playlists.yml"
+	dockerComposePath        = "docker-compose.yml"
+	localstackEntrypointPath = "localstack-entrypoint.sh"
+	lazydockerConfigPath     = "lazydocker.yml"
+)
+
+type legacyServiceConfig struct {
+	Global struct {
+		BaseImages      []string          `yaml:"baseImages"`
+		LoginStrategies []string          `yaml:"loginStrategies"`
+		Variables       map[string]string `yaml:"variables"`
+	} `yaml:"global"`
+	Services map[string]service.Service `yaml:"services"`
+}
+
+func parseServices(config legacyServiceConfig) (map[string]service.Service, error) {
+	parsedServices := make(map[string]service.Service)
+
+	vars := config.Global.Variables
+	vars["@ROOTPATH"] = TBRootPath()
+
+	// Add vars for each service name
+	for name := range config.Services {
+		vars["@"+name] = "touchbistro-tb-registry-" + name
+	}
+
+	// Validate each service and perform any necessary actions
+	for name, s := range config.Services {
+		// Make sure mode is a valid value
+		if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
+			return nil, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", name)
+		}
+
+		// Make sure image is specified if using remote
+		if s.UseRemote() && s.Remote.Image == "" {
+			return nil, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", name)
+		}
+
+		// Make sure repo is specified if not using remote
+		if !s.UseRemote() && !s.CanBuild() {
+			msg := fmt.Sprintf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", name)
+			return nil, errors.New(msg)
+		}
+
+		// Set special service specific vars
+		if s.HasGitRepo() {
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), s.GitRepo)
+		} else {
+			vars["@REPOPATH"] = ""
+		}
+
+		// Expand any vars
+		for i, dep := range s.Dependencies {
+			s.Dependencies[i] = util.ExpandVars(dep, vars)
+		}
+
+		s.Build.DockerfilePath = util.ExpandVars(s.Build.DockerfilePath, vars)
+		s.EnvFile = util.ExpandVars(s.EnvFile, vars)
+		s.Remote.Image = util.ExpandVars(s.Remote.Image, vars)
+
+		for key, value := range s.EnvVars {
+			s.EnvVars[key] = util.ExpandVars(value, vars)
+		}
+
+		for i, volume := range s.Build.Volumes {
+			s.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		for i, volume := range s.Remote.Volumes {
+			s.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+		}
+
+		parsedServices[name] = s
+	}
+
+	return parsedServices, nil
+}
 
 func dumpFile(from, to, dir string, box *packr.Box) error {
 	path := filepath.Join(dir, to)
@@ -70,10 +151,14 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed to find packr box %s", servicesPath)
 	}
 
+	serviceConfig := legacyServiceConfig{}
 	err = yaml.NewDecoder(bytes.NewReader(sBuf)).Decode(&serviceConfig)
 	if err != nil {
 		return errors.Wrapf(err, "failed decode yaml for %s", servicesPath)
 	}
+
+	registryResult.BaseImages = serviceConfig.Global.BaseImages
+	registryResult.LoginStrategies = serviceConfig.Global.LoginStrategies
 
 	pBuf, err := box.Find(playlistPath)
 	if err != nil {
@@ -87,17 +172,19 @@ func legacyInit() error {
 		return errors.Wrapf(err, "failed decode yaml for %s", playlistPath)
 	}
 
-	playlists = playlist.NewPlaylistCollection(tbrc.Playlists)
+	playlistList := make([]playlist.Playlist, 0, len(playlistMap))
 	for n, p := range playlistMap {
 		p.Name = n
 		p.RegistryName = "TouchBistro/tb-registry"
-		err := playlists.Set(p)
-		if err != nil {
-			return errors.Wrapf(err, "failed to add playlist %s to collection", n)
-		}
+		playlistList = append(playlistList, p)
 	}
 
-	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, tbRoot, box)
+	registryResult.Playlists, err = playlist.NewPlaylistCollection(playlistList, tbrc.Playlists)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create PlaylistCollection")
+	}
+
+	err = dumpFile(localstackEntrypointPath, localstackEntrypointPath, TBRootPath(), box)
 	if err != nil {
 		return errors.Wrapf(err, "failed to dump file to %s", localstackEntrypointPath)
 	}
@@ -119,28 +206,20 @@ func legacyInit() error {
 	}
 
 	// Bridge old world to new world
-	services = service.NewServiceCollection()
+	serviceList := make([]service.Service, 0, len(serviceMap))
 	for n, s := range serviceMap {
-		for i, d := range s.Dependencies {
-			s.Dependencies[i] = "touchbistro-tb-registry-" + d
-		}
-
 		s.Name = n
 		s.RegistryName = "TouchBistro/tb-registry"
-		err := services.Set(s)
-		if err != nil {
-			return errors.Wrapf(err, "failed to add service %s to collection", n)
-		}
+		serviceList = append(serviceList, s)
 	}
 
-	// Apply overrides from .tbrc.yml
-	err = services.ApplyOverrides(tbrc.Overrides)
+	registryResult.Services, err = service.NewServiceCollection(serviceList, tbrc.Overrides)
 	if err != nil {
-		return errors.Wrap(err, "failed to apply overrides from tbrc")
+		return errors.Wrap(err, "failed add services to ServiceCollection and apply overrides from tbrc")
 	}
 
 	// Create docker-compose.yml
-	composePath := filepath.Join(tbRoot, dockerComposePath)
+	composePath := filepath.Join(TBRootPath(), dockerComposePath)
 	file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return errors.Wrapf(err, "failed to open file %s", composePath)
@@ -148,7 +227,7 @@ func legacyInit() error {
 	defer file.Close()
 
 	log.Debugln("Generating docker-compose.yml file...")
-	err = compose.CreateComposeFile(services, file)
+	err = compose.CreateComposeFile(registryResult.Services, file)
 	if err != nil {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
@@ -162,7 +241,7 @@ func RmFiles() error {
 
 	for _, file := range files {
 		log.Debugf("Removing %s...\n", file)
-		path := filepath.Join(tbRoot, file)
+		path := filepath.Join(TBRootPath(), file)
 		err := os.Remove(path)
 		if err != nil {
 			return errors.Wrapf(err, "could not remove file at %s", path)

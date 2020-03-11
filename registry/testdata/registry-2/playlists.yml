@@ -1,0 +1,7 @@
+core:
+  services:
+    - postgres
+example-zone:
+  extends: core
+  services:
+    - venue-example-service

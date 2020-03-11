@@ -3,10 +3,12 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/service"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -20,12 +22,17 @@ type userConfig struct {
 	ExperimentalEnabled bool                               `yaml:"experimental"`
 	Playlists           map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides           map[string]service.ServiceOverride `yaml:"overrides"`
+	Registries          []registry.Registry                `yaml:"registries"`
 }
 
 /* Getters for private & computed vars */
 
 func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
+}
+
+func Registries() []registry.Registry {
+	return tbrc.Registries
 }
 
 func LoadTBRC() error {
@@ -64,6 +71,30 @@ func LoadTBRC() error {
 		DisableTimestamp: true,
 	})
 
+	// Resolve registry paths
+	for i, r := range tbrc.Registries {
+		isLocal := r.LocalPath != ""
+
+		// Set true path for usage later
+		if isLocal {
+			// Local paths can be prefixed with ~ for convenience
+			if strings.HasPrefix(r.LocalPath, "~") {
+				r.Path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
+			} else {
+				path, err := filepath.Abs(r.LocalPath)
+				if err != nil {
+					return errors.Wrapf(err, "failed to resolve absolute path to local registry %s", r.Name)
+				}
+
+				r.Path = path
+			}
+		} else {
+			r.Path = filepath.Join(RegistriesPath(), r.Name)
+		}
+
+		tbrc.Registries[i] = r
+	}
+
 	return nil
 }
 
@@ -71,6 +102,10 @@ const rcTemplate = `# Toggle debug mode for more verbose logging
 debug: false
 # Toggle experimental mode to test new features
 experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  # - name: ExampleOrg/tb-registry
 # Custom playlists
 # Each playlist can extend another playlist as well as define its services
 playlists:
