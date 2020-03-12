@@ -4,6 +4,7 @@ auth:
     - postgres
     - mokta
     - identity-user-service
+    - identity-home-frontend
 cloud:
   services:
     - redis
