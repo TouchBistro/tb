@@ -105,3 +105,14 @@ func (ac *AppCollection) set(value App) error {
 	ac.am[appName] = append(bucket, value)
 	return nil
 }
+
+func (ac *AppCollection) Names() []string {
+	names := make([]string, 0)
+	for _, bucket := range ac.am {
+		for _, a := range bucket {
+			names = append(names, a.FullName())
+		}
+	}
+
+	return names
+}
