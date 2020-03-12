@@ -38,9 +38,9 @@ Examples:
 - run the build for specific branch in an iOS 12.3 iPad Air 2 simulator
 	tb ios run --app TouchBistro --ios-version 12.3 --device iPad Air 2 --branch task/pay-631/fix-thing`,
 	Run: func(cmd *cobra.Command, args []string) {
-		app, ok := config.Apps()[appName]
-		if !ok {
-			fatal.Exitf("Error: No iOS app with name %s\n", appName)
+		app, err := config.LoadedIOSApps().Get(appName)
+		if err != nil {
+			fatal.ExitErrf(err, "%s is not a valid iOS app\n", appName)
 		}
 
 		// If no branch provided, use default branch for app
@@ -64,8 +64,8 @@ Examples:
 
 		// Look up the latest build sha for user-specified branch and app.
 		s3Dir := filepath.Join(appName, branch)
-		log.Infof("Checking objects on aws in bucket %s matching prefix %s...", config.Bucket, s3Dir)
-		s3Builds, err := awss3.ListObjectKeysByPrefix(config.Bucket, s3Dir)
+		log.Infof("Checking objects on aws in bucket %s matching prefix %s...", app.Storage.Bucket, s3Dir)
+		s3Builds, err := awss3.ListObjectKeysByPrefix(app.Storage.Bucket, s3Dir)
 		if err != nil {
 			fatal.ExitErrf(err, "Failed getting keys from s3 in dir %s", s3Dir)
 		}
@@ -103,10 +103,10 @@ Examples:
 
 			// If there is a local build, get latest sha from github for desired branch to see if the build available on s3 corresponds to the
 			// latest commit on the branch.
-			log.Infof("Checking latest github sha for %s/%s-%s", app.Organisation, app.Repo, branch)
-			latestGitsha, err := git.GetBranchHeadSha(app.Organisation, app.Repo, branch)
+			log.Infof("Checking latest github sha for %s-%s", app.GitRepo, branch)
+			latestGitsha, err := git.GetBranchHeadSha(app.GitRepo, branch)
 			if err != nil {
-				fatal.ExitErrf(err, "Failed getting branch head sha for %s/%s", app.Repo, branch)
+				fatal.ExitErrf(err, "Failed getting branch head sha for %s-%s", app.GitRepo, branch)
 			}
 			log.Infof("Latest github sha is %s", latestGitsha)
 			if !strings.HasPrefix(s3BuildFilename, latestGitsha) {
@@ -122,7 +122,7 @@ Examples:
 			if currentSha == s3Sha {
 				log.Infoln("Current build sha matches remote sha")
 			} else {
-				log.Infoln("Current build shais different from s3 sha. Deleting local version...")
+				log.Infoln("Current build sha is different from s3 sha. Deleting local version...")
 				err := os.RemoveAll(localBranchDir)
 				if err != nil {
 					fatal.ExitErrf(err, "failed to delete %s", localBranchDir)
@@ -134,11 +134,11 @@ Examples:
 
 		// If there are no local builds or if our local build was deemed out of date, download the latest object from S3
 		if len(localBuilds) == 0 || refreshLocalBuild {
-			log.Infof("Downloading %s from bucket %s to %s", pathToS3Tarball, config.Bucket, downloadDest)
+			log.Infof("Downloading %s from bucket %s to %s", pathToS3Tarball, app.Storage.Bucket, downloadDest)
 			successCh := make(chan string)
 			failedCh := make(chan error)
 			go func(successCh chan string, failedCh chan error) {
-				err = awss3.DownloadObject(config.Bucket, pathToS3Tarball, downloadDest)
+				err = awss3.DownloadObject(app.Storage.Bucket, pathToS3Tarball, downloadDest)
 				if err != nil {
 					failedCh <- errors.Wrapf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDest)
 					return

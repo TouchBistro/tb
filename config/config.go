@@ -7,6 +7,7 @@ import (
 
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/spinner"
+	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
@@ -24,10 +25,11 @@ var registryResult registry.RegistryResult
 
 type InitOptions struct {
 	LoadServices     bool
+	LoadApps         bool
 	UpdateRegistries bool
 }
 
-/* Getters for private & computed vars */
+/* Paths */
 
 func TBRootPath() string {
 	return filepath.Join(os.Getenv("HOME"), ".tb")
@@ -40,6 +42,12 @@ func ReposPath() string {
 func RegistriesPath() string {
 	return filepath.Join(TBRootPath(), "registries")
 }
+
+func IOSBuildPath() string {
+	return filepath.Join(TBRootPath(), "ios")
+}
+
+/* Config Accessors */
 
 func LoginStategies() ([]login.LoginStrategy, error) {
 	s, err := login.ParseStrategies(registryResult.LoginStrategies)
@@ -58,7 +66,15 @@ func LoadedPlaylists() *playlist.PlaylistCollection {
 	return registryResult.Playlists
 }
 
-/* Private functions */
+func LoadedIOSApps() *app.AppCollection {
+	return registryResult.IOSApps
+}
+
+func LoadedMacApps() *app.AppCollection {
+	return registryResult.MacApps
+}
+
+/* Private Functions */
 
 func setupEnv() error {
 	tbRoot := TBRootPath()
@@ -99,6 +115,8 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 
 	return nil
 }
+
+/* Public Functions */
 
 func Init(opts InitOptions) error {
 	err := setupEnv()
@@ -160,6 +178,7 @@ update:
 
 	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
 		ShouldReadServices: opts.LoadServices,
+		ShouldReadApps:     opts.LoadApps,
 		RootPath:           TBRootPath(),
 		ReposPath:          ReposPath(),
 		Overrides:          tbrc.Overrides,

@@ -42,6 +42,8 @@ func NewAppCollection(apps []App) (*AppCollection, error) {
 			return nil, errors.Wrapf(err, "failed to add app %s to AppCollection", a.FullName())
 		}
 	}
+
+	return ac, nil
 }
 
 func (ac *AppCollection) Get(name string) (App, error) {

@@ -21,8 +21,8 @@ type getBranchResponse struct {
 	} `json:"commit"`
 }
 
-func GetBranchHeadSha(org, repo, branch string) (string, error) {
-	url := fmt.Sprintf("%s/repos/%s/%s/branches/%s", apiURL, org, repo, branch)
+func GetBranchHeadSha(repo, branch string) (string, error) {
+	url := fmt.Sprintf("%s/repos/%s/branches/%s", apiURL, repo, branch)
 	client := &http.Client{}
 
 	req, err := http.NewRequest("GET", url, nil)
