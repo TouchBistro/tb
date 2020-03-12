@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
@@ -16,6 +17,7 @@ import (
 
 // File names in registry
 const (
+	appsFileName      = "apps.yml"
 	playlistsFileName = "playlists.yml"
 	servicesFileName  = "services.yml"
 	staticDirName     = "static"
@@ -41,8 +43,14 @@ type serviceGlobalConfig struct {
 	LoginStrategies []string
 }
 
+type registryAppConfig struct {
+	IOSApps map[string]app.App `yaml:"iosApps"`
+	MacApps map[string]app.App `yaml:"macApps"`
+}
+
 type ReadOptions struct {
 	ShouldReadServices bool
+	ShouldReadApps     bool
 	RootPath           string
 	ReposPath          string
 	Overrides          map[string]service.ServiceOverride
@@ -52,6 +60,8 @@ type ReadOptions struct {
 type RegistryResult struct {
 	Services        *service.ServiceCollection
 	Playlists       *playlist.PlaylistCollection
+	IOSApps         *app.AppCollection
+	MacApps         *app.AppCollection
 	BaseImages      []string
 	LoginStrategies []string
 }
@@ -209,11 +219,42 @@ func readPlaylists(r Registry) ([]playlist.Playlist, error) {
 	return playlists, nil
 }
 
+func readApps(r Registry) ([]app.App, []app.App, error) {
+	appConf := registryAppConfig{}
+	err := readRegistryFile(appsFileName, r, &appConf)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "failed to read apps file from registry %s", r.Name)
+	}
+
+	iosApps := make([]app.App, 0, len(appConf.IOSApps))
+	macApps := make([]app.App, 0, len(appConf.MacApps))
+
+	// Deal with iOS apps
+	for n, a := range appConf.IOSApps {
+		a.Name = n
+		a.RegistryName = r.Name
+
+		iosApps = append(iosApps, a)
+	}
+
+	// Deal with macOS apps
+	for n, a := range appConf.MacApps {
+		a.Name = n
+		a.RegistryName = r.Name
+
+		macApps = append(macApps, a)
+	}
+
+	return iosApps, macApps, nil
+}
+
 func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, error) {
 	serviceList := make([]service.Service, 0)
 	playlistList := make([]playlist.Playlist, 0)
 	baseImages := make([]string, 0)
 	loginStrategies := make([]string, 0)
+	iosAppList := make([]app.App, 0)
+	macAppList := make([]app.App, 0)
 
 	for _, r := range registries {
 		if opts.ShouldReadServices {
@@ -236,21 +277,53 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 			baseImages = append(baseImages, globalConf.BaseImages...)
 			loginStrategies = append(loginStrategies, globalConf.LoginStrategies...)
 		}
+
+		if opts.ShouldReadApps {
+			log.Debugf("Reading apps from registry %s", r.Name)
+
+			iosApps, macApps, err := readApps(r)
+			if err != nil {
+				return RegistryResult{}, errors.Wrapf(err, "failed to read apps from registry %s", r.Name)
+			}
+
+			iosAppList = append(iosAppList, iosApps...)
+			macAppList = append(macAppList, macApps...)
+		}
 	}
 
-	sc, err := service.NewServiceCollection(serviceList, opts.Overrides)
-	if err != nil {
-		return RegistryResult{}, errors.Wrap(err, "failed to create ServiceCollection")
+	var sc *service.ServiceCollection
+	var pc *playlist.PlaylistCollection
+	var err error
+	if opts.ShouldReadServices {
+		sc, err = service.NewServiceCollection(serviceList, opts.Overrides)
+		if err != nil {
+			return RegistryResult{}, errors.Wrap(err, "failed to create ServiceCollection")
+		}
+
+		pc, err = playlist.NewPlaylistCollection(playlistList, opts.CustomPlaylists)
+		if err != nil {
+			return RegistryResult{}, errors.Wrap(err, "failed to create PLaylistCollection")
+		}
 	}
 
-	pc, err := playlist.NewPlaylistCollection(playlistList, opts.CustomPlaylists)
-	if err != nil {
-		return RegistryResult{}, errors.Wrap(err, "failed to create PLaylistCollection")
+	var iosAc, macAc *app.AppCollection
+	if opts.ShouldReadApps {
+		iosAc, err = app.NewAppCollection(iosAppList)
+		if err != nil {
+			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for iOS apps")
+		}
+
+		macAc, err = app.NewAppCollection(macAppList)
+		if err != nil {
+			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for macOS apps")
+		}
 	}
 
 	return RegistryResult{
 		Services:        sc,
 		Playlists:       pc,
+		IOSApps:         iosAc,
+		MacApps:         macAc,
 		BaseImages:      util.UniqueStrings(baseImages),
 		LoginStrategies: util.UniqueStrings(loginStrategies),
 	}, nil
