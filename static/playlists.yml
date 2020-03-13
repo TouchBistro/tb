@@ -72,6 +72,24 @@ partners:
     - legacy-bridge-cloud-service
     - localstack
     - legacy-database
+# Playlist Name: partners-deps
+# Run partner related services yourself while running dependencies by tb. This will let you run legacy cloud and VAF on your local browser.
+# Run partner services below on your host machine as you develop.
+# partners-etl-service, partners-config-service, partners-api-service, partners-loyalty-service, legacy-bridge-cloud-service, venue-admin-frontend, ordering-ooa-service, ordering-engine-service
+# Unfortunately, both partners-api-service and legacy-bridge-cloud-service use HTTP PORT 8101. You can run only one of them in your host machine.
+partners-deps:
+  services:
+    - localstack
+    - postgres
+    - venue-core-service
+    - legacy-database
+    - redis
+    - cloud-server
+    - cloud-server-frontend
+    - infrastructure-auth-service
+    - partners-auth-service
+    - mokta
+    - singleapp-database
 reservations:
   services:
     - postgres
