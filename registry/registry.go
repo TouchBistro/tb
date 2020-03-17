@@ -44,8 +44,8 @@ type serviceGlobalConfig struct {
 }
 
 type registryAppConfig struct {
-	IOSApps map[string]app.App `yaml:"iosApps"`
-	MacApps map[string]app.App `yaml:"macApps"`
+	IOSApps     map[string]app.App `yaml:"iosApps"`
+	DesktopApps map[string]app.App `yaml:"desktopApps"`
 }
 
 type ReadOptions struct {
@@ -61,7 +61,7 @@ type RegistryResult struct {
 	Services        *service.ServiceCollection
 	Playlists       *playlist.PlaylistCollection
 	IOSApps         *app.AppCollection
-	MacApps         *app.AppCollection
+	DesktopApps     *app.AppCollection
 	BaseImages      []string
 	LoginStrategies []string
 }
@@ -227,7 +227,7 @@ func readApps(r Registry) ([]app.App, []app.App, error) {
 	}
 
 	iosApps := make([]app.App, 0, len(appConf.IOSApps))
-	macApps := make([]app.App, 0, len(appConf.MacApps))
+	desktopApps := make([]app.App, 0, len(appConf.DesktopApps))
 
 	// Deal with iOS apps
 	for n, a := range appConf.IOSApps {
@@ -237,15 +237,15 @@ func readApps(r Registry) ([]app.App, []app.App, error) {
 		iosApps = append(iosApps, a)
 	}
 
-	// Deal with macOS apps
-	for n, a := range appConf.MacApps {
+	// Deal with desktop apps
+	for n, a := range appConf.DesktopApps {
 		a.Name = n
 		a.RegistryName = r.Name
 
-		macApps = append(macApps, a)
+		desktopApps = append(desktopApps, a)
 	}
 
-	return iosApps, macApps, nil
+	return iosApps, desktopApps, nil
 }
 
 func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, error) {
@@ -254,7 +254,7 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 	baseImages := make([]string, 0)
 	loginStrategies := make([]string, 0)
 	iosAppList := make([]app.App, 0)
-	macAppList := make([]app.App, 0)
+	desktopAppList := make([]app.App, 0)
 
 	for _, r := range registries {
 		if opts.ShouldReadServices {
@@ -281,13 +281,13 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 		if opts.ShouldReadApps {
 			log.Debugf("Reading apps from registry %s", r.Name)
 
-			iosApps, macApps, err := readApps(r)
+			iosApps, desktopApps, err := readApps(r)
 			if err != nil {
 				return RegistryResult{}, errors.Wrapf(err, "failed to read apps from registry %s", r.Name)
 			}
 
 			iosAppList = append(iosAppList, iosApps...)
-			macAppList = append(macAppList, macApps...)
+			desktopAppList = append(desktopAppList, desktopApps...)
 		}
 	}
 
@@ -306,24 +306,24 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 		}
 	}
 
-	var iosAc, macAc *app.AppCollection
+	var iosAC, desktopAC *app.AppCollection
 	if opts.ShouldReadApps {
-		iosAc, err = app.NewAppCollection(iosAppList)
+		iosAC, err = app.NewAppCollection(iosAppList)
 		if err != nil {
 			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for iOS apps")
 		}
 
-		macAc, err = app.NewAppCollection(macAppList)
+		desktopAC, err = app.NewAppCollection(desktopAppList)
 		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for macOS apps")
+			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for desktop apps")
 		}
 	}
 
 	return RegistryResult{
 		Services:        sc,
 		Playlists:       pc,
-		IOSApps:         iosAc,
-		MacApps:         macAc,
+		IOSApps:         iosAC,
+		DesktopApps:     desktopAC,
 		BaseImages:      util.UniqueStrings(baseImages),
 		LoginStrategies: util.UniqueStrings(loginStrategies),
 	}, nil

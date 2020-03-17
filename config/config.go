@@ -70,8 +70,8 @@ func LoadedIOSApps() *app.AppCollection {
 	return registryResult.IOSApps
 }
 
-func LoadedMacApps() *app.AppCollection {
-	return registryResult.MacApps
+func LoadedDesktopApps() *app.AppCollection {
+	return registryResult.DesktopApps
 }
 
 /* Private Functions */
