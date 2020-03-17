@@ -5,6 +5,7 @@ import (
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
+	appCmd "github.com/TouchBistro/tb/cmd/app"
 	"github.com/TouchBistro/tb/cmd/ios"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fortune"
@@ -45,7 +46,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&rootOpts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
 
 	// Add subcommands
-	rootCmd.AddCommand(ios.IOS())
+	rootCmd.AddCommand(appCmd.AppCmd(), ios.IOS())
 
 	cobra.OnInitialize(func() {
 		f := fortune.Random().String()
