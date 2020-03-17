@@ -153,7 +153,6 @@ services:
       tag: master
   identity-home-frontend:
     dependencies:
-      - postgres
       - mokta
       - identity-user-service
     # Note the `../`, since the Dockerfile executes from $HOME/app/dist
@@ -393,6 +392,8 @@ services:
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+      ISSUER_URL: http://${@mokta}:8080
+      ISSUER_FRONTEND_URL: http://localhost:9443
     mode: remote
     ports:
       - '9443:8080'
