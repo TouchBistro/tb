@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/service"
@@ -232,6 +233,38 @@ func legacyInit() error {
 		return errors.Wrap(err, "failed to generated docker-compose file")
 	}
 	log.Debugln("Successfully generated docker-compose.yml")
+
+	// Set iOS apps
+	registryResult.IOSApps, err = app.NewAppCollection([]app.App{
+		app.App{
+			BundleID: "com.touchbistro.TouchBistro",
+			Branch:   "develop",
+			GitRepo:  "TouchBistro/tb-pos",
+			EnvVars: map[string]string{
+				"debug.autoAcceptTOS": "true",
+			},
+			Storage: app.Storage{
+				Provider: "s3",
+				Bucket:   "tb-ios-builds",
+			},
+			Name:         "TouchBistro",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+		app.App{
+			BundleID: "com.touchbistro.TBUIKitDemo",
+			Branch:   "master",
+			GitRepo:  "TouchBistro/TBUIKit",
+			Storage: app.Storage{
+				Provider: "s3",
+				Bucket:   "tb-ios-builds",
+			},
+			Name:         "TBUIKitDemo",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to create AppCollection")
+	}
 
 	return nil
 }

@@ -27,6 +27,7 @@ var rootCmd = &cobra.Command{
 		err := config.Init(config.InitOptions{
 			UpdateRegistries: !rootOpts.noRegistryPull,
 			LoadServices:     true,
+			LoadApps:         false,
 		})
 		if err != nil {
 			fatal.ExitErr(err, "Failed to initialise config files.")

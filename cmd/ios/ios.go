@@ -35,6 +35,7 @@ var iosCmd = &cobra.Command{
 		err := config.Init(config.InitOptions{
 			UpdateRegistries: !iosOpts.noRegistryPull,
 			LoadServices:     false,
+			LoadApps:         true,
 		})
 		if err != nil {
 			fatal.ExitErr(err, "Failed to initialize config files")
