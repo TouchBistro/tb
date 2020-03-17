@@ -151,6 +151,30 @@ services:
       command: *command-serve
       image: ${ecr}/identity-user-service
       tag: master
+  identity-home-frontend:
+    # Note the `../`, since the Dockerfile executes from $HOME/app/dist
+    entrypoint: ['bash', '../docker-entrypoint.sh']
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 9090
+      NODE_ENV: production
+      OIDC_DISABLE_HTTPS_CHECK: true
+      OKTA_APPLICATION_URL_BASE: http://${@mokta}:8080
+      OKTA_ISSUER_URL: http://${@mokta}:8080
+      TOUCHBISTRO_PROFILE_SERVICE_URL_BASE: http://${@identity-user-service}:8080/internal
+    mode: remote
+    ports:
+      - '9090:9090'
+    repo: TouchBistro/identity-home-frontend
+    build:
+      args:
+        NPM_TOKEN: $NPM_TOKEN
+      dockerfilePath: ${@REPOPATH}
+      target: release
+    remote:
+      command: *command-serve
+      image: ${ecr}/identity-home-frontend
+      tag: master
   infrastructure-auth-service:
     dependencies:
       - ${@postgres}
@@ -365,6 +389,8 @@ services:
     envVars:
       DB_HOST: ${@postgres}
       HTTP_PORT: 8080
+      ISSUER_URL: http://${@mokta}:8080
+      ISSUER_FRONTEND_URL: http://localhost:9443
     mode: remote
     ports:
       - '9443:8080'
