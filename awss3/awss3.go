@@ -2,7 +2,6 @@ package awss3
 
 import (
 	"context"
-	"path/filepath"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -41,7 +40,7 @@ func ListObjectKeysByPrefix(bucket, objKeyPrefix string) ([]string, error) {
 	return keys, nil
 }
 
-func DownloadObject(bucket, objKey, dstDir string) error {
+func DownloadObject(bucket, objKey, dstPath string) error {
 	// Set up AWS Env Vars
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -62,13 +61,12 @@ func DownloadObject(bucket, objKey, dstDir string) error {
 	defer resp.Body.Close()
 
 	// Download to a local file.
-	dlPath := filepath.Join(dstDir, objKey)
-	nBytes, err := util.DownloadFile(dlPath, resp.Body)
+	nBytes, err := util.DownloadFile(dstPath, resp.Body)
 	if err != nil {
-		return errors.Wrapf(err, "failed downloading file to %s", dlPath)
+		return errors.Wrapf(err, "failed downloading file to %s", dstPath)
 	}
 
-	log.Debugf("Wrote %d bytes to %s successfully", nBytes, dlPath)
+	log.Debugf("Wrote %d bytes to %s successfully", nBytes, dstPath)
 
 	return nil
 }
