@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/playlist"
@@ -86,6 +87,25 @@ func readRegistryFile(fileName string, r Registry, v interface{}) error {
 	return errors.Wrapf(err, "failed to read %s in registry %s", fileName, r.Name)
 }
 
+func validateService(s service.Service) error {
+	// Make sure mode is a valid value
+	if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
+		return errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", s.Name)
+	}
+
+	// Make sure image is specified if using remote
+	if s.UseRemote() && s.Remote.Image == "" {
+		return errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", s.Name)
+	}
+
+	// Make sure repo is specified if not using remote
+	if !s.UseRemote() && !s.CanBuild() {
+		return errors.Errorf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", s.Name)
+	}
+
+	return nil
+}
+
 func readServices(r Registry, rootPath, reposPath string) ([]service.Service, serviceGlobalConfig, error) {
 	serviceConf := registryServiceConfig{}
 	err := readRegistryFile(servicesFileName, r, &serviceConf)
@@ -116,20 +136,9 @@ func readServices(r Registry, rootPath, reposPath string) ([]service.Service, se
 		s.Name = n
 		s.RegistryName = r.Name
 
-		// Make sure mode is a valid value
-		if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
-			return nil, serviceGlobalConfig{}, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", n)
-		}
-
-		// Make sure image is specified if using remote
-		if s.UseRemote() && s.Remote.Image == "" {
-			return nil, serviceGlobalConfig{}, errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", n)
-		}
-
-		// Make sure repo is specified if not using remote
-		if !s.UseRemote() && !s.CanBuild() {
-			msg := fmt.Sprintf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", n)
-			return nil, serviceGlobalConfig{}, errors.New(msg)
+		err := validateService(s)
+		if err != nil {
+			return nil, serviceGlobalConfig{}, errors.Wrapf(err, "service %s failed validation", n)
 		}
 
 		// Set special service specific vars
@@ -327,4 +336,84 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 		BaseImages:      util.UniqueStrings(baseImages),
 		LoginStrategies: util.UniqueStrings(loginStrategies),
 	}, nil
+}
+
+func Validate(path string) error {
+	// Validate apps.yml
+	log.Infof(color.Cyan("Validating %s..."), appsFileName)
+
+	appsPath := filepath.Join(path, appsFileName)
+	if file.FileOrDirExists(appsPath) {
+		af, err := os.Open(appsPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open file %s", appsPath)
+		}
+		defer af.Close()
+
+		appConf := registryAppConfig{}
+		err = yaml.NewDecoder(af).Decode(&appConf)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read %s", appsPath)
+		}
+
+		log.Infof(color.Green("✅ %s is valid"), appsFileName)
+	} else {
+		log.Infof(color.Yellow("No %s file"), appsFileName)
+	}
+
+	// Validate playlists.yml
+	log.Infof(color.Cyan("Validating %s..."), playlistsFileName)
+
+	playlistsPath := filepath.Join(path, playlistsFileName)
+	if file.FileOrDirExists(playlistsPath) {
+		pf, err := os.Open(playlistsPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open file %s", playlistsPath)
+		}
+		defer pf.Close()
+
+		playlistMap := make(map[string]playlist.Playlist)
+		err = yaml.NewDecoder(pf).Decode(&playlistMap)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read %s", playlistsPath)
+		}
+
+		log.Infof(color.Green("✅ %s is valid"), playlistsFileName)
+	} else {
+		log.Infof(color.Yellow("No %s file"), playlistsFileName)
+	}
+
+	// Validate services.yml
+	log.Infof(color.Cyan("Validating %s..."), servicesFileName)
+
+	servicesPath := filepath.Join(path, servicesFileName)
+	if file.FileOrDirExists(servicesPath) {
+		sf, err := os.Open(servicesPath)
+		if err != nil {
+			return errors.Wrapf(err, "failed to open file %s", servicesPath)
+		}
+		defer sf.Close()
+
+		serviceConf := registryServiceConfig{}
+		err = yaml.NewDecoder(sf).Decode(&serviceConf)
+		if err != nil {
+			return errors.Wrapf(err, "failed to read %s", servicesPath)
+		}
+
+		// Make sure all services are valid
+		for n, s := range serviceConf.Services {
+			s.Name = n
+			err := validateService(s)
+			if err != nil {
+				log.Infof(color.Red("❌ service %s is invalid"), n)
+				return errors.Wrapf(err, "service %s failed validation", n)
+			}
+		}
+
+		log.Infof(color.Green("✅ %s is valid"), servicesFileName)
+	} else {
+		log.Infof(color.Yellow("No %s file"), servicesFileName)
+	}
+
+	return nil
 }
