@@ -91,6 +91,8 @@ partners-deps:
     - partners-auth-service
     - mokta
     - singleapp-database
+    - dotnet-manage
+    - dotnet-api
 reservations:
   services:
     - postgres
