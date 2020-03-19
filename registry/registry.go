@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/file"
@@ -400,6 +401,9 @@ func Validate(path string) error {
 			return errors.Wrapf(err, "failed to read %s", servicesPath)
 		}
 
+		// Keep track of ports to check for conflicting ports
+		usedPorts := make(map[string]string)
+
 		// Make sure all services are valid
 		for n, s := range serviceConf.Services {
 			s.Name = n
@@ -407,6 +411,19 @@ func Validate(path string) error {
 			if err != nil {
 				log.Infof(color.Red("❌ service %s is invalid"), n)
 				return errors.Wrapf(err, "service %s failed validation", n)
+			}
+
+			// Check for port conflict
+			for _, p := range s.Ports {
+				// ports are of the form EXTERNAL:INTERNAL
+				// get external part
+				exposedPort := strings.Split(p, ":")[0]
+				if conflict, ok := usedPorts[exposedPort]; ok {
+					log.Infof(color.Red("❌ service %s has conflicting port %s with service %s"), n, exposedPort, conflict)
+					return errors.Wrapf(err, "service %s failed validation", n)
+				}
+
+				usedPorts[exposedPort] = n
 			}
 		}
 
