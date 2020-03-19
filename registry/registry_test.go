@@ -226,3 +226,11 @@ func TestValidate(t *testing.T) {
 
 	assert.NoError(err)
 }
+
+func TestValidateInvalidService(t *testing.T) {
+	assert := assert.New(t)
+
+	err := Validate("testdata/invalid-registry-1")
+
+	assert.Error(err)
+}
