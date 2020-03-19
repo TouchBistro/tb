@@ -9,6 +9,7 @@ import (
 	"github.com/TouchBistro/tb/cmd/app/desktop"
 	"github.com/TouchBistro/tb/cmd/app/ios"
 	legacyIOSCmd "github.com/TouchBistro/tb/cmd/ios"
+	registryCmd "github.com/TouchBistro/tb/cmd/registry"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
@@ -49,7 +50,7 @@ func init() {
 
 	// Add subcommands
 	appCmd.AppCmd().AddCommand(desktop.DesktopCmd(), ios.IOSCmd())
-	rootCmd.AddCommand(appCmd.AppCmd(), legacyIOSCmd.IOS())
+	rootCmd.AddCommand(appCmd.AppCmd(), legacyIOSCmd.IOS(), registryCmd.RegistryCmd())
 
 	cobra.OnInitialize(func() {
 		f := fortune.Random().String()

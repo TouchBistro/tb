@@ -218,3 +218,19 @@ func TestReadRegistries(t *testing.T) {
 		RegistryName: "ExampleZone/tb-registry",
 	}, ezExampleZonePlaylist)
 }
+
+func TestValidate(t *testing.T) {
+	assert := assert.New(t)
+
+	err := Validate("testdata/registry-1")
+
+	assert.NoError(err)
+}
+
+func TestValidateInvalidService(t *testing.T) {
+	assert := assert.New(t)
+
+	err := Validate("testdata/invalid-registry-1")
+
+	assert.Error(err)
+}

@@ -1,0 +1,33 @@
+services:
+  postgres:
+    envVars:
+      POSTGRES_USER: core
+      POSTGRES_PASSWORD: localdev
+    mode: remote
+    ports:
+      - '5432:5432'
+  venue-core-service:
+    dependencies:
+      - ${@postgres}
+    envFile: ${@REPOPATH}/.env.example
+    envVars:
+      HTTP_PORT: 8080
+      DB_HOST: ${@postgres}
+    mode: local
+    ports:
+      - '5432:8080'
+    preRun: yarn db:prepare
+    repo: TouchBistro/venue-core-service
+    build:
+      args:
+        NODE_ENV: development
+        NPM_TOKEN: $NPM_TOKEN
+      command: yarn start
+      dockerfilePath: ${@REPOPATH}
+      target: dev
+      volumes:
+        - value: ${@REPOPATH}:/home/node/app:delegated
+    remote:
+      command: yarn serve
+      image: venue-core-service
+      tag: master
