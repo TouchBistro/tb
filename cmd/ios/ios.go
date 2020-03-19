@@ -3,9 +3,11 @@ package ios
 import (
 	"runtime"
 
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/simulator"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -29,6 +31,9 @@ var iosCmd = &cobra.Command{
 		if runtime.GOOS != "darwin" {
 			fatal.Exit("Error: tb ios is only supported on macOS")
 		}
+
+		log.Infoln(color.Yellow("tb ios is deprecated and will be removed in the next major release"))
+		log.Infoln(color.Yellow("Please use tb app ios instead"))
 
 		// Need to do this explicitly here since we are defining PersistentPreRun
 		// PersistentPreRun overrides the parent command's one if defined, so the one in root won't be run.

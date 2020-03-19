@@ -132,13 +132,16 @@ Examples:
 			}
 		}
 
+		// Path where the downloaded app is
+		dstPath := filepath.Join(downloadDest, app.FullName(), branch, s3BuildFilename)
+
 		// If there are no local builds or if our local build was deemed out of date, download the latest object from S3
 		if len(localBuilds) == 0 || refreshLocalBuild {
 			log.Infof("Downloading %s from bucket %s to %s", pathToS3Tarball, app.Storage.Bucket, downloadDest)
 			successCh := make(chan string)
 			failedCh := make(chan error)
 			go func(successCh chan string, failedCh chan error) {
-				err = awss3.DownloadObject(app.Storage.Bucket, pathToS3Tarball, downloadDest)
+				err = awss3.DownloadObject(app.Storage.Bucket, pathToS3Tarball, dstPath)
 				if err != nil {
 					failedCh <- errors.Wrapf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDest)
 					return
@@ -149,15 +152,14 @@ Examples:
 			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
 
 			// Untar, ungzip and cleanup the file
-			pathToLocalTarball := filepath.Join(downloadDest, pathToS3Tarball)
-			log.Infof("untar-ing %s", pathToLocalTarball)
-			err := util.Untar(pathToLocalTarball, true)
+			log.Infof("untar-ing %s", dstPath)
+			err := util.Untar(dstPath, true)
 			if err != nil {
-				fatal.ExitErrf(err, "Failed to untar or cleanup app archive at %s", pathToLocalTarball)
+				fatal.ExitErrf(err, "Failed to untar or cleanup app archive at %s", dstPath)
 			}
 		}
 
-		appPath := filepath.Join(downloadDest, strings.TrimSuffix(pathToS3Tarball, ".tgz"))
+		appPath := strings.TrimSuffix(dstPath, ".tgz")
 
 		log.Debugln("☐ Finding device UDID")
 		deviceUDID, err := simulator.GetDeviceUDID("iOS "+iosVersion, deviceName)

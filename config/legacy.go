@@ -238,7 +238,7 @@ func legacyInit() error {
 	registryResult.IOSApps, err = app.NewAppCollection([]app.App{
 		app.App{
 			BundleID: "com.touchbistro.TouchBistro",
-			Branch:   "develop",
+			Branch:   "master",
 			GitRepo:  "TouchBistro/tb-pos",
 			EnvVars: map[string]string{
 				"debug.autoAcceptTOS": "true",
@@ -263,7 +263,13 @@ func legacyInit() error {
 		},
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create AppCollection")
+		return errors.Wrapf(err, "failed to create AppCollection for iOS apps")
+	}
+
+	// Create empty collection so people get a proper error message instead of dereferencing nil pointer
+	registryResult.DesktopApps, err = app.NewAppCollection(nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to create AppCollection for desktop apps")
 	}
 
 	return nil

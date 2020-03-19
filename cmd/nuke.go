@@ -13,15 +13,16 @@ import (
 )
 
 type nukeOptions struct {
-	shouldNukeContainers bool
-	shouldNukeImages     bool
-	shouldNukeVolumes    bool
-	shouldNukeNetworks   bool
-	shouldNukeRepos      bool
-	shouldNukeConfig     bool
-	shouldNukeIOSBuilds  bool
-	shouldNukeRegistries bool
-	shouldNukeAll        bool
+	shouldNukeContainers  bool
+	shouldNukeImages      bool
+	shouldNukeVolumes     bool
+	shouldNukeNetworks    bool
+	shouldNukeRepos       bool
+	shouldNukeConfig      bool
+	shouldNukeDesktopApps bool
+	shouldNukeIOSBuilds   bool
+	shouldNukeRegistries  bool
+	shouldNukeAll         bool
 }
 
 var nukeOpts nukeOptions
@@ -36,6 +37,7 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeNetworks &&
 			!nukeOpts.shouldNukeRepos &&
 			!nukeOpts.shouldNukeConfig &&
+			!nukeOpts.shouldNukeDesktopApps &&
 			!nukeOpts.shouldNukeIOSBuilds &&
 			!nukeOpts.shouldNukeRegistries &&
 			!nukeOpts.shouldNukeAll {
@@ -136,6 +138,15 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("...done")
 		}
 
+		if nukeOpts.shouldNukeDesktopApps || nukeOpts.shouldNukeAll {
+			log.Infoln("Removing desktop app builds...")
+			err := os.RemoveAll(config.DesktopAppsPath())
+			if err != nil {
+				fatal.ExitErr(err, "Failed removing desktop app builds.")
+			}
+			log.Infoln("...done")
+		}
+
 		if nukeOpts.shouldNukeIOSBuilds || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing ios builds...")
 			err := os.RemoveAll(config.IOSBuildPath())
@@ -178,6 +189,7 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeNetworks, "networks", false, "nuke all networks")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeDesktopApps, "desktop", false, "nuke all downloaded desktop app builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")

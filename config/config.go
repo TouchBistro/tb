@@ -43,6 +43,10 @@ func RegistriesPath() string {
 	return filepath.Join(TBRootPath(), "registries")
 }
 
+func DesktopAppsPath() string {
+	return filepath.Join(TBRootPath(), "desktop")
+}
+
 func IOSBuildPath() string {
 	return filepath.Join(TBRootPath(), "ios")
 }
