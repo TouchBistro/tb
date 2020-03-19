@@ -420,7 +420,7 @@ func Validate(path string) error {
 				exposedPort := strings.Split(p, ":")[0]
 				if conflict, ok := usedPorts[exposedPort]; ok {
 					log.Infof(color.Red("❌ service %s has conflicting port %s with service %s"), n, exposedPort, conflict)
-					return errors.Wrapf(err, "service %s failed validation", n)
+					return errors.Errorf("service %s failed validation", n)
 				}
 
 				usedPorts[exposedPort] = n
