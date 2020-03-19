@@ -74,8 +74,6 @@ Examples:
 		// TODO probably want to figure out a better way to abstract opening an app cross platform
 		if runtime.GOOS == "darwin" {
 			err = command.Exec("open", []string{appPath}, "tb-app-desktop-run-open")
-		} else if runtime.GOOS == "linux" {
-			err = command.Exec(appPath, nil, "tb-app-desktop-run")
 		} else {
 			fatal.Exit("tb app desktop run is not supported on your platform")
 		}
