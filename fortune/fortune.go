@@ -51,10 +51,6 @@ var fortunes = []Fortune{
 		"Don't be a boilerplate programmer. Instead, build tools for users and other programmers. Take historical note of textile and steel industries: do you want to build machines and tools, or do you want to operate those machines?",
 		"Ras Bodik",
 	},
-	// Fortune{
-	// 	"Alan Kay is a cuck",
-	// 	"Omar Sabry",
-	// },
 	Fortune{
 		"Don't program defensively.",
 		"Erlang style guide",
