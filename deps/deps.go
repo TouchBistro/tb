@@ -19,13 +19,15 @@ type Dependency struct {
 
 // Dependency names because magic strings suck
 const (
-	// XcodeSelect = "xcode-select"
-	Brew       = "brew"
-	Pgcli      = "pgcli"
 	Aws        = "aws"
+	Brew       = "brew"
 	Lazydocker = "lazydocker"
+	Mycli      = "mycli"
+	Mssqlcli   = "mssql-cli"
 	Node       = "node"
+	Pgcli      = "pgcli"
 	Yarn       = "yarn"
+	// XcodeSelect = "xcode-select"
 )
 
 var deps = map[string]Dependency{
@@ -45,6 +47,14 @@ var deps = map[string]Dependency{
 			return errors.Wrap(err, "failed to tap dbcli/tap")
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
+	},
+	Mycli: {
+		Name:       "mycli",
+		InstallCmd: []string{"brew", "install", "mycli"},
+	},
+	Mssqlcli: {
+		Name:       "mssql-cli",
+		InstallCmd: []string{"pip", "install", "mssql-cli"},
 	},
 	Aws: {
 		Name:       "aws",
