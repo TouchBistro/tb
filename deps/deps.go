@@ -27,15 +27,9 @@ const (
 	Node       = "node"
 	Pgcli      = "pgcli"
 	Yarn       = "yarn"
-	// XcodeSelect = "xcode-select"
 )
 
 var deps = map[string]Dependency{
-	// ROT IN HELL STEVE
-	// XcodeSelect: Dependency{
-	// 	Name:       "xcode-select -p",
-	// 	InstallCmd: []string{"xcode-select", "--install"},
-	// },
 	Brew: {
 		Name:       "brew",
 		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
