@@ -105,7 +105,7 @@ Examples:
 		var connArg string
 
 		switch dbConf.dbType {
-		case "postgres":
+		case "postgresql":
 			cli = deps.Pgcli
 			connArg = fmt.Sprintf("%s://%s:%s@localhost:%s/%s", dbConf.dbType, dbConf.user, dbConf.password, dbConf.port, dbConf.name)
 		case "mysql":
