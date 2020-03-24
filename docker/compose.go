@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/goutils/command"
@@ -15,6 +16,15 @@ const (
 
 func ComposeFile() string {
 	return fmt.Sprintf("-f %s/docker-compose.yml", config.TBRootPath())
+}
+
+func ComposeExec(serviceName string, execArgs []string, opts ...func(*exec.Cmd)) error {
+	composeCmd := fmt.Sprintf("%s exec %s", ComposeFile(), serviceName)
+	composeArgs := strings.Split(composeCmd, " ")
+	composeArgs = append(composeArgs, execArgs...)
+	err := command.Exec("docker-compose", composeArgs, "docker-compose-exec", opts...)
+
+	return errors.Wrap(err, "could not exec docker-compose exec")
 }
 
 func ComposeBuild(services []string) error {

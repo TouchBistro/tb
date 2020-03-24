@@ -30,9 +30,6 @@ func getDbConf(serviceName string) (dbConfig, error) {
 	required := []string{"DB_TYPE", "DB_NAME", "DB_PORT", "DB_USER", "DB_PASSWORD"}
 	missing := "missing"
 
-	composeCmd := fmt.Sprintf("%s exec %s", docker.ComposeFile(), serviceName)
-	args := strings.Split(composeCmd, " ")
-
 	// This is ugly, but less ugly than using printenv and much faster than doing individual execs for every var
 	// generates a command in the following format: sh -c echo ${var1:-missing} ${var2:-missing} ...${varN:-missing}
 	// mssing is used as a blank value instead of an empty string to make producing nicer errors to the user much easier.
@@ -41,10 +38,10 @@ func getDbConf(serviceName string) (dbConfig, error) {
 	for _, req := range required {
 		sb.WriteString(fmt.Sprintf(" ${%s:-%s}", req, missing))
 	}
-	args = append(args, []string{"sh", "-c", sb.String()}...)
+	args := []string{"sh", "-c", sb.String()}
 
 	buf := &bytes.Buffer{}
-	err := command.Exec("docker-compose", args, "docker-compose-exec", func(cmd *exec.Cmd) {
+	err := docker.ComposeExec(serviceName, args, func(cmd *exec.Cmd) {
 		cmd.Stdout = buf
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
