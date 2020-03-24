@@ -27,6 +27,7 @@ type options struct {
 	shouldSkipServerStart   bool
 	shouldSkipGitPull       bool
 	shouldSkipDockerPull    bool
+	shouldSkipLazydocker    bool
 	cliServiceNames         []string
 	playlistName            string
 }
@@ -56,17 +57,21 @@ func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 }
 
 func cleanupPrevDocker(services []service.Service) {
-	log.Debug("stopping compose services...")
-
 	dockerNames := make([]string, len(services))
 	for i, s := range services {
 		dockerNames[i] = s.DockerName()
 	}
 
+	log.Infof("The following services will be restarted if they are running: %s", strings.Join(dockerNames, "\n"))
+
+	log.Debug("stopping compose services...")
+
 	err := docker.ComposeStop(dockerNames)
 	if err != nil {
 		fatal.ExitErr(err, "failed stopping containers and services")
 	}
+
+	log.Debug("removing service containers...")
 
 	err = docker.ComposeRm(dockerNames)
 	if err != nil {
@@ -379,17 +384,17 @@ Examples:
 		dockerComposeUp(selectedServices)
 		fmt.Println()
 
-		// Maybe we start this earlier and run compose build and preRun etc. in a separate goroutine so that people have a nicer output?
-		log.Info("☐ Starting lazydocker")
-		err = command.Exec("lazydocker", nil, "lazydocker")
-		if err != nil {
-			fatal.ExitErr(err, "failed running lazydocker")
+		if !opts.shouldSkipLazydocker {
+			log.Info("☐ Starting lazydocker")
+			err = command.Exec("lazydocker", nil, "lazydocker")
+			if err != nil {
+				fatal.ExitErr(err, "failed running lazydocker")
+			}
+			log.Info("☑ finished with lazydocker.")
+			fmt.Println()
 		}
 
-		log.Info("☑ finished with lazydocker.")
-
-		fmt.Println()
-		log.Info("🔈 the containers are still running in the background. If you want to terminate them, run tb down")
+		log.Info("🔈 the containers are running in the background. If you want to terminate them, run tb down")
 	},
 }
 
@@ -399,6 +404,7 @@ func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
+	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipLazydocker, "no-lazydocker", false, "dont start lazydocker")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 
