@@ -12,7 +12,7 @@ type ImageDetail struct {
 }
 
 type DockerRegistry interface {
-	FetchRepoImages(ecrImage string, limit int) ([]ImageDetail, error)
+	FetchRepoImages(image string, limit int) ([]ImageDetail, error)
 }
 
 func GetRegistry(registryName string) (DockerRegistry, error) {
