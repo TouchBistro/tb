@@ -12,8 +12,6 @@ func GetProvider(providerName string) (StorageProvider, error) {
 	switch providerName {
 	case "s3":
 		provider = S3StorageProvider{}
-	case "bogus":
-		provider = BogusStorageProvider{}
 	default:
 		return nil, errors.Errorf("Invalid storage provider %s", providerName)
 	}
