@@ -18,6 +18,7 @@ It is aimed at making local development easy in a complicated microservices arch
     + [Adding custom playlists](#adding-custom-playlists)
     + [Overriding service properties](#overriding-service-properties)
 - [Contributing](#contributing)
+- [License](#license)
 - [Having trouble?](#having-trouble?)
 - [Gotchas / Tips](#Gotchas-/-Tips)
 
@@ -76,7 +77,7 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
     ```
     - Run `source ~/.zshrc` or `source ~/.bash_profile`.
 
-4. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.  
+4. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.
     Go to `Preferences` > `Advanced` and set the following settings:
     - CPUs: 3
     - Memory: 10.0 GiB
@@ -192,7 +193,11 @@ Override schema:
 
 ## Contributing
 
-See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`.
+See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`. PRs welcome!
+
+## License
+
+MIT © TouchBistro, see [LICENSE](LICENSE) for details.
 
 ## Having trouble?
 
