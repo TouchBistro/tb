@@ -1,4 +1,4 @@
-package awsecr
+package registry
 
 import (
 	"context"
@@ -11,7 +11,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func FetchRepoImages(ecrImage string, limit int) ([]ecr.ImageDetail, error) {
+type ECRDockerRegistry struct{}
+
+func (_ ECRDockerRegistry) FetchRepoImages(ecrImage string, limit int) ([]ImageDetail, error) {
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load default aws config")
@@ -56,5 +58,15 @@ func FetchRepoImages(ecrImage string, limit int) ([]ecr.ImageDetail, error) {
 		return images[i].ImagePushedAt.After(*images[j].ImagePushedAt)
 	})
 
-	return images[:limit], nil
+	images = images[:limit]
+
+	imageDetails := make([]ImageDetail, len(images))
+	for i, img := range images {
+		imageDetails[i] = ImageDetail{
+			PushedAt: img.ImagePushedAt,
+			Tags:     img.ImageTags,
+		}
+	}
+
+	return imageDetails, nil
 }

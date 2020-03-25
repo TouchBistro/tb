@@ -1,4 +1,4 @@
-package awss3
+package storage
 
 import (
 	"context"
@@ -11,7 +11,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ListObjectKeysByPrefix(bucket, objKeyPrefix string) ([]string, error) {
+type S3StorageProvider struct{}
+
+func (s S3StorageProvider) ListObjectKeysByPrefix(bucket, objKeyPrefix string) ([]string, error) {
 	// Set up AWS Env Vars
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {
@@ -40,7 +42,7 @@ func ListObjectKeysByPrefix(bucket, objKeyPrefix string) ([]string, error) {
 	return keys, nil
 }
 
-func DownloadObject(bucket, objKey, dstPath string) error {
+func (s S3StorageProvider) DownloadObject(bucket, objKey, dstPath string) error {
 	// Set up AWS Env Vars
 	conf, err := external.LoadDefaultAWSConfig()
 	if err != nil {

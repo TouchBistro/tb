@@ -5,16 +5,18 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/spinner"
-	"github.com/TouchBistro/tb/awsecr"
 	"github.com/TouchBistro/tb/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/TouchBistro/tb/docker/registry"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
-var (
-	max int
-)
+type imagesOptions struct {
+	max            int
+	dockerRegistry string
+}
+
+var imagesOpts imagesOptions
 
 var imagesCmd = &cobra.Command{
 	Use:     "images",
@@ -39,11 +41,16 @@ Examples:
 		log.Infof("☐ Fetching images for %s:", serviceName)
 		successCh := make(chan string)
 		failedCh := make(chan error)
-		var images []ecr.ImageDetail
+		var images []registry.ImageDetail
+
+		dockerRegistry, err := registry.GetRegistry(imagesOpts.dockerRegistry)
+		if err != nil {
+			fatal.ExitErrf(err, "Failed getting docker registry %s", imagesOpts.dockerRegistry)
+		}
 
 		// Do it for the spinner!
 		go func() {
-			imgs, err := awsecr.FetchRepoImages(s.Remote.Image, max)
+			imgs, err := dockerRegistry.FetchRepoImages(s.Remote.Image, imagesOpts.max)
 			if err != nil {
 				failedCh <- err
 				return
@@ -57,12 +64,13 @@ Examples:
 		spinner.SpinnerWait(successCh, failedCh, "☑ Finished fetching images for %s\n", "failed loading images", 1)
 
 		for _, img := range images {
-			fmt.Println(img.ImagePushedAt, img.ImageTags)
+			fmt.Println(img.PushedAt, img.Tags)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(imagesCmd)
-	imagesCmd.Flags().IntVarP(&max, "max", "m", 10, "maximum results to display")
+	imagesCmd.Flags().IntVarP(&imagesOpts.max, "max", "m", 10, "maximum results to display")
+	imagesCmd.Flags().StringVarP(&imagesOpts.dockerRegistry, "docker-registry", "r", "ecr", "type of docker registry, valid values: ecr")
 }

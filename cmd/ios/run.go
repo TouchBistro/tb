@@ -9,10 +9,10 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/spinner"
-	"github.com/TouchBistro/tb/awss3"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/simulator"
+	"github.com/TouchBistro/tb/storage"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -65,7 +65,13 @@ Examples:
 		// Look up the latest build sha for user-specified branch and app.
 		s3Dir := filepath.Join(appName, branch)
 		log.Infof("Checking objects on aws in bucket %s matching prefix %s...", app.Storage.Bucket, s3Dir)
-		s3Builds, err := awss3.ListObjectKeysByPrefix(app.Storage.Bucket, s3Dir)
+
+		storageProvider, err := storage.GetProvider(app.Storage.Provider)
+		if err != nil {
+			fatal.ExitErrf(err, "Failed getting storage provider %s", app.Storage.Provider)
+		}
+
+		s3Builds, err := storageProvider.ListObjectKeysByPrefix(app.Storage.Bucket, s3Dir)
 		if err != nil {
 			fatal.ExitErrf(err, "Failed getting keys from s3 in dir %s", s3Dir)
 		}
@@ -141,7 +147,7 @@ Examples:
 			successCh := make(chan string)
 			failedCh := make(chan error)
 			go func(successCh chan string, failedCh chan error) {
-				err = awss3.DownloadObject(app.Storage.Bucket, pathToS3Tarball, dstPath)
+				err = storageProvider.DownloadObject(app.Storage.Bucket, pathToS3Tarball, dstPath)
 				if err != nil {
 					failedCh <- errors.Wrapf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDest)
 					return
