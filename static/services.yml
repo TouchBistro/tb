@@ -317,7 +317,6 @@ services:
         - value: "/var/run/docker.sock:/var/run/docker.sock"
         - value: "${@ROOTPATH}/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/aa_localstack_entrypoint.sh" # docker-entrypoint-initaws.d files are run in alphabetical order
         - value: "${@ROOTPATH}/repos/TouchBistro/venue-core-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_core_backend.sh"
-        - value: "${@ROOTPATH}/repos/TouchBistro/venue-upload-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_venue_upload.sh"
         - value: "${@ROOTPATH}/repos/TouchBistro/ordering-ooa-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_ordering_service.sh"
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-etl-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_etl.sh"
         - value: "${@ROOTPATH}/repos/TouchBistro/partners-config-service/entrypoints/localstack-entrypoint.sh:/docker-entrypoint-initaws.d/zz_localstack_partner_config.sh"
@@ -598,7 +597,6 @@ services:
       HTTP_PORT: 8080
       LEGACY_CLOUD_SERVICE_URL: http://${@legacy-bridge-cloud-service}:8080
       PARTNER_CONFIG_SERVICE_URL: http://${@partners-config-service}:8080
-      PARTNERS_RESERVATIONS_SERVICE_URL: http://${@partners-reservations-service}:8080
       VENUE_PROVISIONING_SERVICE_URL: http://${@venue-provisioning-service}:8080/internal
       TASK_PROVIDER: awssqs
       TASK_AWS_SQS_CONFIG_JSON: >
@@ -669,41 +667,6 @@ services:
     remote:
       command: *command-serve
       image: ${ecr}/partners-etl-service
-      tag: master
-  partners-reservations-service:
-    dependencies:
-      - ${@postgres}
-      - ${@localstack}
-    envFile: ${@REPOPATH}/.env.example
-    envVars:
-      DB_HOST: ${@postgres}
-      HTTP_PORT: 8080
-      AWS_S3_ENDPOINT: http://${@localstack}:4572
-      TASK_PROVIDER: awssqs
-      TASK_AWS_SQS_CONFIG_JSON: >
-        {
-          "venue-upload.task.venueUpload": {
-            "queueURL": "http://${@localstack}:4576/queue/venueUpload",
-            "messageThrottle": 1,
-            "visibilityTimeout": 10,
-            "waitTimeSeconds": 5,
-            "sleepTimeSeconds": 5
-          }
-        }
-    mode: remote
-    ports:
-      - '8602:8080'
-    preRun: yarn db:prepare
-    repo: TouchBistro/partners-reservations-service
-    build:
-      <<: *build-node-dev
-      volumes:
-        - value: ${@REPOPATH}:/home/node/app:delegated
-        - value: partners-reservations-service-node_modules:/home/node/app/node_modules
-          named: true
-    remote:
-      command: *command-serve
-      image: ${ecr}/partners-reservations-service
       tag: master
   payments-gateway-service:
     dependencies:
@@ -825,44 +788,6 @@ services:
     remote:
       command: *command-serve
       image: ${ecr}/venue-provisioning-service
-      tag: master
-  venue-upload-service:
-    envFile: ${@REPOPATH}/.env.example
-    envVars:
-      HTTP_PORT: 8080
-      AWS_S3_ENDPOINT: http://${@localstack}:4572
-      TASK_PROVIDER: awssqs
-      TASK_AWS_SQS_CONFIG_JSON: >
-        {
-          "venue-upload.task.venueUpload": {
-            "queueURL": "http://${@localstack}:4576/queue/venueUpload",
-            "messageThrottle": 1,
-            "visibilityTimeout": 10,
-            "waitTimeSeconds": 5,
-            "sleepTimeSeconds": 5,
-            "sendOnly": true
-          },
-          "venue-upload.task.validateOrder": {
-            "queueURL": "http://${@localstack}:4576/queue/validateOrder",
-            "messageThrottle": 1,
-            "visibilityTimeout": 10,
-            "waitTimeSeconds": 5,
-            "sleepTimeSeconds": 5
-          }
-        }
-    mode: remote
-    ports:
-      - '8601:8080'
-    repo: TouchBistro/venue-upload-service
-    build:
-      <<: *build-node-dev
-      volumes:
-        - value: ${@REPOPATH}:/home/node/app:delegated
-        - value: venue-upload-service-node_modules:/home/node/app/node_modules
-          named: true
-    remote:
-      command: *command-serve
-      image: ${ecr}/venue-upload-service
       tag: master
   yp-singleapp-api:
     dependencies:

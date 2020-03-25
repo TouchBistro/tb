@@ -14,35 +14,6 @@ cloud:
     - dotnet-manage
     - dotnet-api
     - legacy-bridge-manage-service
-pos-cloud:
-  extends: cloud
-  services:
-    - postgres
-    - venue-provisioning-service
-    - legacy-bridge-cloud-service
-core:
-  services:
-    - venue-core-service
-    - postgres
-    - localstack
-    - infrastructure-auth-service
-    - venue-provisioning-service
-pos-core:
-  extends: core
-  services:
-    - legacy-database
-    - legacy-bridge-cloud-service
-    - dotnet-manage
-    - dotnet-api
-    - cloud-server
-    - redis
-pos-core-vaf:
-  extends: pos-core
-  services:
-    - venue-admin-frontend
-    - cloud-server-frontend
-    - partners-config-service
-    - mokta
 ordering:
   services:
     - postgres
@@ -64,15 +35,6 @@ online-ordering:
     - partners-auth-service
     - loyalty-gateway-service
     - yp-singleapp-api
-partners:
-  services:
-    - postgres
-    - partners-etl-service
-    - partners-config-service
-    - partners-orchestration-service
-    - legacy-bridge-cloud-service
-    - localstack
-    - legacy-database
 # Playlist Name: partners-deps
 # Run partner related services yourself while running dependencies by tb. This will let you run legacy cloud and VAF on your local browser.
 # Run partner services below on your host machine as you develop.
@@ -93,15 +55,14 @@ partners-deps:
     - singleapp-database
     - dotnet-manage
     - dotnet-api
-reservations:
+partners:
   services:
     - postgres
-    - localstack
-    - venue-upload-service
+    - partners-etl-service
     - partners-config-service
-    - partners-orchestration-service
-    - partners-reservations-service
     - legacy-bridge-cloud-service
+    - localstack
+    - legacy-database
 vaf-deps:
   services:
     - localstack
@@ -119,20 +80,6 @@ vaf:
   extends: vaf-deps
   services:
     - venue-admin-frontend
-loyalty:
-  services:
-    - postgres
-    - loyalty-gateway-service
-pos-loyalty:
-  extends: loyalty
-  services:
-    - venue-provisioning-service
-    - legacy-bridge-cloud-service
-    - legacy-database
-    - dotnet-manage
-    - dotnet-api
-    - cloud-server
-    - redis
 cs-portal-deps:
   services:
     - backoffice-customer-service
@@ -143,3 +90,29 @@ payments-gateway:
     - payments-gateway-service
     - postgres
     - venue-provisioning-service
+
+# Playlists primarily for iOS devs to make their lives easier
+pos-manage:
+  services:
+    - legacy-database
+    - dotnet-manage
+    - dotnet-api
+    - postgres
+    - venue-provisioning-service
+    - legacy-bridge-cloud-service
+pos-cloud:
+  extends: pos-manage
+  services:
+    - redis
+    - cloud-server
+    - cloud-server-frontend
+pos-loyalty:
+  extends: pos-cloud
+  services:
+    - loyalty-gateway-service
+pos-oo:
+  extends: pos-cloud
+  services:
+    - localstack
+    - ordering-ooa-service
+    - ordering-demo-frontend
