@@ -1,12 +1,12 @@
 deploy:
   pre:
-    - /notif/slack/pre "touchbistro/tb" "deploy" https://hooks.slack.com/services/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
+    - /notif/slack/pre "touchbistro/tb" "deploy"
 
   override:
-    - scripts/shipit.deploy "touchbistro/tb" "deploy" https://hooks.slack.com/services/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
+    - scripts/shipit.deploy "touchbistro/tb" "deploy"
 
   post:
-    - /notif/slack/post "touchbistro/tb" "deploy" https://hooks.slack.com/services/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
+    - /notif/slack/post "touchbistro/tb" "deploy"
 
   variables:
     -
