@@ -1,6 +1,6 @@
 # `tb`
 
-tb is a CLI for running TouchBistro services on a development machine.
+tb is a CLI for running services and apps on a development machine.
 
 It is aimed at making local development easy in a complicated microservices architecture by provisioning your machine with the dependencies you need and making it easy for you to run them on your machine in an environment that is close to how they run in production.
 
