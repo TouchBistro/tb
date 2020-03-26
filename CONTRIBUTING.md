@@ -1,6 +1,6 @@
 # Contributing
 
-The following document outlines how to contribute to the `tb` project. If all you want to do is add/modify a service you can skip to the [Adding a new Service](#adding-a-new-service) section.
+The following document outlines how to contribute to the `tb` project.
 
 ### **Table of Contents**
 - [Requirements](#requirements)
@@ -9,12 +9,16 @@ The following document outlines how to contribute to the `tb` project. If all yo
     + [Running locally](#running-locally)
     + [Running globally](#running-globally)
     + [Remove global build](#remove-global-build)
-- [Adding a new Service](#adding-a-new-service)
+- [Linting](#linting)
+- [Testing](#testing)
+- [Cleaning Up](#cleaning-up)
 
 ## Requirements
 
 To build and run `tb` locally you will need to install go.
-This can be done through homebrew by running:
+This can likely be done through your package manager or by going to https://golang.org/doc/install.
+
+For example, on macOS you can use homebrew by running:
 ```sh
 brew install go
 ```
@@ -31,6 +35,7 @@ make setup
 ```
 
 ## Building
+
 ### Running locally
 To build the app run:
 ```sh
@@ -63,42 +68,25 @@ To remove the globally installed build run the following from the root directory
 make go-uninstall
 ```
 
-## Adding a new service
+## Linting
+To run the linter run:
+```sh
+make lint
+```
 
-To add a new service do the following:
+## Testing
+To run the tests run:
+```sh
+make test
+```
 
-1. Add it to `static/services.yml`:
-    The format is as follows:
-    ```yaml
-    <service-name>:
-      dependencies: string[] # Any services that this service requires to run (eg postgres)
-      entrypoint: string     # Custom Docker entrypoint
-      envFile: string        # Path to env file
-      envVars: map           # Env vars to set for the services
-      mode: remote | build   # What mode to use: remote or build
-      ports: string[]        # List of ports to expose
-      preRun: string         # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
-      repo: string           # The repo name on GitHub
-      build:
-        args: map              # List of args to pass to docker build
-        command: string        # Command to run when container starts
-        dockerfilePath: string # Path to the Dockerfile
-        target: string         # Target to build in a multi-stage build
-        volumes:               # List of docker volumes to create
-         - value: string  # The volume to create
-           named: boolean # Whether or not to create a named volume
-      remote:
-        command: string  # Command to run when the container starts
-        image: string    # The image name or a valid URI pointing to a remote docker registry.
-        tag: string      # The the image tag to use (ex: master)
-        volumes:         # List of docker volumes to create
-         - value: string  # The volume to create
-           named: boolean # Whether or not to create a named volume
-    ```
-    At least one of `build` or `remote` are required. `build` is only required if the service can be built locally with `docker build`, `remote` is only required if the service can be pulled from a remote registry with `docker pull`.
+This will output code coverage information to the `coverage` directory.
+You can open the `coverage/coverage.html` file in your browser to visually see the coverage in each file.
 
-    Any unneeded fields can be omitted.
-2. Add the service to any necessary playlists in `static/playlists.yml` (optional):
-    Simply add the service as an entry to the `services` array of any playlist.
+## Cleaning Up
+To remove the build and another other generated files run:
+```sh
+make clean
+```
 
-3. If `go.sum` gets modified on build, please run `go mod tidy` to clean it up before committing and pushing changes.
+Additionally if `go.sum` gets modified on build, please run `go mod tidy` to clean it up before committing and pushing changes.
