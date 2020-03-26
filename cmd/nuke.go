@@ -178,6 +178,17 @@ var nukeCmd = &cobra.Command{
 			}
 			log.Infoln("...done")
 		}
+
+		if nukeOpts.shouldNukeAll {
+			rootPath := config.TBRootPath()
+			log.Infof("Removing any remaining files in %s...\n", rootPath)
+
+			err := os.RemoveAll(rootPath)
+			if err != nil {
+				fatal.ExitErrf(err, "Failed removing files in %s", rootPath)
+			}
+			log.Infoln("...done")
+		}
 	},
 }
 
