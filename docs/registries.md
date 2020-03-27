@@ -170,6 +170,8 @@ dependencies:
 
 ## Configuring Playlists
 
+A playlist is a collection of services that can be run with `tb up`.
+
 Playlists are configured by adding entries to `playlists.yml`.
 
 The schema is as follows:
