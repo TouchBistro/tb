@@ -5,9 +5,9 @@
 2. `tb app` is used for running and managing iOS and desktop apps. Learn more by reading the [app docs](apps.md).
 3. All remaining commands are using for working with services. Learn more about running services by reading the [services docs](services.md).
 
-# Special commands
+# Utility commands
 
-`tb` has some special commands that can generally make your life easier.
+`tb` has some utility commands that can generally make your life easier.
 
 ## `tb nuke`
 
@@ -32,7 +32,7 @@ Additionally the `--all` flag is also available which combines all the flags lis
 The following database types are supported:
 * `postgresql` through [`pgcli`](https://www.pgcli.com/)
 * `mysql` through [`mycli`](https://www.mycli.net/)
-* `mssql` through [`mssql-cli](https://github.com/dbcli/mssql-cli)
+* `mssql` through [`mssql-cli`](https://github.com/dbcli/mssql-cli)
 
 `tb db` will prompt you to download the necessary CLI the first time it is used.
 

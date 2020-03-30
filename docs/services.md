@@ -48,6 +48,11 @@ Ex:
 tb exec venue-core-service echo hello world
 ```
 
+A common use case is needing to open a shell in a container. This can easily be done by running:
+```
+tb exec venue-core-service bash
+```
+
 ## `tb logs`
 
 `tb logs` can be used to view the logs for one or more services.
@@ -64,6 +69,20 @@ tb logs postgres,venue-core-service
 Ex:
 ```
 tb list
+```
+
+Flags can be used to only show services, playlists or custom playlists.
+
+Ex: Show only services
+```
+tb list -s
+```
+
+`tb list` also offers the `-t` or `--tree` flag which will show the services in each playlist.
+
+Ex: Show all playlists and their services
+```
+tb list -s -t
 ```
 
 ## `tb images`

@@ -72,7 +72,7 @@ registries:
   - name: org/registry-name
 ```
 
-You run can run a service or playlist by runnin `tb up -s <service>` or `tb up -p <playlist>`. `tb` will install any dependencies it needs and then start your services in docker containers.
+You run can run a service or playlist by running `tb up -s <service>` or `tb up -p <playlist>`. `tb` will install any dependencies it needs and then start your services in docker containers.
 
 `tb up` will start [lazydocker](https://github.com/jesseduffield/lazydocker). For more information about how to interact with it, check out [its README](https://github.com/jesseduffield/lazydocker/blob/master/README.md). You can quit lazydocker, and containers will continue to run. You can always run `lazydocker` again without having to restart your services.
 
@@ -85,7 +85,7 @@ For more information about running services in tb see the [services docs](docs/s
 
 ## Commands
 
-`tb` comes with a lot of convenient commands. See the documentation [here](docs/commands.md) to learn more about the various features offerd by tb.
+`tb` comes with a lot of convenient commands. See the documentation [here](docs/commands.md) to learn more about the various features offered by tb.
 
 Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help on a specific command.
 

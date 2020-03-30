@@ -98,6 +98,8 @@ The following login strategies are avaible:
 * `ecr`: Performs `docker login` to AWS ECR images can be pulled from there. This strategy assumes you have your AWS account configured locally using the `aws cli`.
 * `npm`: Enures you are logged in to the NPM registry and have the environment variable `NPM_TOKEN` set.
 
+We welcome PRs for additional login strategies if these don't meet your needs.
+
 ### Adding a new service
 
 To add a new service add an entry to the `services` field in `services.yml`.
