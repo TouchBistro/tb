@@ -22,6 +22,20 @@ registries:
   - name: TouchBistro/tb-registry
 ```
 
+All services, playlists, and apps in a registry are scoped by the name of that registry to ensure they are globally unique. If a service, playlist or app name is unique, however you can use this name directly in commands and `tb` will figure out which service you are referring to.
+
+For example if there is a service named `postgres` in the registry `TouchBistro/tb-registry`, you can run it with the following command:
+```
+tb up -s TouchBistro/tb-registry/postgres
+```
+
+If this is the only service named `postgres` that `tb` knows about, the following also works:
+```
+tb up -s postgres
+```
+
+`tb` will report an error if a service named `postgres` is found in multiple registries.
+
 ### Testing changes to a registry
 
 To have `tb` validate your changes to make sure it is able load the configs run the following:
