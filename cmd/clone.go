@@ -13,7 +13,7 @@ import (
 )
 
 var cloneCmd = &cobra.Command{
-	Use:   "clone [service...]",
+	Use:   "clone [service]",
 	Short: "Clone a tb service",
 	Long: `Clone any service in service.yml that has repo set to true
 

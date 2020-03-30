@@ -1,25 +1,24 @@
 # `tb`
 
-tb is a CLI for running TouchBistro services on a development machine.
+tb is a CLI for running services and apps on a development machine.
 
 It is aimed at making local development easy in a complicated microservices architecture by provisioning your machine with the dependencies you need and making it easy for you to run them on your machine in an environment that is close to how they run in production.
 
 ### **Table of Contents**
 - [Requirements](#requirements)
     + [Installed Software](#installed-software)
-    + [AWS ECR](#aws-ecr)
     + [SSH Key](#ssh-key)
 - [Installation](#installation)
     + [Updating tb](#updating-tb)
 - [Quickstart](#quickstart)
+- [Running Apps](#running-apps)
 - [Commands](#commands)
 - [Configuration](#configuration)
     + [Changing log level](#changing-log-level)
     + [Adding custom playlists](#adding-custom-playlists)
     + [Overriding service properties](#overriding-service-properties)
 - [Contributing](#contributing)
-- [Having trouble?](#having-trouble?)
-- [Gotchas / Tips](#Gotchas-/-Tips)
+- [License](#license)
 
 ## Requirements
 
@@ -31,26 +30,8 @@ You can install xcode tools by running `xcode-select --install`.
 
 This project will install and manage all other dependencies that you need.
 
-### AWS ECR
-
-You will need access to AWS ECR (Amazon's docker registry) to pull artifacts instead of having `tb` build them on the host.
-
-<details>
-<summary>Setup Instructions</summary>
-
-1. Install the AWS CLI:
-    ```sh
-    brew install awscli
-    ```
-2. If you don't have access to the Touchbistro AWS account contact DevOps support.
-3. You'll need to add MFA (2FA) to your account before generating an access key.  [Setup MFA](https://touchbistro.atlassian.net/wiki/x/mYAXLg).
-4. Go to your security settings and create a personal access token, making note of your secret key. Details on how to do this are available in the [AWS docs](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey).
-5. Configure your AWS CLI credentials by running `aws configure` (use `us-east-1` for the region).
-
-</details>
-
 ### SSH Key
-The following instructions assume you have an ssh key connected to your GitHub account. If you do not have one, please create on by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh). Also make sure your SSH key is enabled for SSO.
+`tb` uses ssh for certain git operations and assumes you have an ssh key connected to your GitHub account. If you do not have one, please create one by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh). Also make sure your SSH key is enabled for SSO.
 
 If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh-agent` before running tb. This can be done automatically using your MacOS keyring to automatically load the key to your shell with `ssh-add -K $HOME/.ssh/id_rsa`, which can be added to your shell configuration.
 
@@ -58,36 +39,12 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
 
 `tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
 
-1. If you haven't set up the AWS CLI before, see the [setup instructions](#aws-ecr).
-
-2. Create a GitHub Access Token
-    - Create the token with the `repo` box checked in the list of permissions. Follow the instructions [here](https://help.github.com/en/articles/creating-a-personal-access-token-for-the-command-line) to learn more.
-        - Make sure you copy the token when you create it!
-    - After the token has been created, enable SSO for it.
-    - Add the following to your `.bash_profile` or `.zshrc`:
+1. Add Touchbistro's tap to get access to all the available tools:
     ```sh
-    export HOMEBREW_GITHUB_API_TOKEN=<YOUR_TOKEN>
-    ```
-    - Run `source ~/.zshrc` or `source ~/.bash_profile`.
-
-3. Add the following to your `.bash_profile` or `.zshrc`:
-    ```sh
-    export NPM_TOKEN=<YOUR_TOKEN>
-    ```
-    - Run `source ~/.zshrc` or `source ~/.bash_profile`.
-
-4. Make sure you have [Docker for Mac](https://docs.docker.com/docker-for-mac/install/) installed.  
-    Go to `Preferences` > `Advanced` and set the following settings:
-    - CPUs: 3
-    - Memory: 10.0 GiB
-    - Swap: 1.0 GiB
-
-5. Add Touchbistro's tap to get access to all the available tools:
-    ```sh
-    brew tap touchbistro/tap git@github.com:TouchBistro/homebrew-tap.git
+    brew tap touchbistro/tap
     ```
 
-6. Install `tb` with brew
+2. Install `tb` with brew
     ```sh
     brew install tb
     ```
@@ -106,26 +63,29 @@ To update to the latest version of `tb` do the following:
 
 ## Quickstart
 
-`tb` will configure itself and install any necessary dependencies when it run. To get started run `tb up -s postgres` to setup your system and start a `postgresql` service running in a docker container.
+By default `tb` contains no services on it's own. Run `tb list` to confirm this. This will also generate a default `~/.tbrc.yml` which will need to be edited.
+To add services to `tb` you will need to add a registry. A registry is a GitHub repo that contains a list of services, playlists, and apps `tb` can run. You can read the documentation on registries [here](docs/registries.md).
 
-The `-s` or `--services` flag starts a list of services. You can also run a playlist which is a predefined set of services, by using the `-p` or `--playlist` flag.
+Add a registry by editing `~/.tbrc.yml` and add a registry to the `registries:` section:
+```yml
+registries:
+  - name: org/registry-name
+```
 
-Let's try this out now:
-1. Exit lazydocker by hitting `q`. This does not stop the docker containers however, which are running in the background.
-2. Run `tb down`, this will stop any running docker containers and remove them.
-3. Run `tb list --playlists` to list all the available playlists.
-4. Run `tb up -p core`. This will start all services defined in the `core` playlist.
+You run can run a service or playlist by running `tb up -s <service>` or `tb up -p <playlist>`. `tb` will install any dependencies it needs and then start your services in docker containers.
 
 `tb up` will start [lazydocker](https://github.com/jesseduffield/lazydocker). For more information about how to interact with it, check out [its README](https://github.com/jesseduffield/lazydocker/blob/master/README.md). You can quit lazydocker, and containers will continue to run. You can always run `lazydocker` again without having to restart your services.
 
 Try running `tb --help` or `tb up --help` to see what else you can do.
 
-## tb ios
-`tb` provides the ability to run iOS apps through the iOS Simulator. For more information see the [tb ios docs](docs/ios.md).
+For more information about running services in tb see the [services docs](docs/services.md).
+
+## Running Apps
+`tb` provides the ability to run iOS and desktop apps. For more information see the [tb app docs](docs/apps.md).
 
 ## Commands
 
-`tb` comes with a lot of convenient commands. See the documentation [here](docs/tb.md) for the command documentation.
+`tb` comes with a lot of convenient commands. See the documentation [here](docs/commands.md) to learn more about the various features offered by tb.
 
 Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help on a specific command.
 
@@ -137,6 +97,12 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 
 ### Toggling debug mode
 To toggle debug mode set the `debug` property to `true` or `false`. Debug mode will print more verbose logs of what is happening.
+
+### Toggling experimental mode
+To to enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
+Please be aware that you may encounter bugs with these features as they have not yet been deemed ready for general use.
+
+If you would like to help use test new features, we would appreciate it if you could enable experimental mode and report any issues you encounter.
 
 ### Adding custom playlists
 You can create custom playlists by adding a new object to the `playlists` property.
@@ -192,18 +158,8 @@ Override schema:
 
 ## Contributing
 
-See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`.
+See [contributing](CONTRIBUTING.md) for instructions on how to contribute to `tb`. PRs welcome!
 
-## Having trouble?
+## License
 
-Check the [FAQ](docs/FAQ.md) for common problems and solutions. (Pull requests welcome!)
-
-## Gotchas / Tips
-
-- Do not run npm run or npm run commands from the host unless you absolutely need to.
-
-- **Previous Setup**: If you already have `postgres.app` or are running postgres with homebrew or any other way, Datagrip-like tools will be confused about which pg to connect to. You won't need these anymore, so you can just delete them. Use `pgrep postgres` and make sure you don't have any other instances running.
-
-- **SQL EDITORS**: To use external db tools like datagrip or `psql`, keep `CORE_DB_HOST` in the .env file as it is, but use `localhost` as the hostname in datagrip (or tool of choice). see `bin/db` for an example that uses `pgcli` on the host. Inside the docker network, containers uses the service names in `docker-compose.yml` as their hostname. Externally, their hostname is just `localhost`.
-
-- **Slowness**: If running things in Docker on a mac is slow, allocate more CPUs, Memory and Swap space using the Docker For Mac advanced preferences. Keep in mind that some tools (like `jest`) have threading issues on linux and are not going to be faster with more cores. Use `docker stats` to see resource usage by image.
+MIT © TouchBistro, see [LICENSE](LICENSE) for details.
