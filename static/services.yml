@@ -239,7 +239,7 @@ services:
   legacy-bridge-manage-service:
     dependencies:
       - ${@legacy-database}
-    envFile: ${@REPOPATH}/.env.compose
+    envFile: ${@REPOPATH}/.env.example
     envVars:
       DB_HOST: ${@legacy-database}
       HTTP_PORT: 8080
