@@ -98,6 +98,12 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 ### Toggling debug mode
 To toggle debug mode set the `debug` property to `true` or `false`. Debug mode will print more verbose logs of what is happening.
 
+### Toggling experimental mode
+To to enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
+Please be aware that you may encounter bugs with these features as they have not yet been deemed ready for general use.
+
+If you would like to help use test new features, we would appreciate it if you could enable experimental mode and report any issues you encounter.
+
 ### Adding custom playlists
 You can create custom playlists by adding a new object to the `playlists` property.
 
