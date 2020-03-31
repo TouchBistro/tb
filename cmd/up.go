@@ -323,7 +323,7 @@ Examples:
 			repos := make([]string, 0)
 			for _, s := range selectedServices {
 				if s.HasGitRepo() {
-					repos = append(repos, s.GitRepo)
+					repos = append(repos, s.GitRepo.Name)
 				}
 			}
 			repos = util.UniqueStrings(repos)

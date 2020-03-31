@@ -31,7 +31,8 @@ services:
     ports:
       - '9000:8000'
     preRun: yarn db:prepare:dev
-    repo: ExampleZone/venue-example-service
+    repo:
+      name: ExampleZone/venue-example-service
     build:
       target: build
       command: yarn start

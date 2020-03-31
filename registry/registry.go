@@ -144,7 +144,7 @@ func readServices(r Registry, rootPath, reposPath string) ([]service.Service, se
 
 		// Set special service specific vars
 		if s.HasGitRepo() {
-			vars["@REPOPATH"] = filepath.Join(reposPath, s.GitRepo)
+			vars["@REPOPATH"] = filepath.Join(reposPath, s.GitRepo.Name)
 		} else {
 			vars["@REPOPATH"] = ""
 		}

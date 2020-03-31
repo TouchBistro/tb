@@ -69,8 +69,10 @@ func TestCreateComposeFile(t *testing.T) {
 			Ports: []string{
 				"8081:8080",
 			},
-			PreRun:  "yarn db:prepare",
-			GitRepo: "TouchBistro/venue-core-service",
+			PreRun: "yarn db:prepare",
+			GitRepo: service.GitRepo{
+				Name: "TouchBistro/venue-core-service",
+			},
 			Build: service.Build{
 				Args: map[string]string{
 					"NODE_ENV":  "development",

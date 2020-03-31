@@ -128,7 +128,8 @@ The schema is as follows:
   mode: remote | build         # What mode to use: remote or build
   ports: string[]              # List of ports to expose
   preRun: string               # Script to run before starting the service, e.g. 'yarn db:prepare' to run db migrations
-  repo: string                 # The repo name on GitHub, format: org/repo
+  repo:
+    name: string # The repo name on GitHub, format: org/repo
   build:
     args: map<string, string> # List of args to pass to docker build
     command: string           # Command to run when container starts

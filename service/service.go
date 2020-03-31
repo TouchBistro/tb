@@ -25,6 +25,10 @@ type Build struct {
 	Volumes        []Volume          `yaml:"volumes"`
 }
 
+type GitRepo struct {
+	Name string `yaml:"name"`
+}
+
 type Remote struct {
 	Command string   `yaml:"command"`
 	Image   string   `yaml:"image"`
@@ -38,7 +42,7 @@ type Service struct {
 	Entrypoint   []string          `yaml:"entrypoint"`
 	EnvFile      string            `yaml:"envFile"`
 	EnvVars      map[string]string `yaml:"envVars"`
-	GitRepo      string            `yaml:"repo"`
+	GitRepo      GitRepo           `yaml:"repo"`
 	Mode         string            `yaml:"mode"`
 	Ports        []string          `yaml:"ports"`
 	PreRun       string            `yaml:"preRun"`
@@ -49,7 +53,7 @@ type Service struct {
 }
 
 func (s Service) HasGitRepo() bool {
-	return s.GitRepo != ""
+	return s.GitRepo.Name != ""
 }
 
 func (s Service) UseRemote() bool {
