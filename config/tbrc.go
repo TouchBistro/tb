@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/playlist"
@@ -71,12 +72,20 @@ func LoadTBRC() error {
 		DisableTimestamp: true,
 	})
 
+	if IsExperimentalEnabled() {
+		log.Infoln(color.Yellow("🚧 Experimental mode enabled 🚧"))
+		log.Infoln(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
+	}
+
 	// Resolve registry paths
 	for i, r := range tbrc.Registries {
 		isLocal := r.LocalPath != ""
 
 		// Set true path for usage later
 		if isLocal {
+			// Remind people they are using a local version in case they forgot
+			log.Infof("❗ Using a local version of the %s registry ❗", color.Cyan(r.Name))
+
 			// Local paths can be prefixed with ~ for convenience
 			if strings.HasPrefix(r.LocalPath, "~") {
 				r.Path = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(r.LocalPath, "~"))
