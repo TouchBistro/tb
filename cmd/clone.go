@@ -32,8 +32,8 @@ var cloneCmd = &cobra.Command{
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		repoPath := fmt.Sprintf("./%s", strings.Split(s.GitRepo, "/")[1])
-		err = git.Clone(s.GitRepo, repoPath)
+		repoPath := fmt.Sprintf("./%s", strings.Split(s.GitRepo.Name, "/")[1])
+		err = git.Clone(s.GitRepo.Name, repoPath)
 		if err != nil {
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}

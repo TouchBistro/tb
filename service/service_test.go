@@ -45,8 +45,10 @@ func createServiceCollection(t *testing.T) *ServiceCollection {
 			Ports: []string{
 				"8081:8080",
 			},
-			PreRun:  "yarn db:prepare:dev",
-			GitRepo: "TouchBistro/venue-core-service",
+			PreRun: "yarn db:prepare:dev",
+			GitRepo: GitRepo{
+				Name: "TouchBistro/venue-core-service",
+			},
 			Build: Build{
 				Args: map[string]string{
 					"NODE_ENV": "development",
@@ -70,8 +72,10 @@ func TestServiceMethods(t *testing.T) {
 	assert := assert.New(t)
 
 	s := Service{
-		GitRepo: "TouchBistro/venue-core-service",
-		Mode:    ModeRemote,
+		GitRepo: GitRepo{
+			Name: "TouchBistro/venue-core-service",
+		},
+		Mode: ModeRemote,
 		Build: Build{
 			DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
 		},
@@ -104,8 +108,10 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 			Ports: []string{
 				"8081:8080",
 			},
-			PreRun:  "yarn db:prepare:dev",
-			GitRepo: "TouchBistro/venue-core-service",
+			PreRun: "yarn db:prepare:dev",
+			GitRepo: GitRepo{
+				Name: "TouchBistro/venue-core-service",
+			},
 			Build: Build{
 				Args: map[string]string{
 					"NODE_ENV": "development",
@@ -153,8 +159,10 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 		Ports: []string{
 			"8081:8080",
 		},
-		PreRun:  "yarn db:prepare",
-		GitRepo: "TouchBistro/venue-core-service",
+		PreRun: "yarn db:prepare",
+		GitRepo: GitRepo{
+			Name: "TouchBistro/venue-core-service",
+		},
 		Build: Build{
 			Args: map[string]string{
 				"NODE_ENV": "development",
@@ -211,8 +219,10 @@ func TestServiceCollectionGetShortName(t *testing.T) {
 		Ports: []string{
 			"8081:8080",
 		},
-		PreRun:  "yarn db:prepare:dev",
-		GitRepo: "TouchBistro/venue-core-service",
+		PreRun: "yarn db:prepare:dev",
+		GitRepo: GitRepo{
+			Name: "TouchBistro/venue-core-service",
+		},
 		Build: Build{
 			Args: map[string]string{
 				"NODE_ENV": "development",

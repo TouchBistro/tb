@@ -221,7 +221,7 @@ func CloneMissingRepos() error {
 	for it.HasNext() {
 		s := it.Next()
 		if s.HasGitRepo() {
-			repos = append(repos, s.GitRepo)
+			repos = append(repos, s.GitRepo.Name)
 		}
 	}
 	repos = util.UniqueStrings(repos)

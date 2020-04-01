@@ -81,10 +81,12 @@ func TestReadRegistries(t *testing.T) {
 			"HTTP_PORT": "8080",
 			"DB_HOST":   "touchbistro-tb-registry-postgres",
 		},
-		Mode:    service.ModeRemote,
-		Ports:   []string{"8081:8080"},
-		PreRun:  "yarn db:prepare",
-		GitRepo: "TouchBistro/venue-core-service",
+		Mode:   service.ModeRemote,
+		Ports:  []string{"8081:8080"},
+		PreRun: "yarn db:prepare",
+		GitRepo: service.GitRepo{
+			Name: "TouchBistro/venue-core-service",
+		},
 		Build: service.Build{
 			Args: map[string]string{
 				"NODE_ENV":  "development",
@@ -146,10 +148,12 @@ func TestReadRegistries(t *testing.T) {
 			"HTTP_PORT":     "8000",
 			"POSTGRES_HOST": "examplezone-tb-registry-postgres",
 		},
-		Mode:    service.ModeRemote,
-		Ports:   []string{"9000:8000"},
-		PreRun:  "yarn db:prepare:dev",
-		GitRepo: "ExampleZone/venue-example-service",
+		Mode:   service.ModeRemote,
+		Ports:  []string{"9000:8000"},
+		PreRun: "yarn db:prepare:dev",
+		GitRepo: service.GitRepo{
+			Name: "ExampleZone/venue-example-service",
+		},
 		Build: service.Build{
 			Command:        "yarn start",
 			DockerfilePath: "/home/test/.tb/repos/ExampleZone/venue-example-service",

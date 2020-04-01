@@ -38,7 +38,8 @@ services:
     ports:
       - '8700:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/backoffice-customer-service
+    repo:
+      name: TouchBistro/backoffice-customer-service
     build:
       <<: *build-node-dev
       volumes:
@@ -61,7 +62,8 @@ services:
     mode: remote
     ports:
       - '3000:3000'
-    repo: TouchBistro/cloud-server
+    repo:
+      name: TouchBistro/cloud-server
     build:
       dockerfilePath: ${@REPOPATH}
     remote:
@@ -86,7 +88,8 @@ services:
     mode: remote
     ports:
       - '8080:80'
-    repo: TouchBistro/cloud-server-frontend
+    repo:
+      name: TouchBistro/cloud-server-frontend
     build:
       args:
         USE_INSECURE_COOKIE: insecure
@@ -102,7 +105,8 @@ services:
     mode: build
     ports:
       - '9001:80'
-    repo: TouchBistro/dotnet-depot
+    repo:
+      name: TouchBistro/dotnet-depot
     build:
       dockerfilePath: ${@REPOPATH}/api
   dotnet-manage:
@@ -113,7 +117,8 @@ services:
     mode: build
     ports:
       - '9000:80'
-    repo: TouchBistro/dotnet-depot
+    repo:
+      name: TouchBistro/dotnet-depot
     build:
       dockerfilePath: ${@REPOPATH}/Manage
   health-clinic:
@@ -121,7 +126,8 @@ services:
     mode: remote
     ports:
       - '8089:8089'
-    repo: TouchBistro/health-clinic
+    repo:
+      name: TouchBistro/health-clinic
     build:
       command: 'tail -f /dev/null'
       dockerfilePath: ${@REPOPATH}
@@ -144,7 +150,8 @@ services:
     ports:
       - '8777:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/identity-user-service
+    repo:
+      name: TouchBistro/identity-user-service
     build:
       <<: *build-node-dev
     remote:
@@ -165,7 +172,8 @@ services:
     mode: remote
     ports:
       - '9090:9090'
-    repo: TouchBistro/identity-home-frontend
+    repo:
+      name: TouchBistro/identity-home-frontend
     build:
       args:
         NPM_TOKEN: $NPM_TOKEN
@@ -186,7 +194,8 @@ services:
     ports:
       - '8073:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/infrastructure-auth-service
+    repo:
+      name: TouchBistro/infrastructure-auth-service
     build:
       <<: *build-node-dev
       volumes:
@@ -206,7 +215,8 @@ services:
     ports:
       - '8181:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/infrastructure-scratchpad-service
+    repo:
+      name: TouchBistro/infrastructure-scratchpad-service
     build:
       <<: *build-node-dev
       volumes:
@@ -225,7 +235,8 @@ services:
     mode: remote
     ports:
       - '8101:8080'
-    repo: TouchBistro/legacy-bridge-cloud-service
+    repo:
+      name: TouchBistro/legacy-bridge-cloud-service
     build:
       <<: *build-node-dev
       volumes:
@@ -246,7 +257,8 @@ services:
     mode: remote
     ports:
       - '8999:8080'
-    repo: TouchBistro/legacy-bridge-manage-service
+    repo:
+      name: TouchBistro/legacy-bridge-manage-service
     build:
       <<: *build-node-dev
     remote:
@@ -262,7 +274,8 @@ services:
     ports:
       - '1433:1433'
     preRun: yarn db:prepare
-    repo: TouchBistro/legacy-database
+    repo:
+      name: TouchBistro/legacy-database
     build:
       args:
         NODE_ENV: development
@@ -291,7 +304,8 @@ services:
     mode: remote
     ports:
       - '8009:8080'
-    repo: TouchBistro/legacy-upload-service
+    repo:
+      name: TouchBistro/legacy-upload-service
     build:
       <<: *build-node-dev
       volumes:
@@ -331,7 +345,8 @@ services:
     ports:
       - '8600:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/loyalty-gateway-service
+    repo:
+      name: TouchBistro/loyalty-gateway-service
     build:
       <<: *build-node-dev
       volumes:
@@ -351,7 +366,8 @@ services:
     preRun: yarn db:prepare
     ports:
       - '9453:8080'
-    repo: TouchBistro/partners-auth-service
+    repo:
+      name: TouchBistro/partners-auth-service
     build:
       <<: *build-node-dev
       volumes:
@@ -394,7 +410,8 @@ services:
     ports:
       - '9443:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/mokta
+    repo:
+      name: TouchBistro/mokta
     build:
       <<: *build-node-dev
     remote:
@@ -415,7 +432,8 @@ services:
     ports:
       - '8010:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/ordering-demo-frontend
+    repo:
+      name: TouchBistro/ordering-demo-frontend
     build:
       <<: *build-node-dev
       volumes:
@@ -438,7 +456,8 @@ services:
     mode: build
     ports:
       - '8020:8080'
-    repo: TouchBistro/ordering-demo-frontend
+    repo:
+      name: TouchBistro/ordering-demo-frontend
     build:
       <<: *build-node-dev
       volumes:
@@ -466,7 +485,8 @@ services:
     mode: remote
     ports:
       - '8610:8080'
-    repo: TouchBistro/ordering-engine-service
+    repo:
+      name: TouchBistro/ordering-engine-service
     build:
       <<: *build-node-dev
       volumes:
@@ -486,7 +506,8 @@ services:
     mode: remote
     ports:
       - '8611:8080'
-    repo: TouchBistro/ordering-online-frontend
+    repo:
+      name: TouchBistro/ordering-online-frontend
     build:
       <<: *build-node-dev
       volumes:
@@ -505,7 +526,8 @@ services:
     mode: remote
     ports:
       - '8030:8080'
-    repo: TouchBistro/ordering-gateways-frontend
+    repo:
+      name: TouchBistro/ordering-gateways-frontend
     build:
       <<: *build-node-dev
       volumes:
@@ -576,7 +598,8 @@ services:
     ports:
       - '8005:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/ordering-ooa-service
+    repo:
+      name: TouchBistro/ordering-ooa-service
     build:
       <<: *build-node-dev
       volumes:
@@ -620,7 +643,8 @@ services:
     ports:
       - '8090:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/partners-config-service
+    repo:
+      name: TouchBistro/partners-config-service
     build:
       <<: *build-node-dev
       volumes:
@@ -657,7 +681,8 @@ services:
     ports:
       - '8888:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/partners-etl-service
+    repo:
+      name: TouchBistro/partners-etl-service
     build:
       <<: *build-node-dev
       volumes:
@@ -679,7 +704,8 @@ services:
     ports:
       - '8008:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/payments-gateway-service
+    repo:
+      name: TouchBistro/payments-gateway-service
     build:
       <<: *build-node-dev
     remote:
@@ -690,7 +716,8 @@ services:
     mode: remote
     ports:
       - '3306:3306'
-    repo: TouchBistro/singleapp-database
+    repo:
+      name: TouchBistro/singleapp-database
     build:
       dockerfilePath: ${@REPOPATH}
       volumes:
@@ -717,7 +744,8 @@ services:
     mode: remote
     ports:
       - '9002:9002'
-    repo: TouchBistro/venue-admin-frontend
+    repo:
+      name: TouchBistro/venue-admin-frontend
     build:
       args:
         NPM_TOKEN: $NPM_TOKEN
@@ -758,7 +786,8 @@ services:
       - '9903:8090' # rtail log server
       # - '8089:8089'   # Not used?
     preRun: yarn db:prepare
-    repo: TouchBistro/venue-core-service
+    repo:
+      name: TouchBistro/venue-core-service
     build:
       <<: *build-node-dev
       volumes:
@@ -782,7 +811,8 @@ services:
     ports:
       - '8666:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/venue-provisioning-service
+    repo:
+      name: TouchBistro/venue-provisioning-service
     build:
       <<: *build-node-dev
     remote:
@@ -795,7 +825,8 @@ services:
     mode: build
     ports:
       - '8023:80'
-    repo: TouchBistro/yp-singleapp-api
+    repo:
+      name: TouchBistro/yp-singleapp-api
     build:
       args:
         HOMEBREW_GITHUB_API_TOKEN: $HOMEBREW_GITHUB_API_TOKEN

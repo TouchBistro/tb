@@ -67,7 +67,7 @@ func parseServices(config legacyServiceConfig) (map[string]service.Service, erro
 
 		// Set special service specific vars
 		if s.HasGitRepo() {
-			vars["@REPOPATH"] = filepath.Join(ReposPath(), s.GitRepo)
+			vars["@REPOPATH"] = filepath.Join(ReposPath(), s.GitRepo.Name)
 		} else {
 			vars["@REPOPATH"] = ""
 		}

@@ -17,7 +17,8 @@ services:
     ports:
       - '5432:8080'
     preRun: yarn db:prepare
-    repo: TouchBistro/venue-core-service
+    repo:
+      name: TouchBistro/venue-core-service
     build:
       args:
         NODE_ENV: development

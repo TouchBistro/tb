@@ -51,15 +51,21 @@ var nukeCmd = &cobra.Command{
 
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		// Passing nothing to compose will shut everything down
-		err := docker.ComposeStop(make([]string, 0))
-		if err != nil {
-			fatal.ExitErr(err, "Failed stopping docker compose services.")
+		// Run compose stop before nuking any docker related resources
+		// to ensure no weirdness
+		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeImages ||
+			nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeNetworks ||
+			nukeOpts.shouldNukeAll {
+			// Passing nothing to compose will shut everything down
+			err := docker.ComposeStop(make([]string, 0))
+			if err != nil {
+				fatal.ExitErr(err, "Failed stopping docker compose services.")
+			}
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Infoln("Stopping running containers...")
-			err = docker.StopAllContainers()
+			err := docker.StopAllContainers()
 			if err != nil {
 				fatal.ExitErr(err, "Failed stopping docker containers")
 			}
@@ -74,7 +80,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeImages || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing images...")
-			err = docker.RmImages()
+			err := docker.RmImages()
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing docker images.")
 			}
@@ -83,7 +89,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeNetworks || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing networks...")
-			err = docker.RmNetworks()
+			err := docker.RmNetworks()
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing docker networks.")
 			}
@@ -92,7 +98,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing volumes...")
-			err = docker.RmVolumes()
+			err := docker.RmVolumes()
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing docker volumes.")
 			}
@@ -107,7 +113,7 @@ var nukeCmd = &cobra.Command{
 			for it.HasNext() {
 				s := it.Next()
 				if s.HasGitRepo() {
-					repos = append(repos, s.GitRepo)
+					repos = append(repos, s.GitRepo.Name)
 				}
 			}
 			repos = util.UniqueStrings(repos)
