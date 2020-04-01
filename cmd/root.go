@@ -61,11 +61,6 @@ func init() {
 			fatal.ExitErr(err, "Failed to load tbrc.")
 		}
 
-		if config.IsExperimentalEnabled() {
-			log.Infoln(color.Yellow("🚧 Experimental mode enabled 🚧"))
-			log.Infoln(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
-		}
-
 		checkVersion()
 	})
 }
