@@ -48,6 +48,10 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
     ```sh
     brew install tb
     ```
+**Note:** If you are getting error in above command, these are the things to check. 
+    1) Make sure that you have Enabled SSO on your Github personal access token. 
+    2) Make sure that you have `HOMEBREW_GITHUB_API_TOKEN` env var set. Check this by executing `echo $HOMEBREW_GITHUB_API_TOKEN`.
+    3) Ask in team-dev-acceleration channel to check if your Github handle has been given the right permissions.
 
 ### Updating tb
 To update to the latest version of `tb` do the following:
