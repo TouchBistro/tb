@@ -18,7 +18,6 @@ type nukeOptions struct {
 	shouldNukeVolumes     bool
 	shouldNukeNetworks    bool
 	shouldNukeRepos       bool
-	shouldNukeConfig      bool
 	shouldNukeDesktopApps bool
 	shouldNukeIOSBuilds   bool
 	shouldNukeRegistries  bool
@@ -36,7 +35,6 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeVolumes &&
 			!nukeOpts.shouldNukeNetworks &&
 			!nukeOpts.shouldNukeRepos &&
-			!nukeOpts.shouldNukeConfig &&
 			!nukeOpts.shouldNukeDesktopApps &&
 			!nukeOpts.shouldNukeIOSBuilds &&
 			!nukeOpts.shouldNukeRegistries &&
@@ -135,15 +133,6 @@ var nukeCmd = &cobra.Command{
 			log.Infoln("...done")
 		}
 
-		if nukeOpts.shouldNukeConfig || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing config files...")
-			err := config.RmFiles()
-			if err != nil {
-				fatal.ExitErr(err, "Failed removing config files.")
-			}
-			log.Infoln("...done")
-		}
-
 		if nukeOpts.shouldNukeDesktopApps || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing desktop app builds...")
 			err := os.RemoveAll(config.DesktopAppsPath())
@@ -205,7 +194,6 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeVolumes, "volumes", false, "nuke all volumes")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeNetworks, "networks", false, "nuke all networks")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRepos, "repos", false, "nuke all repos")
-	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeConfig, "config", false, "nuke all config files")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeDesktopApps, "desktop", false, "nuke all downloaded desktop app builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")

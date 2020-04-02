@@ -1,5 +1,0 @@
-reporting: "off"
-gui:
- wrapMainPanel: true
-update:
- dockerRefreshInterval: 2000ms
