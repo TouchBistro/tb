@@ -3,20 +3,17 @@
 # Get all dependencies
 setup:
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh
-	go get github.com/gobuffalo/packr/v2/packr2
 	go mod download
 .PHONY: setup
 
 # Build tb
 build:
-	packr2
 	go build
 	go run build/build.go
 .PHONY: build
 
 # Clean all build artifacts
 clean:
-	packr2 clean
 	rm -rf dist
 	rm -rf coverage
 	rm -f tb
