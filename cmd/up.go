@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"strings"
 
 	"time"
 
-	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/spinner"
@@ -24,7 +22,6 @@ import (
 
 type options struct {
 	shouldSkipServicePreRun bool
-	shouldSkipServerStart   bool
 	shouldSkipGitPull       bool
 	shouldSkipDockerPull    bool
 	shouldSkipLazydocker    bool
@@ -199,12 +196,6 @@ Examples:
 	tb up --services postgres,localstack`,
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		if opts.shouldSkipServerStart {
-			os.Setenv("START_SERVER", "false")
-		} else {
-			os.Setenv("START_SERVER", "true")
-		}
-
 		err := deps.Resolve(
 			deps.Brew,
 			deps.Aws,
@@ -399,20 +390,12 @@ Examples:
 }
 
 func init() {
-	noStartServers := "no-start-servers"
-	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServerStart, noStartServers, false, "dont start servers with yarn start or yarn serve on container boot")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipDockerPull, "no-remote-pull", false, "dont get new remote images")
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipLazydocker, "no-lazydocker", false, "dont start lazydocker")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
-
-	altMsg := color.Yellow("Please override either 'build.command' or 'remote.command' in your '.tbrc.yml' if you wish to change the way a service starts.")
-	err := upCmd.PersistentFlags().MarkDeprecated(noStartServers, fmt.Sprintf("and will be removed in the next major version of tb.\n%s\n", altMsg))
-	if err != nil {
-		fatal.ExitErrf(err, "Failed to deprecate flag %s", noStartServers)
-	}
 
 	rootCmd.AddCommand(upCmd)
 }
