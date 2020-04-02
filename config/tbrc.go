@@ -128,7 +128,7 @@ playlists:
 # Override service configuration
 overrides:
   # venue-admin-frontend
+    # mode: remote
     # remote:
-    # enabled: true
-    # tag: feat/new-menu
+      # tag: feat/new-menu
 `
