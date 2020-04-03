@@ -89,6 +89,10 @@ type BuildOverride struct {
 	Target  string `yaml:"target"`
 }
 
+type GitRepoOverride struct {
+	Path string `yaml:"path"`
+}
+
 type RemoteOverride struct {
 	Command string `yaml:"command"`
 	Tag     string `yaml:"tag"`
@@ -97,6 +101,7 @@ type RemoteOverride struct {
 type ServiceOverride struct {
 	Build   BuildOverride     `yaml:"build"`
 	EnvVars map[string]string `yaml:"envVars"`
+	GitRepo GitRepoOverride   `yaml:"repo"`
 	Mode    string            `yaml:"mode"`
 	PreRun  string            `yaml:"preRun"`
 	Remote  RemoteOverride    `yaml:"remote"`

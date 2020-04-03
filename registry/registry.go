@@ -107,7 +107,13 @@ func validateService(s service.Service) error {
 	return nil
 }
 
-func readServices(r Registry, rootPath, reposPath string) ([]service.Service, serviceGlobalConfig, error) {
+type readServicesOptions struct {
+	rootPath  string
+	reposPath string
+	overrides map[string]service.ServiceOverride
+}
+
+func readServices(r Registry, opts readServicesOptions) ([]service.Service, serviceGlobalConfig, error) {
 	serviceConf := registryServiceConfig{}
 	err := readRegistryFile(servicesFileName, r, &serviceConf)
 	if err != nil {
@@ -124,7 +130,7 @@ func readServices(r Registry, rootPath, reposPath string) ([]service.Service, se
 		vars = make(map[string]string)
 	}
 
-	vars["@ROOTPATH"] = rootPath
+	vars["@ROOTPATH"] = opts.rootPath
 	vars["@STATICPATH"] = filepath.Join(r.Path, staticDirName)
 
 	// Add vars for each service name
@@ -142,12 +148,22 @@ func readServices(r Registry, rootPath, reposPath string) ([]service.Service, se
 			return nil, serviceGlobalConfig{}, errors.Wrapf(err, "service %s failed validation", n)
 		}
 
+		override, ok := opts.overrides[s.FullName()]
+
 		// Set special service specific vars
-		if s.HasGitRepo() {
-			vars["@REPOPATH"] = filepath.Join(reposPath, s.GitRepo.Name)
-		} else {
-			vars["@REPOPATH"] = ""
+		repoPath := ""
+		if ok && override.GitRepo.Path != "" {
+			p := override.GitRepo.Path
+			if strings.HasPrefix(p, "~") {
+				repoPath = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(p, "~"))
+			} else {
+				repoPath = p
+			}
+		} else if s.HasGitRepo() {
+			repoPath = filepath.Join(opts.reposPath, s.GitRepo.Name)
 		}
+
+		vars["@REPOPATH"] = repoPath
 
 		// Expand any vars
 		for i, dep := range s.Dependencies {
@@ -270,7 +286,11 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 		if opts.ShouldReadServices {
 			log.Debugf("Reading services from registry %s", r.Name)
 
-			services, globalConf, err := readServices(r, opts.RootPath, opts.ReposPath)
+			services, globalConf, err := readServices(r, readServicesOptions{
+				rootPath:  opts.RootPath,
+				reposPath: opts.ReposPath,
+				overrides: opts.Overrides,
+			})
 			if err != nil {
 				return RegistryResult{}, errors.Wrapf(err, "failed to read services from registry %s", r.Name)
 			}

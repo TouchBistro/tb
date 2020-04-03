@@ -145,6 +145,8 @@ Override schema:
   envVars: map         # A list of env vars to set for the service, will be merged with exisiting env vars
   mode: remote | build # What mode to use: remote or build
   preRun: string       # Script to run before starting the service
+  repo:
+    path: string # Path to a local version of the Git repo. This will override the @REPOPATH built in variable in services.yml.
   build:               # Configuration when building the service locally
     command: string # Command to run when the container starts
     target: string  #
