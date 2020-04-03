@@ -127,17 +127,19 @@ You can override certain properties for services. To do this use the `overrides`
 Example:
 ```yaml
 overrides:
-  mokta:
+  TouchBistro/tb-registry/mokta:
     mode: build
-  venue-admin-frontend:
+  TouchBistro/tb-registry/venue-admin-frontend:
     mode: remote
     remote:
       tag: <tag name>
 ```
 
+Overrides must use the full service name, i.e. `<registry>/<service>`.
+
 You can disable using the remote version by setting `mode: build`, which will cause an image to be built from the local repo instead of pulling an image from the remote registry.
 
-You can also use a specific image tag by setting the `remote.tag` property. This can be the name of a branch on GitHub or a commit SHA (must be the full SHA not the shortened one).
+You can also use a specific image tag by setting the `remote.tag` property.
 
 Override schema:
 ```yaml
