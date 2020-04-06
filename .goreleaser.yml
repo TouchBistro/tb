@@ -5,7 +5,6 @@ before:
     - go mod download
     # you may remove this if you don't need go generate
     - go generate ./...
-    - packr2 clean
 
 builds:
   -
@@ -16,7 +15,6 @@ builds:
     goos:
       - darwin
     hooks:
-      pre: packr2 --ignore-imports
       post: go run build/build.go
     ignore:
       - goos: darwin
@@ -62,7 +60,7 @@ brews:
       name: touchbistro-github
       email: devops@touchbistro.com
     folder: Formula
-    description: "a CLI for running TouchBistro services on a development machine"
+    description: "a CLI for running services on a development machine"
 
     test: |
       system "#{bin}/tb --version"

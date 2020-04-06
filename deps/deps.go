@@ -76,7 +76,7 @@ func Resolve(depNames ...string) error {
 	log.Info("☐ checking dependencies")
 
 	if runtime.GOOS != "darwin" {
-		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. if you want to support other OSes, please make a pull request or tell Dev Acceleration.\n")
+		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. If you want to support other OSes, please make a pull request.\n")
 	}
 
 	for _, depName := range depNames {

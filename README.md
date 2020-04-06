@@ -127,32 +127,33 @@ You can override certain properties for services. To do this use the `overrides`
 Example:
 ```yaml
 overrides:
-  mokta:
+  TouchBistro/tb-registry/mokta:
+    mode: build
+  TouchBistro/tb-registry/venue-admin-frontend:
+    mode: remote
     remote:
-      enabled: false
-  venue-admin-frontend:
-    remote:
-      enabled: true
       tag: <tag name>
 ```
 
-You can disable using the remote version by setting `remote.enabled: false`, which will cause an image to be built from the local repo instead of pulling an image from the remote registry.
+Overrides must use the full service name, i.e. `<registry>/<service>`.
 
-You can also use a specific image tag by setting the `remote.tag` property. This can be the name of a branch on GitHub or a commit SHA (must be the full SHA not the shortened one).
+You can disable using the remote version by setting `mode: build`, which will cause an image to be built from the local repo instead of pulling an image from the remote registry.
 
-**IMPORTANT:** If you set `remote.tag` you must also set `remote.enabled: true` for everything to work properly!
+You can also use a specific image tag by setting the `remote.tag` property.
 
 Override schema:
 ```yaml
 <name>:
-  envVars: map   # A list of env vars to set for the service, will be merged with exisiting env vars
-  preRun: string # Script to run before starting the service
-  build:         # Configuration when building the service locally
+  envVars: map         # A list of env vars to set for the service, will be merged with exisiting env vars
+  mode: remote | build # What mode to use: remote or build
+  preRun: string       # Script to run before starting the service
+  repo:
+    path: string # Path to a local version of the Git repo. This will override the @REPOPATH built in variable in services.yml.
+  build:               # Configuration when building the service locally
     command: string # Command to run when the container starts
     target: string  #
   remote:        # Configuration when pulling the service from a remote registry
     command: string  # Command to run when the container starts
-    enabled: boolean # Whether or not to use remote version
     tag: string      # The image tag to use
 ```
 

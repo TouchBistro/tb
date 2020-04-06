@@ -131,6 +131,7 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 			EnvVars: map[string]string{
 				"LOGGER_LEVEL": "debug",
 			},
+			Mode:   ModeRemote,
 			PreRun: "yarn db:prepare",
 			Build: BuildOverride{
 				Command: "yarn start:dev",
@@ -138,7 +139,6 @@ func TestNewServiceCollectionOverrides(t *testing.T) {
 			},
 			Remote: RemoteOverride{
 				Command: "tail -f /dev/null",
-				Enabled: true,
 				Tag:     "master",
 			},
 		},

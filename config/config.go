@@ -128,11 +128,6 @@ func Init(opts InitOptions) error {
 		return errors.Wrap(err, "failed to setup tb environment")
 	}
 
-	if !IsExperimentalEnabled() {
-		log.Debugln("Using legacy config init")
-		return legacyInit()
-	}
-
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
 	// Also consider creating a lazydocker package to abstract this logic so it doesn't seem so ad hoc
 	// Create lazydocker config
@@ -196,7 +191,7 @@ update:
 		// Create docker-compose.yml
 		log.Debugln("Generating docker-compose.yml file...")
 
-		composePath := filepath.Join(TBRootPath(), dockerComposePath)
+		composePath := filepath.Join(TBRootPath(), "docker-compose.yml")
 		file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
 		if err != nil {
 			return errors.Wrapf(err, "failed to open file %s", composePath)

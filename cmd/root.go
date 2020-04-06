@@ -8,7 +8,6 @@ import (
 	appCmd "github.com/TouchBistro/tb/cmd/app"
 	"github.com/TouchBistro/tb/cmd/app/desktop"
 	"github.com/TouchBistro/tb/cmd/app/ios"
-	legacyIOSCmd "github.com/TouchBistro/tb/cmd/ios"
 	registryCmd "github.com/TouchBistro/tb/cmd/registry"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/fortune"
@@ -26,7 +25,7 @@ var rootOpts struct {
 var rootCmd = &cobra.Command{
 	Use:     "tb",
 	Version: version,
-	Short:   "tb is a CLI for running TouchBistro services on a development machine",
+	Short:   "tb is a CLI for running services on a development machine",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		err := config.Init(config.InitOptions{
 			UpdateRegistries: !rootOpts.noRegistryPull,
@@ -50,7 +49,7 @@ func init() {
 
 	// Add subcommands
 	appCmd.AppCmd().AddCommand(desktop.DesktopCmd(), ios.IOSCmd())
-	rootCmd.AddCommand(appCmd.AppCmd(), legacyIOSCmd.IOS(), registryCmd.RegistryCmd())
+	rootCmd.AddCommand(appCmd.AppCmd(), registryCmd.RegistryCmd())
 
 	cobra.OnInitialize(func() {
 		f := fortune.Random().String()

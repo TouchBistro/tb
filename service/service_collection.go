@@ -25,12 +25,12 @@ func NewServiceCollection(services []Service, overrides map[string]ServiceOverri
 	for name, override := range overrides {
 		s, err := sc.Get(name)
 		if err != nil {
-			return nil, errors.Errorf("failed to get service %s to apply override to", name)
+			return nil, errors.Wrapf(err, "failed to get service %s to apply override to", name)
 		}
 
 		s, err = s.applyOverride(override)
 		if err != nil {
-			return nil, errors.Errorf("failed to apply override to service %s", s.FullName())
+			return nil, errors.Wrapf(err, "failed to apply override to service %s", s.FullName())
 		}
 
 		// Name and RegistryName are validated before a service is added to the ServiceCollection

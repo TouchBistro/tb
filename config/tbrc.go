@@ -11,6 +11,7 @@ import (
 	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -104,6 +105,18 @@ func LoadTBRC() error {
 		tbrc.Registries[i] = r
 	}
 
+	// Make sure all overrides use the full name of the service
+	for name := range tbrc.Overrides {
+		registryName, _, err := util.SplitNameParts(name)
+		if err != nil {
+			return errors.Wrapf(err, "invalid service name to override %s", name)
+		}
+
+		if registryName == "" {
+			return errors.Errorf("invalid service override %s, overrides must use the full name <registry>/<service>", name)
+		}
+	}
+
 	return nil
 }
 
@@ -127,8 +140,8 @@ playlists:
       # - localstack
 # Override service configuration
 overrides:
-  # venue-admin-frontend
+  # ExampleOrg/tb-registry/venue-admin-frontend:
+    # mode: remote
     # remote:
-    # enabled: true
-    # tag: feat/new-menu
+      # tag: feat/new-menu
 `

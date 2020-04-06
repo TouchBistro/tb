@@ -1,10 +1,10 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -89,27 +89,39 @@ type BuildOverride struct {
 	Target  string `yaml:"target"`
 }
 
+type GitRepoOverride struct {
+	Path string `yaml:"path"`
+}
+
 type RemoteOverride struct {
 	Command string `yaml:"command"`
-	Enabled bool   `yaml:"enabled"`
 	Tag     string `yaml:"tag"`
 }
 
 type ServiceOverride struct {
 	Build   BuildOverride     `yaml:"build"`
 	EnvVars map[string]string `yaml:"envVars"`
+	GitRepo GitRepoOverride   `yaml:"repo"`
+	Mode    string            `yaml:"mode"`
 	PreRun  string            `yaml:"preRun"`
 	Remote  RemoteOverride    `yaml:"remote"`
 }
 
 func (s Service) applyOverride(o ServiceOverride) (Service, error) {
 	// Validate overrides
-	if o.Remote.Enabled && s.Remote.Image == "" {
-		msg := fmt.Sprintf("remote.enabled is overridden to true for %s but it is not available from a remote source", s.FullName())
-		return s, errors.New(msg)
-	} else if !o.Remote.Enabled && !s.HasGitRepo() {
-		msg := fmt.Sprintf("remote.enabled is overridden to false but %s cannot be built locally", s.FullName())
-		return s, errors.New(msg)
+	if o.Mode != "" {
+		// Make sure mode is a valid value
+		if o.Mode != ModeRemote && o.Mode != ModeBuild {
+			return s, errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", s.FullName())
+		}
+
+		if o.Mode == ModeRemote && s.Remote.Image == "" {
+			msg := fmt.Sprintf("%s.mode is overridden to 'remote' but it is not available from a remote source", s.FullName())
+			return s, errors.New(msg)
+		} else if o.Mode == ModeBuild && !s.CanBuild() {
+			msg := fmt.Sprintf("%s.mode is overridden to 'build' but it cannot be built locally", s.FullName())
+			return s, errors.New(msg)
+		}
 	}
 
 	// Apply overrides to service
@@ -135,10 +147,8 @@ func (s Service) applyOverride(o ServiceOverride) (Service, error) {
 		s.Remote.Command = o.Remote.Command
 	}
 
-	if o.Remote.Enabled {
-		s.Mode = ModeRemote
-	} else {
-		s.Mode = ModeBuild
+	if o.Mode != "" {
+		s.Mode = o.Mode
 	}
 
 	if o.Remote.Tag != "" {
