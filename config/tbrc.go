@@ -140,7 +140,7 @@ playlists:
       # - localstack
 # Override service configuration
 overrides:
-  # venue-admin-frontend:
+  # ExampleOrg/tb-registry/venue-admin-frontend:
     # mode: remote
     # remote:
       # tag: feat/new-menu
