@@ -77,7 +77,7 @@ func cleanupPrevDocker(services []service.Service) {
 }
 
 func pullTBBaseImages() {
-	log.Info("☐ pulling latest touchbistro base images")
+	log.Info("☐ pulling latest base images")
 
 	successCh := make(chan string)
 	failedCh := make(chan error)
@@ -96,7 +96,7 @@ func pullTBBaseImages() {
 
 	spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
 
-	log.Info("☑ finished pulling latest touchbistro base images")
+	log.Info("☑ finished pulling latest base images")
 }
 
 func dockerComposeBuild(services []service.Service) {
@@ -177,7 +177,7 @@ func selectServices() []service.Service {
 	}
 
 	if len(selectedServices) == 0 {
-		fatal.Exit("you must specify at least one service from TouchBistro/tb/config.json.\nTry tb list --services to see all the available playlists.")
+		fatal.Exit("you must specify at least one service to run.\nTry tb list --services to see all the available playlists.")
 	}
 
 	return selectedServices

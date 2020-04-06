@@ -31,8 +31,7 @@ func (s NPMLoginStrategy) Login() error {
 	npmrcPath := os.Getenv("HOME") + "/.npmrc"
 	if !file.FileOrDirExists(npmrcPath) {
 		log.Warnln("No ~/.npmrc found.")
-		log.Warnln("Log in to the touchbistro npm registry with command: 'npm login' and try again.")
-		log.Warnln("If this does not work...Create a https://www.npmjs.com/ account called: touchbistro-youremailname, then message DevOps to add you to the @touchbistro account")
+		log.Warnln("Log in to the npm registry with command: 'npm login' and try again.")
 		// TODO: We could also let them log in here and continue
 		return errors.New("error not logged into npm registry")
 	}

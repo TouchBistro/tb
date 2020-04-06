@@ -60,7 +60,7 @@ brews:
       name: touchbistro-github
       email: devops@touchbistro.com
     folder: Formula
-    description: "a CLI for running TouchBistro services on a development machine"
+    description: "a CLI for running services on a development machine"
 
     test: |
       system "#{bin}/tb --version"

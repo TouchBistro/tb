@@ -25,7 +25,7 @@ var rootOpts struct {
 var rootCmd = &cobra.Command{
 	Use:     "tb",
 	Version: version,
-	Short:   "tb is a CLI for running TouchBistro services on a development machine",
+	Short:   "tb is a CLI for running services on a development machine",
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		err := config.Init(config.InitOptions{
 			UpdateRegistries: !rootOpts.noRegistryPull,
