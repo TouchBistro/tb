@@ -235,6 +235,9 @@ func CloneOrPullRepos(shouldPull bool) error {
 				return errors.Wrap(err, "Could not read project directory")
 			}
 
+			// Hack to make sure repo was cloned properly
+			// Sometimes it doesn't clone properly if the user does control-c during cloning
+			// Figure out a better way to do this
 			if dirlen > 2 {
 				if !shouldPull {
 					continue
