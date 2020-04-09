@@ -8,11 +8,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type downOptions struct {
+	shouldSkipGitPull bool
+}
+
+var downOpts downOptions
+
 var downCmd = &cobra.Command{
 	Use:   "down [services...]",
 	Short: "Stop and remove containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos()
+		err := config.CloneOrPullRepos(!downOpts.shouldSkipGitPull)
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -50,5 +56,7 @@ var downCmd = &cobra.Command{
 }
 
 func init() {
+	downCmd.Flags().BoolVar(&downOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
+
 	rootCmd.AddCommand(downCmd)
 }

@@ -13,11 +13,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type logsOptions struct {
+	shouldSkipGitPull bool
+}
+
+var logsOpts logsOptions
+
 var logsCmd = &cobra.Command{
 	Use:   "logs [services...]",
 	Short: "View logs from containers",
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos()
+		err := config.CloneOrPullRepos(!logsOpts.shouldSkipGitPull)
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -53,5 +59,7 @@ var logsCmd = &cobra.Command{
 }
 
 func init() {
+	logsCmd.Flags().BoolVar(&logsOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
+
 	rootCmd.AddCommand(logsCmd)
 }
