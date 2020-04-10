@@ -22,6 +22,7 @@ type nukeOptions struct {
 	shouldNukeIOSBuilds   bool
 	shouldNukeRegistries  bool
 	shouldNukeAll         bool
+	shouldSkipGitPull     bool
 }
 
 var nukeOpts nukeOptions
@@ -42,7 +43,7 @@ var nukeCmd = &cobra.Command{
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
 
-		err := config.CloneMissingRepos()
+		err := config.CloneOrPullRepos(!nukeOpts.shouldSkipGitPull)
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -198,4 +199,5 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeIOSBuilds, "ios", false, "nuke all downloaded iOS builds")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
+	nukeCmd.Flags().BoolVar(&nukeOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
 }

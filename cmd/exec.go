@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type execOptions struct {
+	shouldSkipGitPull bool
+}
+
+var execOpts execOptions
+
 var execCmd = &cobra.Command{
 	Use:   "exec <service-name> <command> [additional-commands...]",
 	Short: "executes a command in a service container",
@@ -23,7 +29,7 @@ Examples:
 	tb exec core-database bash`,
 	Args: cobra.MinimumNArgs(2),
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := config.CloneMissingRepos()
+		err := config.CloneOrPullRepos(!execOpts.shouldSkipGitPull)
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos.")
 		}
@@ -50,5 +56,7 @@ Examples:
 }
 
 func init() {
+	execCmd.Flags().BoolVar(&execOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
+
 	rootCmd.AddCommand(execCmd)
 }

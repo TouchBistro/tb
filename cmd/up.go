@@ -12,7 +12,6 @@ import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/service"
 	"github.com/TouchBistro/tb/util"
@@ -219,7 +218,7 @@ Examples:
 
 		// We have to clone every possible repo instead of just selected services
 		// Because otherwise docker-compose will complaing about missing build paths
-		err := config.CloneMissingRepos()
+		err := config.CloneOrPullRepos(!opts.shouldSkipGitPull)
 		if err != nil {
 			fatal.ExitErr(err, "failed cloning git repos")
 		}
@@ -301,40 +300,6 @@ Examples:
 
 			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
 			log.Info("☑ finished pulling docker images for selected services")
-			fmt.Println()
-		}
-
-		if !opts.shouldSkipGitPull {
-			// Pull latest github repos
-			log.Info("☐ pulling the latest default git branch for selected services")
-			successCh = make(chan string)
-			failedCh = make(chan error)
-			count := 0
-
-			repos := make([]string, 0)
-			for _, s := range selectedServices {
-				if s.HasGitRepo() {
-					repos = append(repos, s.GitRepo.Name)
-				}
-			}
-			repos = util.UniqueStrings(repos)
-
-			for _, r := range repos {
-				log.Infof("\t☐ pulling %s\n", r)
-				go func(successCh chan string, failedCh chan error, name, root string) {
-					err := git.Pull(name, root)
-					if err != nil {
-						failedCh <- err
-						return
-					}
-					successCh <- name
-				}(successCh, failedCh, r, config.ReposPath())
-				count++
-			}
-
-			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling git repo", count)
-
-			log.Info("☑ finished pulling latest default git branch for selected services")
 			fmt.Println()
 		}
 

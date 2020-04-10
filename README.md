@@ -31,7 +31,7 @@ You can install xcode tools by running `xcode-select --install`.
 This project will install and manage all other dependencies that you need.
 
 ### SSH Key
-`tb` uses ssh for certain git operations and assumes you have an ssh key connected to your GitHub account. If you do not have one, please create one by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh). Also make sure your SSH key is enabled for SSO.
+`tb` uses ssh for certain git operations and assumes you have an ssh key connected to your GitHub account. If you do not have one, please create one by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh).
 
 If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh-agent` before running tb. This can be done automatically using your MacOS keyring to automatically load the key to your shell with `ssh-add -K $HOME/.ssh/id_rsa`, which can be added to your shell configuration.
 

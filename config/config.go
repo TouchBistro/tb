@@ -208,7 +208,7 @@ update:
 	return nil
 }
 
-func CloneMissingRepos() error {
+func CloneOrPullRepos(shouldPull bool) error {
 	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
 
 	repos := make([]string, 0)
@@ -234,10 +234,30 @@ func CloneMissingRepos() error {
 			if err != nil {
 				return errors.Wrap(err, "Could not read project directory")
 			}
-			// Directory exists but only contains .git subdirectory, rm and clone again
+
+			// Hack to make sure repo was cloned properly
+			// Sometimes it doesn't clone properly if the user does control-c during cloning
+			// Figure out a better way to do this
 			if dirlen > 2 {
+				if !shouldPull {
+					continue
+				}
+
+				log.Debugf("\t☐ %s exists. pulling git repo\n", repo)
+				go func(successCh chan string, failedCh chan error, name, root string) {
+					err := git.Pull(name, root)
+					if err != nil {
+						failedCh <- err
+						return
+					}
+					successCh <- name
+				}(successCh, failedCh, repo, ReposPath())
+
+				count++
 				continue
 			}
+
+			// Directory exists but only contains .git subdirectory, rm and clone again
 			err = os.RemoveAll(path)
 			if err != nil {
 				return errors.Wrapf(err, "Couldn't remove project directory for %s", path)
@@ -256,7 +276,7 @@ func CloneMissingRepos() error {
 		count++
 	}
 
-	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning %s\n", "failed cloning git repo", count)
+	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling %s\n", "failed cloning/pulling git repo", count)
 
 	log.Info("☑ finished checking git repos")
 	return nil
