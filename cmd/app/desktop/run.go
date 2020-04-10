@@ -3,13 +3,13 @@ package desktop
 import (
 	"errors"
 	"os"
-	"runtime"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	appCmd "github.com/TouchBistro/tb/cmd/app"
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -72,7 +72,7 @@ Examples:
 		log.Info("☐ Launching app")
 
 		// TODO probably want to figure out a better way to abstract opening an app cross platform
-		if runtime.GOOS == "darwin" {
+		if util.IsMacOS() {
 			err = command.Exec("open", []string{appPath}, "tb-app-desktop-run-open")
 		} else {
 			fatal.Exit("tb app desktop run is not supported on your platform")
