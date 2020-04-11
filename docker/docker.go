@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/tb/util"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -159,21 +160,30 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 		return false, 0, errors.Wrap(err, "could not retreive docker disk usage")
 	}
 
-	// TODO: This needs to be cleaned up
-	dockerVmPath := filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
-	fs, err := os.Stat(dockerVmPath)
-	if err != nil {
-		// The location of the Docker.raw file was moved between docker releases, but only new installations are affected.
-		// Here we check the original path oto support users with the old location.
-		dockerVmPath = filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw")
-		fs, err = os.Stat(dockerVmPath)
+	var maxSize int64
+	if util.IsMacOS() {
+		// TODO: This needs to be cleaned up
+		dockerVmPath := filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
+		fs, err := os.Stat(dockerVmPath)
 		if err != nil {
-			return false, usage, errors.Wrap(err, "could not retreive system disk usage")
+			// The location of the Docker.raw file was moved between docker releases, but only new installations are affected.
+			// Here we check the original path oto support users with the old location.
+			dockerVmPath = filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw")
+			fs, err = os.Stat(dockerVmPath)
+			if err != nil {
+				return false, usage, errors.Wrap(err, "could not retreive system disk usage")
+			}
 		}
+		maxSize = fs.Size()
+	} else {
+		// Docker on Linux doesn't store everything in a disk image file like it does on macOS
+		// The default size on macOS of 64GB seems like a good threshold for too much space
+		// TODO figure out of there's a better way to do this
+		maxSize = 64 * 1024 * 1024 * 1024
 	}
 
 	// if docker is using more than 60% our available docker space, probably cleanup
-	if usage > uint64(float64(fs.Size())*0.6) {
+	if usage > uint64(float64(maxSize)*0.6) {
 		return true, usage, nil
 	}
 	return false, usage, nil
