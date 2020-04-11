@@ -14,11 +14,11 @@ builds:
       - -s -w -X github.com/TouchBistro/tb/cmd.version={{.Version}}
     goos:
       - darwin
+      - linux
+    goarch:
+      - amd64
     hooks:
       post: go run build/build.go
-    ignore:
-      - goos: darwin
-        goarch: 386
 
 archives:
   -
