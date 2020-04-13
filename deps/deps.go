@@ -1,10 +1,9 @@
 package deps
 
 import (
-	"runtime"
-
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
@@ -32,7 +31,7 @@ const (
 var deps = map[string]Dependency{
 	Brew: {
 		Name:       "brew",
-		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
+		InstallCmd: []string{"/bin/bash", "-c", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)\""},
 	},
 	Pgcli: {
 		Name: "pgcli",
@@ -75,8 +74,8 @@ var deps = map[string]Dependency{
 func Resolve(depNames ...string) error {
 	log.Info("☐ checking dependencies")
 
-	if runtime.GOOS != "darwin" {
-		fatal.Exit("tb currently supports Darwin (MacOS) only for installing dependencies. If you want to support other OSes, please make a pull request.\n")
+	if !util.IsMacOS() && !util.IsLinux() {
+		fatal.Exit("tb currently supports Darwin (MacOS) and Linux only for installing dependencies. If you want to support other OSes, please make a pull request.\n")
 	}
 
 	for _, depName := range depNames {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
@@ -29,7 +28,7 @@ var appCmd = &cobra.Command{
 		// Check if current command is an ios subcommand
 		isIOSCommand := cmd.Parent().Name() == "ios"
 
-		if isIOSCommand && runtime.GOOS != "darwin" {
+		if isIOSCommand && !util.IsMacOS() {
 			fatal.Exit("Error: tb app ios is only supported on macOS")
 		}
 

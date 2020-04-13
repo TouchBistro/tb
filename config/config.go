@@ -131,7 +131,13 @@ func Init(opts InitOptions) error {
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
 	// Also consider creating a lazydocker package to abstract this logic so it doesn't seem so ad hoc
 	// Create lazydocker config
-	ldDirPath := filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
+	var ldDirPath string
+	if util.IsMacOS() {
+		ldDirPath = filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
+	} else {
+		ldDirPath = filepath.Join(os.Getenv("HOME"), ".config/jesseduffield/lazydocker")
+	}
+
 	err = os.MkdirAll(ldDirPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
@@ -144,7 +150,7 @@ gui:
 update:
   dockerRefreshInterval: 2000ms`
 
-	ldConfigPath := filepath.Join(ldDirPath, "lazydocker.yml")
+	ldConfigPath := filepath.Join(ldDirPath, "config.yml")
 	err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
 	if err != nil {
 		return errors.Wrap(err, "failed to create lazydocker config file")

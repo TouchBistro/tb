@@ -3,10 +3,19 @@ package util
 import (
 	"fmt"
 	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
 )
+
+func IsMacOS() bool {
+	return runtime.GOOS == "darwin"
+}
+
+func IsLinux() bool {
+	return runtime.GOOS == "linux"
+}
 
 func Prompt(msg string) bool {
 	// check for yes and assume no on any other input to avoid annoyance
