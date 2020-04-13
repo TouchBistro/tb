@@ -31,7 +31,7 @@ const (
 var deps = map[string]Dependency{
 	Brew: {
 		Name:       "brew",
-		InstallCmd: []string{"/usr/bin/ruby", "-e", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)\""},
+		InstallCmd: []string{"/bin/bash", "-c", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)\""},
 	},
 	Pgcli: {
 		Name: "pgcli",
@@ -69,16 +69,6 @@ var deps = map[string]Dependency{
 		Name:       "yarn",
 		InstallCmd: []string{"brew", "install", "yarn"},
 	},
-}
-
-func init() {
-	// In the future maybe we could have a way to initialize deps based of the OS. This could allow for setting different install methods.
-	// Using brew is fine for now though
-	if util.IsLinux() {
-		// Update brew install script if linux
-		brew := deps[Brew]
-		brew.InstallCmd = []string{"/bin/bash", "-c", "\"$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)\""}
-	}
 }
 
 func Resolve(depNames ...string) error {
