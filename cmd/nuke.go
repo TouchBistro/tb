@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
-	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -43,11 +41,12 @@ var nukeCmd = &cobra.Command{
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
 
-		err := config.CloneOrPullRepos(!nukeOpts.shouldSkipGitPull)
-		if err != nil {
-			fatal.ExitErr(err, "failed cloning git repos.")
+		if !nukeOpts.shouldNukeRepos && !nukeOpts.shouldNukeAll {
+			err := config.CloneOrPullRepos(!nukeOpts.shouldSkipGitPull)
+			if err != nil {
+				fatal.ExitErr(err, "failed cloning git repos.")
+			}
 		}
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Run compose stop before nuking any docker related resources
@@ -107,26 +106,6 @@ var nukeCmd = &cobra.Command{
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing repos...")
 
-			repos := make([]string, 0)
-			it := config.LoadedServices().Iter()
-			for it.HasNext() {
-				s := it.Next()
-				if s.HasGitRepo() {
-					repos = append(repos, s.GitRepo.Name)
-				}
-			}
-			repos = util.UniqueStrings(repos)
-
-			for _, repo := range repos {
-				log.Debugf("Removing repo %s...", repo)
-				repoPath := filepath.Join(config.ReposPath(), repo)
-				err := os.RemoveAll(repoPath)
-				if err != nil {
-					fatal.ExitErrf(err, "Failed removing repo %s.", repo)
-				}
-			}
-
-			log.Infoln("Removing any remaining repo directorys...")
 			err := os.RemoveAll(config.ReposPath())
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing repos.")
