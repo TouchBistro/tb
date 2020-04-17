@@ -79,7 +79,7 @@ var nukeCmd = &cobra.Command{
 
 		if nukeOpts.shouldNukeImages || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing images...")
-			err := docker.RmImages()
+			err := docker.PruneImages()
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing docker images.")
 			}
