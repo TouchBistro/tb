@@ -4,6 +4,10 @@ tb is a CLI for running services and apps on a development machine.
 
 It is aimed at making local development easy in a complicated microservices architecture by provisioning your machine with the dependencies you need and making it easy for you to run them on your machine in an environment that is close to how they run in production.
 
+If you want to know more about why we built `tb`, check out our [blog post](https://medium.com/touchbistro-development/tb-cli-simplifying-development-in-a-complicated-microservices-world-65da00a14c87).
+
+![](docs/resources/tb_up.gif)
+
 ### **Table of Contents**
 - [Requirements](#requirements)
     + [Installed Software](#installed-software)
