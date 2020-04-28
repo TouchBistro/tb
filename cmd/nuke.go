@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -42,35 +43,23 @@ var nukeCmd = &cobra.Command{
 			!nukeOpts.shouldNukeAll {
 			fatal.Exit("Error: Must specify what to nuke. try tb nuke --help to see all the options.")
 		}
-
-		err := config.CloneOrPullRepos(!nukeOpts.shouldSkipGitPull)
-		if err != nil {
-			fatal.ExitErr(err, "failed cloning git repos.")
-		}
-
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		// Run compose stop before nuking any docker related resources
+		// Make sure containers are stopped before removing docker resources
 		// to ensure no weirdness
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeImages ||
 			nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeNetworks ||
 			nukeOpts.shouldNukeAll {
-			// Passing nothing to compose will shut everything down
-			err := docker.ComposeStop(make([]string, 0))
-			if err != nil {
-				fatal.ExitErr(err, "Failed stopping docker compose services.")
-			}
-		}
-
-		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Infoln("Stopping running containers...")
 			err := docker.StopAllContainers()
 			if err != nil {
 				fatal.ExitErr(err, "Failed stopping docker containers")
 			}
+		}
 
+		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
 			log.Infoln("Removing containers...")
-			err = docker.RmContainers()
+			err := docker.RmContainers()
 			if err != nil {
 				fatal.ExitErr(err, "Failed removing docker containers")
 			}
@@ -200,4 +189,11 @@ func init() {
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeRegistries, "registries", false, "nuke all registries")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeAll, "all", false, "nuke everything")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
+
+	err := nukeCmd.Flags().MarkDeprecated("no-git-pull", "it is a no-op")
+	if err != nil {
+		// MarkDeprecated only errors if the flag name is wrong or the message isn't set
+		// which is a programming error, so we wanna blow up
+		panic(fmt.Sprintf("Failed to deprecate flag no-git-pull: %+v", err))
+	}
 }
