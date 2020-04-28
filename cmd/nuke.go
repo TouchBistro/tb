@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -194,6 +193,6 @@ func init() {
 	if err != nil {
 		// MarkDeprecated only errors if the flag name is wrong or the message isn't set
 		// which is a programming error, so we wanna blow up
-		panic(fmt.Sprintf("Failed to deprecate flag no-git-pull: %+v", err))
+		fatal.ExitErr(err, "Failed to deprecate flag no-git-pull")
 	}
 }
