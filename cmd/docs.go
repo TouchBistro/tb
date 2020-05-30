@@ -5,7 +5,6 @@ import (
 
   "github.com/TouchBistro/goutils/fatal"
   "github.com/TouchBistro/tb/config"
-  "github.com/TouchBistro/tb/service"
   "github.com/spf13/cobra"
 )
 
@@ -24,13 +23,19 @@ var docsCmd = &cobra.Command{
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
     }
 
-    fmt.Println("Opening API docs for: %s", serviceName)
-    openDocs(&service)
+    docsURL := service.EnvVars["API_DOCS_URL"]
+    if docsURL == "" {
+      fatal.Exitf("API_DOCS_URL environment variable not found for service %s\n", serviceName)
+    }
+
+    fmt.Printf("Opening API docs for: %s", serviceName)
+    openDocs(docsURL)
   },
 }
 
-func openDocs(s *service) {
-  fmt.Println("hals: %s", s.Name)
+func openDocs(url string) {
+  fmt.Println()
+  fmt.Println("hals")
 }
 
 func init() {
