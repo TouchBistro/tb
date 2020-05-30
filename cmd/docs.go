@@ -10,9 +10,13 @@ import (
 )
 
 var docsCmd = &cobra.Command{
-	Use:   "docs",
-	Args:  cobra.MinimumNArgs(1),
+	Use:   "docs <service>",
+	Args:  cobra.ExactArgs(1),
 	Short: "Opens link to API docs for a given service",
+	Long: `Opens link to API docs for a given service.
+
+	Example:
+	  tb docs core`,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
 		service, err := config.LoadedServices().Get(serviceName)
@@ -29,7 +33,7 @@ var docsCmd = &cobra.Command{
 			fatal.Exitf("API_DOCS_URL environment variable not found for service %s\n", serviceName)
 		}
 
-		fmt.Printf("Opening docs for %s...\n", serviceName)
+		log.Info("Opening docs for %s...\n", serviceName)
 		openDocs(docsURL)
 	},
 }
