@@ -1,6 +1,7 @@
 package cmd
 
 import (
+  "os/exec"
   "fmt"
 
   "github.com/TouchBistro/goutils/fatal"
@@ -28,14 +29,16 @@ var docsCmd = &cobra.Command{
       fatal.Exitf("API_DOCS_URL environment variable not found for service %s\n", serviceName)
     }
 
-    fmt.Printf("Opening API docs for: %s", serviceName)
+    fmt.Printf("Opening docs for %s...\n", serviceName)
     openDocs(docsURL)
   },
 }
 
 func openDocs(url string) {
-  fmt.Println()
-  fmt.Println("hals")
+  cmd := exec.Command("open", url)
+  if err := cmd.Run(); err != nil {
+    fatal.ExitErrf(err, "failed to open docs at %s\n", url)
+  }
 }
 
 func init() {
