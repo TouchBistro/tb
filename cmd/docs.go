@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"os/exec"
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
