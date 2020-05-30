@@ -33,7 +33,7 @@ var docsCmd = &cobra.Command{
 			fatal.Exitf("API_DOCS_URL environment variable not found for service %s\n", serviceName)
 		}
 
-		log.Info("Opening docs for %s...\n", serviceName)
+		log.Infof("Opening docs for %s...\n", serviceName)
 		openDocs(docsURL)
 	},
 }
