@@ -5,6 +5,7 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -39,7 +40,12 @@ var docsCmd = &cobra.Command{
 }
 
 func openDocs(url string) {
-	cmd := exec.Command("open", url)
+	openCmd := "open"
+	if util.IsLinux() {
+		openCmd = "xdg-open"
+	}
+
+	cmd := exec.Command(openCmd, url)
 	if err := cmd.Run(); err != nil {
 		fatal.ExitErrf(err, "failed to open docs at %s\n", url)
 	}
