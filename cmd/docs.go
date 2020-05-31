@@ -40,8 +40,10 @@ var docsCmd = &cobra.Command{
 }
 
 func openDocs(url string) {
+	// `open` command is macOS only
 	openCmd := "open"
 	if util.IsLinux() {
+		// `xdg-open` is linux equivalent
 		openCmd = "xdg-open"
 	}
 
