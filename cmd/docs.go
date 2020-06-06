@@ -1,17 +1,23 @@
 package cmd
 
 import (
+	"bytes"
+	"fmt"
+	"os"
 	"os/exec"
+	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
+	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/util"
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var docsCmd = &cobra.Command{
-	Use:   "docs <service>",
+	Use:   "docs <service-name>",
 	Args:  cobra.ExactArgs(1),
 	Short: "Opens link to API docs for a given service",
 	Long: `Opens link to API docs for a given service.
@@ -29,14 +35,47 @@ var docsCmd = &cobra.Command{
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		docsURL := service.EnvVars["API_DOCS_URL"]
-		if docsURL == "" {
-			fatal.Exitf("API_DOCS_URL environment variable not found for service %s\n", serviceName)
+		docsURL, err := getDocsURL(service.DockerName())
+		if err != nil {
+			fatal.ExitErrf(err, "could not find docs url for %s\n", serviceName)
 		}
 
 		log.Infof("Opening docs for %s...\n", serviceName)
 		openDocs(docsURL)
 	},
+}
+
+func getDocsURL(dockerName string) (string, error) {
+	required := []string{"DOCS_URL"}
+	missing := "missing"
+
+	// This is ugly, but less ugly than using printenv and much faster than doing individual execs for every var
+	// generates a command in the following format: sh -c echo ${var1:-missing} ${var2:-missing} ...${varN:-missing}
+	// missing is used as a blank value instead of an empty string to make producing nicer errors to the user much easier.
+	var sb strings.Builder
+	sb.WriteString("echo")
+	for _, req := range required {
+		sb.WriteString(fmt.Sprintf(" ${%s:-%s}", req, missing))
+	}
+	args := []string{"sh", "-c", sb.String()}
+
+	buf := &bytes.Buffer{}
+	err := docker.ComposeExec(dockerName, args, func(cmd *exec.Cmd) {
+		cmd.Stdout = buf
+		cmd.Stderr = os.Stderr
+		cmd.Stdin = os.Stdin
+	})
+
+	if err != nil {
+		return "", errors.Wrap(err, "failed execing command inside this service's container.")
+	}
+
+	url := strings.TrimSpace(buf.String())
+	if url == missing {
+		return "", errors.Errorf("DOCS_URL environment variable not found")
+	}
+
+	return url, nil
 }
 
 func openDocs(url string) {
