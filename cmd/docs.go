@@ -17,13 +17,13 @@ import (
 )
 
 var docsCmd = &cobra.Command{
-	Use:   "docs <service-name> (Experimental)",
+	Use:   "docs <service-name>",
 	Args:  cobra.ExactArgs(1),
-	Short: "Opens link to API docs for a given service",
-	Long: `Opens link to API docs for a given service.
+	Short: "Opens link to API docs for a given service (Experimental)",
+	Long: `Opens link to API docs for a given service.  (Experimental)
 
 	Example:
-	  tb docs core`,
+	tb docs core`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Experimental only until multiple docs URLs supported for one service
 		if !config.IsExperimentalEnabled() {
