@@ -23,7 +23,7 @@ var docsCmd = &cobra.Command{
 	Long: `Opens link to API docs for a given service. (Experimental)
 
 Example:
-tb docs core`,
+  tb docs core`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Experimental only until multiple docs URLs supported for one service
 		if !config.IsExperimentalEnabled() {
