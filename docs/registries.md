@@ -185,6 +185,20 @@ dependencies:
   - ${@postgres}
 ```
 
+##### Literal Variables
+
+If you required the literal variable syntax and don't want `tb` to expand it, prefix the variable name with `@env:`. `tb` will strip this prefix and leave the variable expansion syntax.
+
+Ex:
+```yaml
+envPath: ${@env:HOME}/tmp
+```
+
+`tb` will turn this into:
+```yaml
+envPath: ${HOME}/tmp
+```
+
 ## Configuring Playlists
 
 A playlist is a collection of services that can be run with `tb up`.
