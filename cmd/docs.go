@@ -20,7 +20,7 @@ var docsCmd = &cobra.Command{
 	Use:   "docs <service-name>",
 	Args:  cobra.ExactArgs(1),
 	Short: "Opens link to API docs for a given service (Experimental)",
-	Long: `Opens link to API docs for a given service.  (Experimental)
+	Long: `Opens link to API docs for a given service. (Experimental)
 
 	Example:
 	tb docs core`,
