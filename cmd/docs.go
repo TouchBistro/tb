@@ -25,6 +25,10 @@ var docsCmd = &cobra.Command{
 	Example:
 	  tb docs core`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if !config.IsExperimentalEnabled() {
+			fatal.Exit("You need to enable experimental mode to use this feature")
+		}
+
 		serviceName := args[0]
 		service, err := config.LoadedServices().Get(serviceName)
 		if err != nil {
