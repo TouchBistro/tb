@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
@@ -40,13 +41,24 @@ Example:
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		docsURL, err := getDocsURL(service.DockerName())
+		url, err := getDocsURL(service.DockerName())
 		if err != nil {
 			fatal.ExitErrf(err, "could not find docs url for %s\n", serviceName)
 		}
 
 		log.Infof("Opening docs for %s...\n", serviceName)
-		openDocs(docsURL)
+
+		// `open` command is macOS only
+		openCmd := "open"
+		if util.IsLinux() {
+			// `xdg-open` is linux equivalent
+			openCmd = "xdg-open"
+		}
+
+		err = command.Exec(openCmd, []string{url}, "docs-open")
+		if err != nil {
+			fatal.ExitErrf(err, "failed to open docs at %s\n", url)
+		}
 	},
 }
 
@@ -81,20 +93,6 @@ func getDocsURL(dockerName string) (string, error) {
 	}
 
 	return url, nil
-}
-
-func openDocs(url string) {
-	// `open` command is macOS only
-	openCmd := "open"
-	if util.IsLinux() {
-		// `xdg-open` is linux equivalent
-		openCmd = "xdg-open"
-	}
-
-	cmd := exec.Command(openCmd, url)
-	if err := cmd.Run(); err != nil {
-		fatal.ExitErrf(err, "failed to open docs at %s\n", url)
-	}
 }
 
 func init() {
