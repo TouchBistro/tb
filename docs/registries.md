@@ -22,6 +22,11 @@ registries:
   - name: TouchBistro/tb-registry
 ```
 
+You can also add a registry by running the following:
+```
+tb registry add <name>
+```
+
 All services, playlists, and apps in a registry are scoped by the name of that registry to ensure they are globally unique. If a service, playlist or app name is unique, however you can use this name directly in commands and `tb` will figure out which service you are referring to.
 
 For example if there is a service named `postgres` in the registry `TouchBistro/tb-registry`, you can run it with the following command:

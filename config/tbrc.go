@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/TouchBistro/goutils/color"
@@ -18,6 +21,8 @@ import (
 )
 
 const tbrcName = ".tbrc.yml"
+
+var ErrRegistryExists = errors.New("registry already exists")
 
 type userConfig struct {
 	DebugEnabled        bool                               `yaml:"debug"`
@@ -118,6 +123,63 @@ func LoadTBRC() error {
 	}
 
 	return nil
+}
+
+func AddRegistry(registryName string) error {
+	// Check if registry already added
+	for _, r := range tbrc.Registries {
+		if r.Name == registryName {
+			return ErrRegistryExists
+		}
+	}
+
+	// Check if registry name is valid, i.e. <org>/<repo>
+	nameRegex := regexp.MustCompile(`^[\w-]+\/[\w-]+$`)
+	if !nameRegex.MatchString(registryName) {
+		return errors.Errorf("%s is not a valid registry name", registryName)
+	}
+
+	tbrc.Registries = append(tbrc.Registries, registry.Registry{Name: registryName})
+
+	// Save registries
+	// We want the tbrc file to be human readable and writable
+	// Unfortantly this means we can't just write the yaml file because the yaml marshaler
+	// doesn't preserve comments or file layout and style
+	// So we manually write it by finding the registries region and replacing it
+
+	// Marshal registries manually so it's nicely formatted
+	builder := strings.Builder{}
+	builder.WriteString("registries:\n")
+	for _, r := range tbrc.Registries {
+		builder.WriteString(fmt.Sprintf("  - name: %s\n", r.Name))
+		if r.LocalPath != "" {
+			builder.WriteString(fmt.Sprintf("    localPath: %s\n", r.LocalPath))
+		}
+	}
+
+	// The tbrc file should be small enough that we can just do this the lazy way
+	tbrcPath := filepath.Join(os.Getenv("HOME"), tbrcName)
+	fileData, err := ioutil.ReadFile(tbrcPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read file %s", tbrcPath)
+	}
+	tbrcStr := string(fileData)
+
+	// try to match the registries field with a regex so we can replace it
+	sectionRegex := regexp.MustCompile(`(?m)^registries:\n(?:(?:\s|-).+\n)*`)
+	indices := sectionRegex.FindStringIndex(tbrcStr)
+
+	// nil means there was no match so there are no registries defined
+	if indices == nil {
+		tbrcStr += builder.String()
+	} else {
+		startIndex := indices[0]
+		endIndex := indices[1]
+		tbrcStr = tbrcStr[:startIndex] + builder.String() + tbrcStr[endIndex:]
+	}
+
+	err = ioutil.WriteFile(tbrcPath, []byte(tbrcStr), 0644)
+	return errors.Wrapf(err, "failed to write tbrc file")
 }
 
 const rcTemplate = `# Toggle debug mode for more verbose logging
