@@ -152,6 +152,39 @@ registries:
 		err: nil,
 	},
 	{
+		name:         "empty registries list",
+		registryName: "TouchBistro/tb-registry",
+		existingTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		expectedTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+	},
+	{
 		name:         "adding a new registry",
 		registryName: "TouchBistro/tb-registry-example",
 		existingTBRC: `# Toggle debug mode for more verbose logging
