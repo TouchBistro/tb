@@ -15,6 +15,7 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 - [Installation](#installation)
     + [Updating tb](#updating-tb)
 - [Quickstart](#quickstart)
+- [Basic Usage](#basic-usage)
 - [Running Apps](#running-apps)
 - [Commands](#commands)
 - [Configuration](#configuration)
@@ -66,6 +67,20 @@ To update to the latest version of `tb` do the following:
     ```
 
 ## Quickstart
+
+To see `tb` in action you can use the [example tb-registry](https://github.com/TouchBistro/tb-registry-example).
+
+Add the registry:
+```
+tb registry add TouchBistro/tb-registry-example
+```
+
+Run the `db` playlist which contains `postgres` and `redis`:
+```
+tb up -p db
+```
+
+## Basic Usage
 
 By default `tb` contains no services on it's own. Run `tb list` to confirm this. This will also generate a default `~/.tbrc.yml` which will need to be edited.
 To add services to `tb` you will need to add a registry. A registry is a GitHub repo that contains a list of services, playlists, and apps `tb` can run. You can read the documentation on registries [here](docs/registries.md).

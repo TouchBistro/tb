@@ -112,3 +112,183 @@ func TestResolveRegistries(t *testing.T) {
 	assert.NoError(err)
 	assert.ElementsMatch(expectedRegistries, Registries())
 }
+
+type addRegistryTest struct {
+	name         string
+	registryName string
+	existingTBRC string
+	expectedTBRC string
+	err          error
+}
+
+var addRegistryTests = []addRegistryTest{
+	{
+		name:         "no existing registries",
+		registryName: "TouchBistro/tb-registry",
+		existingTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		expectedTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+registries:
+  - name: TouchBistro/tb-registry
+`,
+		err: nil,
+	},
+	{
+		name:         "empty registries list",
+		registryName: "TouchBistro/tb-registry",
+		existingTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		expectedTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+	},
+	{
+		name:         "adding a new registry",
+		registryName: "TouchBistro/tb-registry-example",
+		existingTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+    localPath: ~/registries/TouchBistro/tb-registry
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		expectedTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+    localPath: ~/registries/TouchBistro/tb-registry
+  - name: TouchBistro/tb-registry-example
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		err: nil,
+	},
+	{
+		name:         "registry already exists",
+		registryName: "TouchBistro/tb-registry",
+		existingTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		expectedTBRC: `# Toggle debug mode for more verbose logging
+debug: false
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  - name: TouchBistro/tb-registry
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  online-ordering:
+    services:
+      - online-ordering-service
+`,
+		err: ErrRegistryExists,
+	},
+}
+
+func TestAddRegistry(t *testing.T) {
+	for _, test := range addRegistryTests {
+		t.Run(test.name, func(t *testing.T) {
+			assert := assert.New(t)
+			dir, err := setup()
+			if err != nil {
+				assert.FailNow("Failed to setup tmp dir", err)
+			}
+			defer os.RemoveAll(dir)
+
+			tbrcPath := filepath.Join(dir, tbrcName)
+			err = ioutil.WriteFile(tbrcPath, []byte(test.existingTBRC), 0644)
+			if err != nil {
+				assert.FailNow("Failed to create tbrc file", err)
+			}
+
+			err = LoadTBRC()
+			if err != nil {
+				assert.FailNow("Failed to load tbrc", err)
+			}
+
+			err = AddRegistry(test.registryName)
+			assert.Equal(test.err, err)
+
+			fileData, err := ioutil.ReadFile(tbrcPath)
+			if err != nil {
+				assert.FailNow("Failed to read tbrc file", err)
+			}
+
+			assert.Equal(test.expectedTBRC, string(fileData))
+		})
+	}
+}

@@ -14,10 +14,12 @@ import (
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 const tbrcName = ".tbrc.yml"
+
+var ErrRegistryExists = errors.New("registry already exists")
 
 type userConfig struct {
 	DebugEnabled        bool                               `yaml:"debug"`
@@ -114,6 +116,132 @@ func LoadTBRC() error {
 
 		if registryName == "" {
 			return errors.Errorf("invalid service override %s, overrides must use the full name <registry>/<service>", name)
+		}
+	}
+
+	return nil
+}
+
+func AddRegistry(registryName string) error {
+	// Check if registry already added
+	for _, r := range tbrc.Registries {
+		if r.Name == registryName {
+			return ErrRegistryExists
+		}
+	}
+
+	tbrcPath := filepath.Join(os.Getenv("HOME"), tbrcName)
+	f, err := os.OpenFile(tbrcPath, os.O_RDWR, 0644)
+	if err != nil {
+		return errors.Wrapf(err, "failed to open file %s", tbrcPath)
+	}
+	defer f.Close()
+
+	// Decode into a Node so we can manipulate the contents while
+	// preserving comments and formatting
+	tbrcDocumentNode := &yaml.Node{}
+	err = yaml.NewDecoder(f).Decode(tbrcDocumentNode)
+	if err != nil {
+		return errors.Wrapf(err, "couldn't read yaml file at %s", tbrcPath)
+	}
+
+	// Create nodes for registry
+	nameKeyNode := &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: "name",
+	}
+
+	nameValueNode := &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: registryName,
+	}
+
+	registryNode := &yaml.Node{
+		Kind:    yaml.MappingNode,
+		Tag:     "!!map",
+		Content: []*yaml.Node{nameKeyNode, nameValueNode},
+	}
+
+	// Find registries section
+	registriesNode := findNode(tbrcDocumentNode, "registries")
+
+	// registries key doesn't exist
+	// need to add it at the end of the document
+	if registriesNode == nil {
+		// Get top level map node
+		contentLen := len(tbrcDocumentNode.Content)
+		if contentLen != 1 {
+			// This shouldn't happen so don't worry about it right now
+			// If this becomes an issue we can better handle this later
+			return errors.Wrapf(err, "tbrc document has invalid content length %d", contentLen)
+		}
+
+		registriesKeyNode := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: "registries",
+		}
+
+		registriesNode = &yaml.Node{
+			Kind: yaml.SequenceNode,
+			Tag:  "!!seq",
+		}
+
+		tbrcContentNode := tbrcDocumentNode.Content[0]
+		tbrcContentNode.Content = append(tbrcContentNode.Content, registriesKeyNode, registriesNode)
+	} else if registriesNode.Tag == "!!null" {
+		// !!null means there are no registries defined, i.e. empty key
+		// Update the registries node to be a sequence node
+		// Then we can just append the new registry to it and
+		// treat it the same as if there was already a list of registries
+		registriesNode.Kind = yaml.SequenceNode
+		registriesNode.Tag = "!!seq"
+	}
+
+	// Add new registries at the end of the list
+	registriesNode.Content = append(registriesNode.Content, registryNode)
+
+	// Make sure we overwrite the file instead of appending to it
+	// Need to go back to the start and truncate it
+	_, err = f.Seek(0, 0)
+	if err != nil {
+		return errors.Wrapf(err, "failed to seek start of file %s", tbrcPath)
+	}
+
+	err = f.Truncate(0)
+	if err != nil {
+		return errors.Wrapf(err, "failed to truncate file %s", tbrcPath)
+	}
+
+	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
+	err = encoder.Encode(tbrcDocumentNode)
+	if err != nil {
+		return errors.Wrapf(err, "failed to write %s", tbrcName)
+	}
+
+	return nil
+}
+
+func findNode(node *yaml.Node, key string) *yaml.Node {
+	foundKey := false
+	for _, n := range node.Content {
+		if foundKey {
+			return n
+		}
+
+		if n.Value == key {
+			foundKey = true
+			continue
+		}
+
+		if len(n.Content) > 0 {
+			foundNode := findNode(n, key)
+			if foundNode != nil {
+				return foundNode
+			}
 		}
 	}
 
