@@ -51,13 +51,27 @@ Examples:
 			fatal.ExitErrf(err, "%s is not a valid iOS app\n", appName)
 		}
 
+		deviceData, err := simulator.ListDevices()
+		if err != nil {
+			fatal.ExitErr(err, "Failed to get list of simulators")
+		}
+
+		deviceList, err := simulator.ParseSimulators(deviceData)
+		if err != nil {
+			fatal.ExitErr(err, "Failed to find available iOS simulators")
+		}
+
 		// Override branch if one was provided
 		if runOpts.branch != "" {
 			a.Branch = runOpts.branch
 		}
 
 		if runOpts.iosVersion == "" {
-			runOpts.iosVersion = simulator.GetLatestIOSVersion()
+			runOpts.iosVersion, err = deviceList.GetLatestIOSVersion()
+			if err != nil {
+				fatal.ExitErr(err, "failed to get latest iOS version")
+			}
+
 			log.Infof("No iOS version provided, defaulting to version %s\n", runOpts.iosVersion)
 		}
 
@@ -72,7 +86,7 @@ Examples:
 		appPath := appCmd.DownloadLatestApp(a, downloadDest)
 
 		log.Debugln("☐ Finding device UDID")
-		deviceUDID, err := simulator.GetDeviceUDID("iOS "+runOpts.iosVersion, runOpts.deviceName)
+		deviceUDID, err := deviceList.GetDeviceUDID("iOS "+runOpts.iosVersion, runOpts.deviceName)
 		if err != nil {
 			fatal.ExitErr(err, "☒ Failed to get device UDID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}

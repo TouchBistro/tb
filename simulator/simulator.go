@@ -2,8 +2,10 @@ package simulator
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -16,88 +18,105 @@ type Device struct {
 	UDID        string `json:"udid"`
 }
 
-// A map of runtimes (OS versions) to devices (simulators)
-type DeviceMap map[string][]Device
-
 type DeviceList struct {
-	Devices DeviceMap `json:"devices"`
+	// A map of runtimes (OS versions) to devices (simulators)
+	deviceMap map[string][]Device
 }
 
-var deviceMap DeviceMap
-
-func dashEncode(str string) string {
-	// Replace all spaces, brackets, and periods with dashes
-	regex := regexp.MustCompile(`(\.|\(|\)|\s)`)
-	return regex.ReplaceAllString(str, "-")
-}
-
-func LoadSimulators() error {
-	deviceData, err := ListDevices()
-	if err != nil {
-		return errors.Wrap(err, "Failed to get device list")
+func ParseSimulators(deviceData []byte) (DeviceList, error) {
+	var rawDeviceList struct {
+		Devices map[string][]Device `json:"devices"`
 	}
-
-	var deviceList DeviceList
-	err = json.Unmarshal(deviceData, &deviceList)
+	err := json.Unmarshal(deviceData, &rawDeviceList)
 	if err != nil {
-		return errors.Wrap(err, "Failed to parse device list JSON")
+		return DeviceList{}, errors.Wrap(err, "Failed to parse device list JSON")
 	}
 
 	const osPrefix = "com.apple.CoreSimulator.SimRuntime."
-	deviceMap = make(DeviceMap)
+	deviceList := DeviceList{
+		deviceMap: make(map[string][]Device),
+	}
 
-	for osName, device := range deviceList.Devices {
+	for osName, devices := range rawDeviceList.Devices {
+		if len(devices) == 0 {
+			continue
+		}
+
 		// Only care about iOS simulators, remove rest
 		if !strings.HasPrefix(osName, osPrefix+"iOS") {
 			continue
 		}
 
 		name := strings.TrimPrefix(osName, osPrefix)
-		deviceMap[name] = device
+		deviceList.deviceMap[name] = devices
 	}
 
-	return nil
+	return deviceList, nil
 }
 
-func GetDeviceUDID(osVersion, name string) (string, error) {
-	osKey := dashEncode(osVersion)
+func (dl DeviceList) GetDeviceUDID(osVersion, deviceName string) (string, error) {
+	// Replace all spaces, brackets, and periods with dashes
+	// Ex: `iOS 13.5` will become `iOS-13-5`
+	regex := regexp.MustCompile(`(\.|\(|\)|\s)`)
+	osKey := regex.ReplaceAllString(osVersion, "-")
 
-	deviceList, ok := deviceMap[osKey]
+	devices, ok := dl.deviceMap[osKey]
 	if !ok {
 		return "", errors.Errorf("Unknown OS: %s", osVersion)
 	}
 
-	devices := make([]Device, 0)
-	for _, device := range deviceList {
-		if device.Name == name {
-			devices = append(devices, device)
+	foundDevices := make([]Device, 0)
+	for _, device := range devices {
+		if device.Name == deviceName {
+			foundDevices = append(foundDevices, device)
 		}
 	}
 
-	numDevices := len(devices)
-
+	numDevices := len(foundDevices)
 	if numDevices == 0 {
-		return "", errors.Errorf("No device with name %s and OS version %s", name, osVersion)
+		return "", errors.Errorf("No device with name %s and OS version %s", deviceName, osVersion)
 	} else if numDevices > 1 {
-		return "", errors.Errorf("More than 1 device with name %s and OS version %s", name, osVersion)
+		return "", errors.Errorf("More than 1 device with name %s and OS version %s", deviceName, osVersion)
 	}
 
-	return devices[0].UDID, nil
+	return foundDevices[0].UDID, nil
 }
 
-func GetLatestIOSVersion() string {
-	osVersions := make([]string, len(deviceMap))
-
-	for osVersion := range deviceMap {
-		osVersions = append(osVersions, osVersion)
+func (dl DeviceList) GetLatestIOSVersion() (string, error) {
+	type version struct {
+		major int
+		minor int
 	}
 
-	// Lexical order should be fine since iOS minor versions don't go past 4
-	// Also Xcode usually only installs simulators for the latest iOS version by default
-	sort.Strings(osVersions)
-	latestVersion := osVersions[len(osVersions)-1]
+	osVersions := make([]version, len(dl.deviceMap))
+	for osVersion := range dl.deviceMap {
+		// Format is `iOS-major-minor`
+		parts := strings.Split(osVersion, "-")
+		if len(parts) != 3 {
+			return "", errors.Errorf("Invalid iOS version string %s", osVersion)
+		}
 
-	// Un-normalize the iOS version so it matches user input
-	trimmed := strings.TrimLeft(latestVersion, "iOS-")
-	return strings.ReplaceAll(trimmed, "-", ".")
+		major, err := strconv.Atoi(parts[1])
+		if err != nil {
+			return "", errors.Wrapf(err, "Failed to parse major version as an int %s", parts[1])
+		}
+
+		minor, err := strconv.Atoi(parts[2])
+		if err != nil {
+			return "", errors.Wrapf(err, "Failed to parse minor version as an int %s", parts[2])
+		}
+
+		osVersions = append(osVersions, version{major, minor})
+	}
+
+	sort.Slice(osVersions, func(i, j int) bool {
+		if osVersions[i].major == osVersions[j].major {
+			return osVersions[i].minor < osVersions[j].minor
+		}
+
+		return osVersions[i].major < osVersions[j].major
+	})
+
+	latestVersion := osVersions[len(osVersions)-1]
+	return fmt.Sprintf("%d.%d", latestVersion.major, latestVersion.minor), nil
 }

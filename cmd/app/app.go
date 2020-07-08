@@ -11,7 +11,6 @@ import (
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
-	"github.com/TouchBistro/tb/simulator"
 	"github.com/TouchBistro/tb/storage"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
@@ -48,13 +47,6 @@ var appCmd = &cobra.Command{
 		})
 		if err != nil {
 			fatal.ExitErr(err, "Failed to initialize config files")
-		}
-
-		if isIOSCommand {
-			err = simulator.LoadSimulators()
-			if err != nil {
-				fatal.ExitErr(err, "Failed to find available iOS simulators")
-			}
 		}
 	},
 }

@@ -32,14 +32,28 @@ Examples:
 - displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator
 	tb app logs --number 20 --ios-version 12.4 --device iPad Air 2`,
 	Run: func(cmd *cobra.Command, args []string) {
+		deviceData, err := simulator.ListDevices()
+		if err != nil {
+			fatal.ExitErr(err, "Failed to get list of simulators")
+		}
+
+		deviceList, err := simulator.ParseSimulators(deviceData)
+		if err != nil {
+			fatal.ExitErr(err, "Failed to find available iOS simulators")
+		}
+
 		if logOpts.iosVersion == "" {
-			logOpts.iosVersion = simulator.GetLatestIOSVersion()
+			logOpts.iosVersion, err = deviceList.GetLatestIOSVersion()
+			if err != nil {
+				fatal.ExitErr(err, "failed to get latest iOS version")
+			}
+
 			log.Infof("No iOS version provided, defaulting to version %s\n", logOpts.iosVersion)
 		}
 
 		log.Debugln("☐ Finding device UDID")
 
-		deviceUDID, err := simulator.GetDeviceUDID("iOS "+logOpts.iosVersion, logOpts.deviceName)
+		deviceUDID, err := deviceList.GetDeviceUDID("iOS "+logOpts.iosVersion, logOpts.deviceName)
 		if err != nil {
 			fatal.ExitErr(err, "☒ Failed to get device UUID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}
