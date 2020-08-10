@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  tb-services: touchbistro/tb-services@volatile
+
 jobs:
   lint-build-test:
     docker:
@@ -36,3 +39,7 @@ workflows:
   lint-build-test:
     jobs:
       - lint-build-test
+      - tb-services/sentry-tag-release:
+          requires:
+            - lint-build-test
+          context: org-global
