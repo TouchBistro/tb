@@ -1,24 +1,26 @@
 version: 2.1
 
+cache_key: &cache_key tb-deps-20200924-{{ checksum "go.sum" }}
+
 jobs:
   lint-build-test:
     docker:
-      - image: circleci/golang:1.12
-    working_directory: ~/tb
+      - image: cimg/go:1.14
     steps:
       - checkout
       - restore_cache:
           name: Restore dependency cache
           keys:
-            - tb-deps-{{ checksum "go.sum" }}
+            - *cache_key
       - run:
           name: Install dependencies
           command: make setup
       - save_cache:
           name: Cache dependencies
-          key: tb-deps-{{ checksum "go.sum" }}
+          key: *cache_key
           paths:
-            - /go/pkg
+            - ~/go/pkg
+            - bin/golangci-lint
       - run:
           name: Run linter
           command: make lint

@@ -2,7 +2,11 @@
 
 # Get all dependencies
 setup:
+# Only install if missing
+ifeq (,$(wildcard bin/golangci-lint))
 	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh
+endif
+
 	go mod download
 .PHONY: setup
 
