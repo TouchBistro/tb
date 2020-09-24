@@ -25,6 +25,14 @@ const (
 	staticDirName     = "static"
 )
 
+// TODO(@cszatmary): Figure out a better way to differentiate between app types
+type appType int
+
+const (
+	appTypeiOS appType = iota
+	appTypeDesktop
+)
+
 type Registry struct {
 	Name      string `yaml:"name"`
 	LocalPath string `yaml:"localPath,omitempty"`
@@ -102,6 +110,20 @@ func validateService(s service.Service) error {
 	// Make sure repo is specified if not using remote
 	if !s.UseRemote() && !s.CanBuild() {
 		return errors.Errorf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", s.Name)
+	}
+
+	return nil
+}
+
+func validateApp(a app.App, t appType) error {
+	// No validations needed for desktop currently
+	if t != appTypeiOS {
+		return nil
+	}
+
+	// Make sure RunsOn is valid
+	if a.DeviceType() == app.DeviceTypeUnknown {
+		return errors.Errorf("'%s.runsOn' value is invalid, must be 'all', 'ipad', or 'iphone'", a.Name)
 	}
 
 	return nil
@@ -260,6 +282,11 @@ func readApps(r Registry) ([]app.App, []app.App, error) {
 		a.Name = n
 		a.RegistryName = r.Name
 
+		err := validateApp(a, appTypeiOS)
+		if err != nil {
+			return nil, nil, errors.Wrapf(err, "app %s failed validation", n)
+		}
+
 		iosApps = append(iosApps, a)
 	}
 
@@ -375,6 +402,16 @@ func Validate(path string) error {
 		err = yaml.NewDecoder(af).Decode(&appConf)
 		if err != nil {
 			return errors.Wrapf(err, "failed to read %s", appsPath)
+		}
+
+		// Make sure all iOS apps are valid
+		for n, a := range appConf.IOSApps {
+			a.Name = n
+			err := validateApp(a, appTypeiOS)
+			if err != nil {
+				log.Infof(color.Red("❌ app %s is invalid"), n)
+				return errors.Wrapf(err, "app %s failed validation", n)
+			}
 		}
 
 		log.Infof(color.Green("✅ %s is valid"), appsFileName)

@@ -2,9 +2,19 @@ package app
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
+)
+
+type DeviceType int
+
+const (
+	DeviceTypeAll DeviceType = iota
+	DeviceTypeiPad
+	DeviceTypeiPhone
+	DeviceTypeUnknown
 )
 
 type Storage struct {
@@ -13,11 +23,16 @@ type Storage struct {
 }
 
 type App struct {
-	BundleID string            `yaml:"bundleID"`
-	Branch   string            `yaml:"branch"`
-	GitRepo  string            `yaml:"repo"`
-	EnvVars  map[string]string `yaml:"envVars"`
-	Storage  Storage           `yaml:"storage"`
+	// TODO(@cszatmary): Need to figure out a better way to handle iOS vs deskop
+	// iOS only
+	BundleID string `yaml:"bundleID"`
+	// Assume DeviceTypeAll if empty
+	RunsOn string `yaml:"runsOn"`
+
+	Branch  string            `yaml:"branch"`
+	GitRepo string            `yaml:"repo"`
+	EnvVars map[string]string `yaml:"envVars"`
+	Storage Storage           `yaml:"storage"`
 	// Not part of yaml, set at runtime
 	Name         string `yaml:"-"`
 	RegistryName string `yaml:"-"`
@@ -25,6 +40,26 @@ type App struct {
 
 func (a App) FullName() string {
 	return fmt.Sprintf("%s/%s", a.RegistryName, a.Name)
+}
+
+func (a App) DeviceType() DeviceType {
+	if a.RunsOn == "" {
+		return DeviceTypeAll
+	}
+
+	// Make it case insensitive because we don't want to worry about if
+	// people wrote ipad vs iPad
+	runsOn := strings.ToLower(a.RunsOn)
+	switch runsOn {
+	case "all":
+		return DeviceTypeAll
+	case "ipad":
+		return DeviceTypeiPad
+	case "iphone":
+		return DeviceTypeiPhone
+	default:
+		return DeviceTypeUnknown
+	}
 }
 
 type AppCollection struct {
