@@ -30,7 +30,6 @@ type appType int
 
 const (
 	appTypeiOS appType = iota
-	appTypeDesktop
 )
 
 type Registry struct {
