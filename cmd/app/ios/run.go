@@ -66,6 +66,7 @@ Examples:
 			a.Branch = runOpts.branch
 		}
 
+		// Figure out default iOS version if it wasn't provided
 		if runOpts.iosVersion == "" {
 			runOpts.iosVersion, err = deviceList.GetLatestIOSVersion()
 			if err != nil {
@@ -73,6 +74,22 @@ Examples:
 			}
 
 			log.Infof("No iOS version provided, defaulting to version %s\n", runOpts.iosVersion)
+		}
+
+		// Figure out default iOS device if it wasn't provided
+		if runOpts.deviceName == "" {
+			runOpts.deviceName, err = deviceList.GetDefaultDevice("iOS "+runOpts.iosVersion, a.DeviceType())
+			if err != nil {
+				fatal.ExitErr(err, "failed to get default iOS simulator")
+			}
+
+			log.Infof("No iOS simulator provided, defaulting to %s\n", runOpts.deviceName)
+		} else {
+			// Make sure provided device is valid for the given app
+			isValid := simulator.IsValidDevice(runOpts.deviceName, a.DeviceType())
+			if !isValid {
+				fatal.Exitf("Device %s is not supported by iOS app %s\n", runOpts.deviceName, appName)
+			}
 		}
 
 		downloadDest := config.IOSBuildPath()
@@ -158,7 +175,7 @@ Examples:
 func init() {
 	iosCmd.AddCommand(runCmd)
 	runCmd.Flags().StringVarP(&runOpts.iosVersion, "ios-version", "i", "", "The iOS version to use")
-	runCmd.Flags().StringVarP(&runOpts.deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
+	runCmd.Flags().StringVarP(&runOpts.deviceName, "device", "d", "", "The name of the device to use")
 	runCmd.Flags().StringVarP(&runOpts.branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
 	runCmd.Flags().StringVarP(&runOpts.dataPath, "data-path", "D", "", "The path to a data directory to inject into the simulator")
 }

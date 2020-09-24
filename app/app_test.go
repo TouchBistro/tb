@@ -114,3 +114,45 @@ func TestAppCollectionGetNonexistent(t *testing.T) {
 	assert.Zero(a)
 	assert.Error(err)
 }
+
+func TestDeviceType(t *testing.T) {
+	tests := []struct {
+		name               string
+		app                App
+		expectedDeviceType DeviceType
+	}{
+		{
+			"No device type provided",
+			App{},
+			DeviceTypeAll,
+		},
+		{
+			"All devices",
+			App{RunsOn: "all"},
+			DeviceTypeAll,
+		},
+		{
+			"Only iPads",
+			App{RunsOn: "iPad"},
+			DeviceTypeiPad,
+		},
+		{
+			"Only iPhones",
+			App{RunsOn: "iPhone"},
+			DeviceTypeiPhone,
+		},
+		{
+			"Unknown device type",
+			App{RunsOn: "iPod"},
+			DeviceTypeUnknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			deviceType := tt.app.DeviceType()
+
+			assert.Equal(t, tt.expectedDeviceType, deviceType)
+		})
+	}
+}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/simulator"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -42,6 +43,7 @@ Examples:
 			fatal.ExitErr(err, "Failed to find available iOS simulators")
 		}
 
+		// Figure out default iOS version if it wasn't provided
 		if logOpts.iosVersion == "" {
 			logOpts.iosVersion, err = deviceList.GetLatestIOSVersion()
 			if err != nil {
@@ -49,6 +51,16 @@ Examples:
 			}
 
 			log.Infof("No iOS version provided, defaulting to version %s\n", logOpts.iosVersion)
+		}
+
+		// Figure out default iOS device if it wasn't provided
+		if runOpts.deviceName == "" {
+			runOpts.deviceName, err = deviceList.GetDefaultDevice("iOS "+runOpts.iosVersion, app.DeviceTypeAll)
+			if err != nil {
+				fatal.ExitErr(err, "failed to get default iOS simulator")
+			}
+
+			log.Infof("No iOS simulator provided, defaulting to %s\n", runOpts.deviceName)
 		}
 
 		log.Debugln("☐ Finding device UDID")
@@ -76,6 +88,6 @@ Examples:
 func init() {
 	iosCmd.AddCommand(logsCmd)
 	logsCmd.Flags().StringVarP(&logOpts.iosVersion, "ios-version", "i", "", "The iOS version to use")
-	logsCmd.Flags().StringVarP(&logOpts.deviceName, "device", "d", "iPad Air (3rd generation)", "The name of the device to use")
+	logsCmd.Flags().StringVarP(&logOpts.deviceName, "device", "d", "", "The name of the device to use")
 	logsCmd.Flags().StringVarP(&logOpts.numberOfLines, "number", "n", "10", "The number of lines to display")
 }

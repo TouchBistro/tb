@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/TouchBistro/tb/app"
 	"github.com/pkg/errors"
 )
 
@@ -55,11 +56,7 @@ func ParseSimulators(deviceData []byte) (DeviceList, error) {
 }
 
 func (dl DeviceList) GetDeviceUDID(osVersion, deviceName string) (string, error) {
-	// Replace all spaces, brackets, and periods with dashes
-	// Ex: `iOS 13.5` will become `iOS-13-5`
-	regex := regexp.MustCompile(`(\.|\(|\)|\s)`)
-	osKey := regex.ReplaceAllString(osVersion, "-")
-
+	osKey := normalizeOSVersion(osVersion)
 	devices, ok := dl.deviceMap[osKey]
 	if !ok {
 		return "", errors.Errorf("Unknown OS: %s", osVersion)
@@ -119,4 +116,45 @@ func (dl DeviceList) GetLatestIOSVersion() (string, error) {
 
 	latestVersion := osVersions[len(osVersions)-1]
 	return fmt.Sprintf("%d.%d", latestVersion.major, latestVersion.minor), nil
+}
+
+func (dl DeviceList) GetDefaultDevice(osVersion string, deviceType app.DeviceType) (string, error) {
+	osKey := normalizeOSVersion(osVersion)
+	devices, ok := dl.deviceMap[osKey]
+	if !ok {
+		return "", errors.Errorf("Unknown OS: %s", osVersion)
+	}
+
+	// Find the first available device the matches the deviceType
+	for _, d := range devices {
+		// Found an iPad
+		if IsValidDevice(d.Name, deviceType) {
+			return d.Name, nil
+		}
+	}
+
+	return "", errors.Errorf("No supported device found for iOS %s", osVersion)
+}
+
+func IsValidDevice(deviceName string, deviceType app.DeviceType) bool {
+	switch deviceType {
+	case app.DeviceTypeAll:
+		return true
+	case app.DeviceTypeiPad:
+		return strings.Contains(deviceName, "iPad")
+	case app.DeviceTypeiPhone:
+		return strings.Contains(deviceName, "iPhone")
+	default:
+		return false
+	}
+}
+
+func normalizeOSVersion(osVersion string) string {
+	// This is shallow but we need to do it every time we access the deviceMap
+	// and I want to make sure it isn't forgotten or have a mistake made
+
+	// Replace all spaces, brackets, and periods with dashes
+	// Ex: `iOS 13.5` will become `iOS-13-5`
+	regex := regexp.MustCompile(`(\.|\(|\)|\s)`)
+	return regex.ReplaceAllString(osVersion, "-")
 }

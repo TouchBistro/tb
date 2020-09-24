@@ -80,6 +80,7 @@ The schema of an iOS app is:
   branch: string               # The base branch of the repo, ex: master
   repo: string                 # The repo name on GitHub, format: org/repo
   envVars: map<string, string> # Env vars to set for the app
+  runsOn: all | ipad | iphone  # What type of device the app can run on
   storage:
     provider: s3   # The storage provider to use
     bucket: string # The name of the bucket the builds are stored in
@@ -95,6 +96,11 @@ The schema of a desktop app is:
     provider: s3   # The storage provider to use
     bucket: string # The name of the bucket the builds are stored in
 ```
+
+#### Specifying Device Types for iOS Apps
+Some iOS apps can only run on certain device types, for example only on iPad. You can specify this using `runsOn` field. Valid values are `all`, `ipad`, and `iphone`. This field is case-insensitive so `ipad` and `iPad` are equivalent.
+
+If `runsOn` is not specified it is assumed to be `all`.
 
 ## Configuring Services
 

@@ -3,6 +3,7 @@ package registry
 import (
 	"testing"
 
+	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/service"
 	"github.com/stretchr/testify/assert"
@@ -22,6 +23,7 @@ func TestReadRegistries(t *testing.T) {
 		},
 	}
 	result, err := ReadRegistries(registries, ReadOptions{
+		ShouldReadApps:     true,
 		ShouldReadServices: true,
 		RootPath:           "/home/test/.tb",
 		ReposPath:          "/home/test/.tb/repos",
@@ -221,6 +223,45 @@ func TestReadRegistries(t *testing.T) {
 		Name:         "example-zone",
 		RegistryName: "ExampleZone/tb-registry",
 	}, ezExampleZonePlaylist)
+
+	// Check apps
+
+	gemSwapper, err := result.IOSApps.Get("GemSwapper")
+	if err != nil {
+		assert.FailNow("Failed to get GemSwapper iOS app")
+	}
+
+	assert.Equal(app.App{
+		BundleID: "com.example.GemSwapper",
+		Branch:   "master",
+		GitRepo:  "ExampleZone/gem-swapper",
+		Storage: app.Storage{
+			Provider: "s3",
+			Bucket:   "ios-builds",
+		},
+		Name:         "GemSwapper",
+		RegistryName: "ExampleZone/tb-registry",
+	}, gemSwapper)
+	assert.Equal(app.DeviceTypeAll, gemSwapper.DeviceType())
+
+	iCode, err := result.IOSApps.Get("iCode")
+	if err != nil {
+		assert.FailNow("Failed to get iCode iOS app")
+	}
+
+	assert.Equal(app.App{
+		BundleID: "com.example.iCode",
+		Branch:   "develop",
+		GitRepo:  "ExampleZone/iCode",
+		RunsOn:   "iPad",
+		Storage: app.Storage{
+			Provider: "s3",
+			Bucket:   "ios-builds",
+		},
+		Name:         "iCode",
+		RegistryName: "ExampleZone/tb-registry",
+	}, iCode)
+	assert.Equal(app.DeviceTypeiPad, iCode.DeviceType())
 }
 
 func TestValidate(t *testing.T) {

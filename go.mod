@@ -1,5 +1,7 @@
 module github.com/TouchBistro/tb
 
+go 1.14
+
 require (
 	github.com/Microsoft/go-winio v0.4.12 // indirect
 	github.com/TouchBistro/goutils v0.0.2
@@ -24,5 +26,3 @@ require (
 	gopkg.in/yaml.v2 v2.2.2
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776
 )
-
-go 1.13

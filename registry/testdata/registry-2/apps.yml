@@ -1,0 +1,16 @@
+iosApps:
+  GemSwapper:
+    bundleID: com.example.GemSwapper
+    branch: master
+    repo: ExampleZone/gem-swapper
+    storage:
+      provider: s3
+      bucket: ios-builds
+  iCode:
+    bundleID: com.example.iCode
+    branch: develop
+    repo: ExampleZone/iCode
+    runsOn: iPad
+    storage:
+      provider: s3
+      bucket: ios-builds
