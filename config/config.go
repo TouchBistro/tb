@@ -148,7 +148,7 @@ reporting: "off"
 gui:
   wrapMainPanel: true
 update:
-  dockerRefreshInterval: 2000ms`
+  dockerRefreshInterval: 5000ms`
 
 	ldConfigPath := filepath.Join(ldDirPath, "config.yml")
 	err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
