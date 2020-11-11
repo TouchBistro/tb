@@ -93,7 +93,7 @@ registries:
 
 You run can run a service or playlist by running `tb up -s <service>` or `tb up -p <playlist>`. `tb` will install any dependencies it needs and then start your services in docker containers.
 
-`tb up` will start [lazydocker](https://github.com/jesseduffield/lazydocker). For more information about how to interact with it, check out [its README](https://github.com/jesseduffield/lazydocker/blob/master/README.md). You can quit lazydocker, and containers will continue to run. You can always run `lazydocker` again without having to restart your services.
+`tb up` will start [lazydocker](https://github.com/jesseduffield/lazydocker) if [enabled](#toggling-lazydocker). For more information about how to interact with it, check out [its README](https://github.com/jesseduffield/lazydocker/blob/master/README.md). You can quit lazydocker, and containers will continue to run. You can always run `lazydocker` again without having to restart your services.
 
 Try running `tb --help` or `tb up --help` to see what else you can do.
 
@@ -123,6 +123,15 @@ Please be aware that you may encounter bugs with these features as they have not
 Also, experimental mode is not covered by semver guarantees, so there could be breaking changes at any time.
 
 If you would like to help use test new features, we would appreciate it if you could enable experimental mode and report any issues you encounter.
+
+### Toggling fortunes
+
+To toggle fortunes, set the `fortunes` property to `true` or `false`. If omitted, fortunes are enabled by default.
+
+### Toggling `lazydocker`
+
+To toggle if `lazydocker` should run after starting containers, set the `lazydocker` property to `true` or `false`. If omitted, `lazydocker` is enabled by default.
+Consequently, `lazydocker` is no longer considered a dependency if this option is disabled.
 
 ### Adding custom playlists
 You can create custom playlists by adding a new object to the `playlists` property.

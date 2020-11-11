@@ -52,12 +52,14 @@ func init() {
 	rootCmd.AddCommand(appCmd.AppCmd(), registryCmd.RegistryCmd())
 
 	cobra.OnInitialize(func() {
-		f := fortune.Random().String()
-		fmt.Println(color.Magenta(f))
-
 		err := config.LoadTBRC()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to load tbrc.")
+		}
+
+		if config.IsFortunesEnabled() {
+			f := fortune.Random().String()
+			fmt.Println(color.Magenta(f))
 		}
 
 		checkVersion()

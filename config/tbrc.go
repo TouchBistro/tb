@@ -24,6 +24,8 @@ var ErrRegistryExists = errors.New("registry already exists")
 type userConfig struct {
 	DebugEnabled        bool                               `yaml:"debug"`
 	ExperimentalEnabled bool                               `yaml:"experimental"`
+	FortunesEnabled     *bool                              `yaml:"fortunes"`
+	LazydockerEnabled   *bool                              `yaml:"lazydocker"`
 	Playlists           map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides           map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries          []registry.Registry                `yaml:"registries"`
@@ -33,6 +35,14 @@ type userConfig struct {
 
 func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
+}
+
+func IsFortunesEnabled() bool {
+	return tbrc.FortunesEnabled == nil || *tbrc.FortunesEnabled
+}
+
+func IsLazydockerEnabled() bool {
+	return tbrc.LazydockerEnabled == nil || *tbrc.LazydockerEnabled
 }
 
 func Registries() []registry.Registry {

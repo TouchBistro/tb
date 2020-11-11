@@ -195,13 +195,18 @@ Examples:
 	tb up --services postgres,localstack`,
 	Args: cobra.NoArgs,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		err := deps.Resolve(
+		var dependencies = []string{
 			deps.Brew,
 			deps.Aws,
-			deps.Lazydocker,
 			deps.Node,
 			deps.Yarn,
-		)
+		}
+
+		if config.IsLazydockerEnabled() {
+			dependencies = append(dependencies, deps.Lazydocker)
+		}
+
+		err := deps.Resolve(dependencies...)
 		if err != nil {
 			fatal.ExitErr(err, "could not resolve dependencies")
 		}
@@ -340,7 +345,7 @@ Examples:
 		dockerComposeUp(selectedServices)
 		fmt.Println()
 
-		if !opts.shouldSkipLazydocker {
+		if !opts.shouldSkipLazydocker && config.IsLazydockerEnabled() {
 			log.Info("☐ Starting lazydocker")
 			err = command.Exec("lazydocker", nil, "lazydocker")
 			if err != nil {
