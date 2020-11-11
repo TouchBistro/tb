@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	"github.com/pkg/errors"
 )
 
 const (
-	apiURL   = "https://api.github.com"
-	tokenVar = "HOMEBREW_GITHUB_API_TOKEN"
+	apiURL = "https://api.github.com"
 )
 
 type getBranchResponse struct {
@@ -30,8 +28,6 @@ func GetBranchHeadSha(repo, branch string) (string, error) {
 		return "", errors.Wrap(err, "Failed to create GET request to GitHub API")
 	}
 
-	token := fmt.Sprintf("token %s", os.Getenv(tokenVar))
-	req.Header.Add("Authorization", token)
 	// Use v3 API
 	req.Header.Add("Accept", "application/vnd.github.v3+json")
 
