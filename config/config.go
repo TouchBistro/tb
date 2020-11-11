@@ -80,19 +80,6 @@ func LoadedDesktopApps() *app.AppCollection {
 
 /* Private Functions */
 
-func setupEnv() error {
-	tbRoot := TBRootPath()
-
-	// Create $TB_ROOT directory if it doesn't exist
-	if !file.FileOrDirExists(tbRoot) {
-		err := os.Mkdir(tbRoot, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create $TB_ROOT directory at %s", tbRoot)
-		}
-	}
-	return nil
-}
-
 func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 	if r.LocalPath != "" {
 		return nil
@@ -123,9 +110,14 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 /* Public Functions */
 
 func Init(opts InitOptions) error {
-	err := setupEnv()
-	if err != nil {
-		return errors.Wrap(err, "failed to setup tb environment")
+	tbRoot := TBRootPath()
+
+	// Create ~/.tb directory if it doesn't exist
+	if !file.FileOrDirExists(tbRoot) {
+		err := os.Mkdir(tbRoot, 0755)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create tb root directory at %s", tbRoot)
+		}
 	}
 
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
@@ -138,7 +130,7 @@ func Init(opts InitOptions) error {
 		ldDirPath = filepath.Join(os.Getenv("HOME"), ".config/jesseduffield/lazydocker")
 	}
 
-	err = os.MkdirAll(ldDirPath, 0766)
+	err := os.MkdirAll(ldDirPath, 0766)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
 	}
