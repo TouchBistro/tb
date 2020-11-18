@@ -148,6 +148,8 @@ update:
 		return errors.Wrap(err, "failed to create lazydocker config file")
 	}
 
+	git.CheckGithubAPIToken()
+
 	// THE REGISTRY ZONE
 
 	log.Infoln("Cloning/pulling registries...")
