@@ -22,7 +22,7 @@ func CheckGithubAPIToken() {
 	log.Debugf("Checking if %s is set", githubTokenVarName)
 	token := os.Getenv(githubTokenVarName)
 	if token != "" {
-		log.Debugf("%s is set", token)
+		log.Debugf("%s is set", githubTokenVarName)
 		return
 	}
 
