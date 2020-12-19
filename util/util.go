@@ -31,15 +31,13 @@ func Prompt(msg string) bool {
 	return false
 }
 
-func ExpandVars(str string, vars map[string]string) string {
+func ExpandVars(str string, vars map[string]string) (string, error) {
 	// Regex to match variable substitution of the form ${VAR}
 	regex := regexp.MustCompile(`\$\{([\w-@:]+)\}`)
-	indices := regex.FindAllStringSubmatchIndex(str, -1)
+	var result string
 
-	// Go through the string in reverse order and replace all variables with their value
-	expandedStr := str
-	for i := len(indices) - 1; i >= 0; i-- {
-		match := indices[i]
+	lastEndIndex := 0
+	for _, match := range regex.FindAllStringSubmatchIndex(str, -1) {
 		// match[0] is the start index of the whole match
 		startIndex := match[0]
 		// match[1] is the end index of the whole match (exclusive)
@@ -55,28 +53,33 @@ func ExpandVars(str string, vars map[string]string) string {
 		if strings.HasPrefix(varName, envPrefix) {
 			varValue = fmt.Sprintf("${%s}", strings.TrimPrefix(varName, envPrefix))
 		} else {
-			varValue = vars[varName]
+			var ok bool
+			varValue, ok = vars[varName]
+			if !ok {
+				return "", fmt.Errorf("unknown variable %q", varName)
+			}
 		}
 
-		expandedStr = expandedStr[:startIndex] + varValue + expandedStr[endIndex:]
+		result += str[lastEndIndex:startIndex]
+		result += varValue
+		lastEndIndex = endIndex
 	}
 
-	return expandedStr
+	result += str[lastEndIndex:]
+	return result, nil
 }
 
 func UniqueStrings(s []string) []string {
 	set := make(map[string]bool)
-	us := make([]string, 0)
-
+	var us []string
 	for _, v := range s {
-		if _, ok := set[v]; ok {
+		if ok := set[v]; ok {
 			continue
 		}
 
 		set[v] = true
 		us = append(us, v)
 	}
-
 	return us
 }
 
@@ -85,11 +88,9 @@ func SplitNameParts(name string) (string, string, error) {
 	// <org>/<repo>/<item> where an item is a service, playlist or app
 	regex := regexp.MustCompile(`^(?:([\w-]+\/[\w-]+)\/)?([\w-]+)$`)
 	matches := regex.FindStringSubmatch(name)
-
 	if len(matches) == 0 {
 		return "", "", errors.Errorf("%s is not a valid tb item name. Format is <org>/<repo>/<item>", name)
 	}
-
 	return matches[1], matches[2], nil
 }
 

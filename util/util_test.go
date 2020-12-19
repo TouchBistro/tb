@@ -1,8 +1,9 @@
-package util
+package util_test
 
 import (
 	"testing"
 
+	"github.com/TouchBistro/tb/util"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,10 +16,23 @@ func TestExpandVars(t *testing.T) {
 		"name":      "node-boilerplate",
 	}
 
-	expanded := ExpandVars(str, vars)
+	expanded, err := util.ExpandVars(str, vars)
 
 	expected := `envPath: ${HOME}/.tb/repos/node-boilerplate`
 	assert.Equal(expected, expanded)
+	assert.NoError(err)
+}
+
+func TestExpandVarsMissingVar(t *testing.T) {
+	assert := assert.New(t)
+
+	str := `DB_HOST: ${@postgres}`
+	vars := map[string]string{}
+
+	expanded, err := util.ExpandVars(str, vars)
+
+	assert.Empty(expanded)
+	assert.Error(err)
 }
 
 func TestUnqiueStrings(t *testing.T) {
@@ -26,7 +40,7 @@ func TestUnqiueStrings(t *testing.T) {
 
 	s := []string{"npm", "ecr", "ecr", "gcp", "npm", "ecr"}
 	expected := []string{"npm", "ecr", "gcp"}
-	result := UniqueStrings(s)
+	result := util.UniqueStrings(s)
 
 	assert.Equal(expected, result)
 }
@@ -35,7 +49,7 @@ func TestSplitNameParts(t *testing.T) {
 	assert := assert.New(t)
 
 	name := "TouchBistro/tb-registry/touchbistro-node-boilerplate"
-	registryName, serviceName, err := SplitNameParts(name)
+	registryName, serviceName, err := util.SplitNameParts(name)
 
 	assert.Equal("TouchBistro/tb-registry", registryName)
 	assert.Equal("touchbistro-node-boilerplate", serviceName)
@@ -46,7 +60,7 @@ func TestSplitNamePartsShortName(t *testing.T) {
 	assert := assert.New(t)
 
 	name := "touchbistro-node-boilerplate"
-	registryName, serviceName, err := SplitNameParts(name)
+	registryName, serviceName, err := util.SplitNameParts(name)
 
 	assert.Empty(registryName)
 	assert.Equal("touchbistro-node-boilerplate", serviceName)
@@ -57,7 +71,7 @@ func TestSplitNamePartsInvalid(t *testing.T) {
 	assert := assert.New(t)
 
 	name := "TouchBistro/touchbistro-node-boilerplate"
-	registryName, serviceName, err := SplitNameParts(name)
+	registryName, serviceName, err := util.SplitNameParts(name)
 
 	assert.Empty(registryName)
 	assert.Empty(serviceName)
@@ -68,7 +82,7 @@ func TestDockerName(t *testing.T) {
 	assert := assert.New(t)
 
 	name := "TouchBistro/tb-registry/touchbistro-node-boilerplate"
-	dockerName := DockerName(name)
+	dockerName := util.DockerName(name)
 
 	expected := "touchbistro-tb-registry-touchbistro-node-boilerplate"
 	assert.Equal(expected, dockerName)
