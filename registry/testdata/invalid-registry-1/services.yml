@@ -3,7 +3,7 @@ services:
     envVars:
       POSTGRES_USER: core
       POSTGRES_PASSWORD: localdev
-    mode: remote
+    mode: build
     ports:
       - '5432:5432'
   venue-core-service:
@@ -15,7 +15,7 @@ services:
       DB_HOST: ${@postgres}
     mode: local
     ports:
-      - '5432:8080'
+      - '9000:8080'
     preRun: yarn db:prepare
     repo:
       name: TouchBistro/venue-core-service
@@ -32,3 +32,25 @@ services:
       command: yarn serve
       image: venue-core-service
       tag: master
+  venue-example-service:
+    dependencies:
+      - ${@redis}
+    entrypoint: ["bash", "entrypoints/docker.sh"]
+    envFile: ${@REPOPATH}/.env.compose
+    envVars:
+      HTTP_PORT: 8000
+      POSTGRES_HOST: ${@postgres}
+    mode: local
+    ports:
+      - '9000:8000'
+    preRun: yarn db:prepare:dev
+    repo:
+      name: ExampleZone/venue-example-service
+    build:
+      target: build
+      command: yarn start
+      dockerfilePath: ${@REPOPATH}
+    remote:
+      command: yarn serve
+      image: ${docker}/venue-example-service
+      tag: staging

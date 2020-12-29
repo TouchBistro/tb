@@ -316,7 +316,7 @@ func expandVarsInField(field *string, vars map[string]string, errMsgs *[]string,
 		return
 	}
 
-	msg := fmt.Sprintf("%s: %s", fieldName, err.Error())
+	msg := fmt.Sprintf("%s: %s", fieldName, err)
 	*errMsgs = append(*errMsgs, msg)
 }
 
@@ -496,6 +496,13 @@ type ValidateResult struct {
 	ServicesErr  error
 }
 
+// Validate checks to see if the registry located at path is valid. It will read and validate
+// each configuration file in the registry.
+//
+// Validate returns a ValidateResult struct that contains errors encountered for each resource.
+// If a configuration file is valid, then the corresponding error value will be nil. Otherwise,
+// the error will be a non-nil value containing the details of why validation failed.
+// If a configuration file does not exist, then the corresponding error will be ErrFileNotExist.
 func Validate(path string) ValidateResult {
 	r := Registry{
 		Name: filepath.Base(path),
