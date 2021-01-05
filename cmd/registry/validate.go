@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type validateOptions struct {
+	strict bool
+}
+
+var validateOpts validateOptions
+
 var validateCmd = &cobra.Command{
 	Use:   "validate <path>",
 	Args:  cobra.ExactArgs(1),
@@ -24,7 +30,7 @@ Example:
 		log.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)
 
 		valid := true
-		result := registry.Validate(registryPath)
+		result := registry.Validate(registryPath, validateOpts.strict)
 		if errors.Is(result.AppsErr, registry.ErrFileNotExist) {
 			log.Infof(color.Yellow("No %s file"), registry.AppsFileName)
 		} else if result.AppsErr == nil {
@@ -60,5 +66,6 @@ Example:
 }
 
 func init() {
+	validateCmd.Flags().BoolVar(&validateOpts.strict, "strict", false, "Strict mode, treat more cases as errors")
 	registryCmd.AddCommand(validateCmd)
 }

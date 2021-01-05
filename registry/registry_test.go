@@ -268,14 +268,14 @@ func TestReadRegistries(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	result := registry.Validate("testdata/registry-2")
+	result := registry.Validate("testdata/registry-2", true)
 	assert.NoError(t, result.AppsErr)
 	assert.NoError(t, result.PlaylistsErr)
 	assert.NoError(t, result.ServicesErr)
 }
 
 func TestValidateErrors(t *testing.T) {
-	result := registry.Validate("testdata/invalid-registry-1")
+	result := registry.Validate("testdata/invalid-registry-1", true)
 
 	var errList registry.ErrorList
 	var validationErr *registry.ValidationError

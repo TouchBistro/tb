@@ -196,6 +196,7 @@ type readServicesOptions struct {
 	rootPath  string
 	reposPath string
 	overrides map[string]service.ServiceOverride
+	strict    bool
 }
 
 func readServices(r Registry, opts readServicesOptions) ([]service.Service, serviceGlobalConfig, error) {
@@ -281,7 +282,8 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 
 		}
 
-		if len(errMsgs) > 0 {
+		// Report unknown vars as an error if in strict mode
+		if len(errMsgs) > 0 && opts.strict {
 			errs = append(errs, &ValidationError{
 				ResourceType: resourceTypeService,
 				ResourceName: s.Name,
@@ -497,13 +499,13 @@ type ValidateResult struct {
 }
 
 // Validate checks to see if the registry located at path is valid. It will read and validate
-// each configuration file in the registry.
+// each configuration file in the registry. If strict is true unknown variables will be considered errors.
 //
 // Validate returns a ValidateResult struct that contains errors encountered for each resource.
 // If a configuration file is valid, then the corresponding error value will be nil. Otherwise,
 // the error will be a non-nil value containing the details of why validation failed.
 // If a configuration file does not exist, then the corresponding error will be ErrFileNotExist.
-func Validate(path string) ValidateResult {
+func Validate(path string, strict bool) ValidateResult {
 	r := Registry{
 		Name: filepath.Base(path),
 		Path: path,
@@ -540,7 +542,7 @@ func Validate(path string) ValidateResult {
 
 	servicesPath := filepath.Join(path, ServicesFileName)
 	if file.FileOrDirExists(servicesPath) {
-		services, _, err := readServices(r, readServicesOptions{})
+		services, _, err := readServices(r, readServicesOptions{strict: strict})
 		if err == nil {
 			// Keep track of ports to check for conflicting ports
 			usedPorts := make(map[string]string)
