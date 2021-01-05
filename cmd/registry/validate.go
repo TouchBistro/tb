@@ -1,12 +1,20 @@
 package registry
 
 import (
+	"errors"
+
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/registry"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
+
+type validateOptions struct {
+	strict bool
+}
+
+var validateOpts validateOptions
 
 var validateCmd = &cobra.Command{
 	Use:   "validate <path>",
@@ -21,15 +29,43 @@ Example:
 		registryPath := args[0]
 		log.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)
 
-		err := registry.Validate(registryPath)
-		if err != nil {
-			fatal.ExitErrf(err, "failed to validate registry at path %s", registryPath)
+		valid := true
+		result := registry.Validate(registryPath, validateOpts.strict)
+		if errors.Is(result.AppsErr, registry.ErrFileNotExist) {
+			log.Infof(color.Yellow("No %s file"), registry.AppsFileName)
+		} else if result.AppsErr == nil {
+			log.Infof(color.Green("✅ %s is valid"), registry.AppsFileName)
+		} else {
+			log.Infof("❌ %s is invalid\n%v", registry.AppsFileName, result.AppsErr)
+			valid = false
 		}
 
+		if errors.Is(result.PlaylistsErr, registry.ErrFileNotExist) {
+			log.Infof(color.Yellow("No %s file"), registry.PlaylistsFileName)
+		} else if result.PlaylistsErr == nil {
+			log.Infof(color.Green("✅ %s is valid"), registry.PlaylistsFileName)
+		} else {
+			log.Infof("❌ %s is invalid\n%v", registry.PlaylistsFileName, result.PlaylistsErr)
+			valid = false
+		}
+
+		if errors.Is(result.ServicesErr, registry.ErrFileNotExist) {
+			log.Infof(color.Yellow("No %s file"), registry.ServicesFileName)
+		} else if result.ServicesErr == nil {
+			log.Infof(color.Green("✅ %s is valid"), registry.ServicesFileName)
+		} else {
+			log.Infof("❌ %s is invalid\n%v", registry.ServicesFileName, result.ServicesErr)
+			valid = false
+		}
+
+		if !valid {
+			fatal.Exit(color.Red("❌ registry is invalid"))
+		}
 		log.Info(color.Green("✅ registry is valid"))
 	},
 }
 
 func init() {
+	validateCmd.Flags().BoolVar(&validateOpts.strict, "strict", false, "Strict mode, treat more cases as errors")
 	registryCmd.AddCommand(validateCmd)
 }

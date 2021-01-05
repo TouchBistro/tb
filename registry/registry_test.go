@@ -1,10 +1,13 @@
-package registry
+package registry_test
 
 import (
+	"errors"
+	"sort"
 	"testing"
 
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/playlist"
+	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/service"
 	"github.com/stretchr/testify/assert"
 )
@@ -12,17 +15,17 @@ import (
 func TestReadRegistries(t *testing.T) {
 	assert := assert.New(t)
 
-	registries := []Registry{
-		Registry{
+	registries := []registry.Registry{
+		{
 			Name: "TouchBistro/tb-registry",
 			Path: "testdata/registry-1",
 		},
-		Registry{
+		{
 			Name: "ExampleZone/tb-registry",
 			Path: "testdata/registry-2",
 		},
 	}
-	result, err := ReadRegistries(registries, ReadOptions{
+	result, err := registry.ReadRegistries(registries, registry.ReadOptions{
 		ShouldReadApps:     true,
 		ShouldReadServices: true,
 		RootPath:           "/home/test/.tb",
@@ -265,17 +268,42 @@ func TestReadRegistries(t *testing.T) {
 }
 
 func TestValidate(t *testing.T) {
-	assert := assert.New(t)
-
-	err := Validate("testdata/registry-1")
-
-	assert.NoError(err)
+	result := registry.Validate("testdata/registry-2", true)
+	assert.NoError(t, result.AppsErr)
+	assert.NoError(t, result.PlaylistsErr)
+	assert.NoError(t, result.ServicesErr)
 }
 
-func TestValidateInvalidService(t *testing.T) {
-	assert := assert.New(t)
+func TestValidateErrors(t *testing.T) {
+	result := registry.Validate("testdata/invalid-registry-1", true)
 
-	err := Validate("testdata/invalid-registry-1")
+	var errList registry.ErrorList
+	var validationErr *registry.ValidationError
 
-	assert.Error(err)
+	assert.True(t, errors.As(result.AppsErr, &errList))
+	assert.Len(t, errList, 1)
+	assert.True(t, errors.As(errList[0], &validationErr))
+	assert.Equal(t, "app", validationErr.ResourceType)
+	assert.Equal(t, "GemSwapper", validationErr.ResourceName)
+
+	assert.True(t, errors.Is(result.PlaylistsErr, registry.ErrFileNotExist))
+
+	assert.True(t, errors.As(result.ServicesErr, &errList))
+	assert.Len(t, errList, 3)
+	var serviceErrs []*registry.ValidationError
+	for _, err := range errList {
+		var ve *registry.ValidationError
+		assert.True(t, errors.As(err, &ve))
+		assert.Equal(t, "service", ve.ResourceType)
+		serviceErrs = append(serviceErrs, ve)
+	}
+	// The order the services are unmarshed in is not guaranteed so sort them
+	// to make sure the test isn't flaky
+	sort.Slice(serviceErrs, func(i, j int) bool {
+		return serviceErrs[i].ResourceName < serviceErrs[j].ResourceName
+	})
+
+	assert.Equal(t, "postgres", serviceErrs[0].ResourceName)
+	assert.Equal(t, "venue-core-service", serviceErrs[1].ResourceName)
+	assert.Equal(t, "venue-example-service", serviceErrs[2].ResourceName)
 }

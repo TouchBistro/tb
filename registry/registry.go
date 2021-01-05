@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/playlist"
@@ -19,11 +18,19 @@ import (
 
 // File names in registry
 const (
-	appsFileName      = "apps.yml"
-	playlistsFileName = "playlists.yml"
-	servicesFileName  = "services.yml"
+	AppsFileName      = "apps.yml"
+	PlaylistsFileName = "playlists.yml"
+	ServicesFileName  = "services.yml"
 	staticDirName     = "static"
 )
+
+const (
+	resourceTypeApp     = "app"
+	resourceTypeService = "service"
+)
+
+// ErrFileNotExist indicates a registry file does not exist.
+var ErrFileNotExist = os.ErrNotExist
 
 // TODO(@cszatmary): Figure out a better way to differentiate between app types
 type appType int
@@ -75,6 +82,42 @@ type RegistryResult struct {
 	LoginStrategies []string
 }
 
+// ValidationError represents a resource having failed validation.
+// It contains the resource type, name, and a list of validation
+// failure messages.
+type ValidationError struct {
+	ResourceType string
+	ResourceName string
+	Messages     []string
+}
+
+func (ve *ValidationError) Error() string {
+	var sb strings.Builder
+	sb.WriteString(ve.ResourceType)
+	sb.WriteString(": ")
+	sb.WriteString(ve.ResourceName)
+	sb.WriteString(": ")
+
+	for i, msg := range ve.Messages {
+		if i > 0 {
+			sb.WriteString(", ")
+		}
+		sb.WriteString(msg)
+	}
+	return sb.String()
+}
+
+// ErrorList is a list of errors encountered.
+type ErrorList []error
+
+func (e ErrorList) Error() string {
+	errStrs := make([]string, len(e))
+	for i, err := range e {
+		errStrs[i] = err.Error()
+	}
+	return strings.Join(errStrs, "\n")
+}
+
 func readRegistryFile(fileName string, r Registry, v interface{}) error {
 	log.Debugf("Reading %s from registry %s", fileName, r.Name)
 
@@ -96,22 +139,33 @@ func readRegistryFile(fileName string, r Registry, v interface{}) error {
 }
 
 func validateService(s service.Service) error {
+	var msgs []string
+
 	// Make sure mode is a valid value
 	if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
-		return errors.Errorf("'%s.mode' value is invalid must be 'remote' or 'build'", s.Name)
+		msg := fmt.Sprintf("invalid 'mode' value %q, must be 'remote' or 'build'", s.Mode)
+		msgs = append(msgs, msg)
 	}
 
 	// Make sure image is specified if using remote
 	if s.UseRemote() && s.Remote.Image == "" {
-		return errors.Errorf("'%s.mode' is set to 'remote' but 'remote.image' was not provided", s.Name)
+		msgs = append(msgs, "'mode' is set to 'remote' but 'remote.image' was not provided")
 	}
 
 	// Make sure repo is specified if not using remote
 	if !s.UseRemote() && !s.CanBuild() {
-		return errors.Errorf("'%s.mode' is set to 'build' but 'build.dockerfilePath' was not provided", s.Name)
+		msgs = append(msgs, "'mode' is set to 'build' but 'build.dockerfilePath' was not provided")
 	}
 
-	return nil
+	if msgs == nil {
+		return nil
+	}
+
+	return &ValidationError{
+		ResourceType: resourceTypeService,
+		ResourceName: s.Name,
+		Messages:     msgs,
+	}
 }
 
 func validateApp(a app.App, t appType) error {
@@ -120,28 +174,37 @@ func validateApp(a app.App, t appType) error {
 		return nil
 	}
 
+	var msgs []string
+
 	// Make sure RunsOn is valid
 	if a.DeviceType() == app.DeviceTypeUnknown {
-		return errors.Errorf("'%s.runsOn' value is invalid, must be 'all', 'ipad', or 'iphone'", a.Name)
+		msgs = append(msgs, "'runsOn' value is invalid, must be 'all', 'ipad', or 'iphone'")
 	}
 
-	return nil
+	if msgs == nil {
+		return nil
+	}
+
+	return &ValidationError{
+		ResourceType: resourceTypeApp,
+		ResourceName: a.Name,
+		Messages:     msgs,
+	}
 }
 
 type readServicesOptions struct {
 	rootPath  string
 	reposPath string
 	overrides map[string]service.ServiceOverride
+	strict    bool
 }
 
 func readServices(r Registry, opts readServicesOptions) ([]service.Service, serviceGlobalConfig, error) {
 	serviceConf := registryServiceConfig{}
-	err := readRegistryFile(servicesFileName, r, &serviceConf)
+	err := readRegistryFile(ServicesFileName, r, &serviceConf)
 	if err != nil {
 		return nil, serviceGlobalConfig{}, errors.Wrapf(err, "failed to read services file from registry %s", r.Name)
 	}
-
-	services := make([]service.Service, 0, len(serviceConf.Services))
 
 	// Set special vars
 	vars := serviceConf.Global.Variables
@@ -160,13 +223,15 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 		vars["@"+name] = util.DockerName(fullName)
 	}
 
+	services := make([]service.Service, 0, len(serviceConf.Services))
+	var errs ErrorList
 	for n, s := range serviceConf.Services {
 		s.Name = n
 		s.RegistryName = r.Name
 
-		err := validateService(s)
-		if err != nil {
-			return nil, serviceGlobalConfig{}, errors.Wrapf(err, "service %s failed validation", n)
+		if err := validateService(s); err != nil {
+			errs = append(errs, err)
+			continue
 		}
 
 		override, ok := opts.overrides[s.FullName()]
@@ -187,27 +252,51 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 		vars["@REPOPATH"] = repoPath
 
 		// Expand any vars
+		var errMsgs []string
 		for i, dep := range s.Dependencies {
-			s.Dependencies[i] = util.ExpandVars(dep, vars)
+			d := dep
+			expandVarsInField(&d, vars, &errMsgs, "dependencies")
+			s.Dependencies[i] = d
 		}
 
-		s.Build.DockerfilePath = util.ExpandVars(s.Build.DockerfilePath, vars)
-		s.EnvFile = util.ExpandVars(s.EnvFile, vars)
-		s.Remote.Image = util.ExpandVars(s.Remote.Image, vars)
+		expandVarsInField(&s.Build.DockerfilePath, vars, &errMsgs, "build.dockerfilePath")
+		expandVarsInField(&s.EnvFile, vars, &errMsgs, "envFile")
+		expandVarsInField(&s.Remote.Image, vars, &errMsgs, "remote.image")
 
 		for key, value := range s.EnvVars {
-			s.EnvVars[key] = util.ExpandVars(value, vars)
+			v := value
+			expandVarsInField(&v, vars, &errMsgs, "envVars")
+			s.EnvVars[key] = v
 		}
 
 		for i, volume := range s.Build.Volumes {
-			s.Build.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+			v := volume.Value
+			expandVarsInField(&v, vars, &errMsgs, "build.volumes")
+			s.Build.Volumes[i].Value = v
 		}
 
 		for i, volume := range s.Remote.Volumes {
-			s.Remote.Volumes[i].Value = util.ExpandVars(volume.Value, vars)
+			v := volume.Value
+			expandVarsInField(&v, vars, &errMsgs, "remote.volumes")
+			s.Remote.Volumes[i].Value = v
+
+		}
+
+		// Report unknown vars as an error if in strict mode
+		if len(errMsgs) > 0 && opts.strict {
+			errs = append(errs, &ValidationError{
+				ResourceType: resourceTypeService,
+				ResourceName: s.Name,
+				Messages:     errMsgs,
+			})
+			continue
 		}
 
 		services = append(services, s)
+	}
+
+	if errs != nil {
+		return nil, serviceGlobalConfig{}, errs
 	}
 
 	globalConf := serviceGlobalConfig{
@@ -218,9 +307,24 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 	return services, globalConf, nil
 }
 
+// expandVarsInField is a small helper to expand vars in a service field
+// and report any errors. If the expansion is successful, the value pointed to
+// by field will be updated. If an error occurs, the error message will be appended
+// to errMsgs.
+func expandVarsInField(field *string, vars map[string]string, errMsgs *[]string, fieldName string) {
+	e, err := util.ExpandVars(*field, vars)
+	if err == nil {
+		*field = e
+		return
+	}
+
+	msg := fmt.Sprintf("%s: %s", fieldName, err)
+	*errMsgs = append(*errMsgs, msg)
+}
+
 func readPlaylists(r Registry) ([]playlist.Playlist, error) {
 	playlistMap := make(map[string]playlist.Playlist)
-	err := readRegistryFile(playlistsFileName, r, &playlistMap)
+	err := readRegistryFile(PlaylistsFileName, r, &playlistMap)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read playlist file from registry %s", r.Name)
 	}
@@ -268,28 +372,28 @@ func readPlaylists(r Registry) ([]playlist.Playlist, error) {
 
 func readApps(r Registry) ([]app.App, []app.App, error) {
 	appConf := registryAppConfig{}
-	err := readRegistryFile(appsFileName, r, &appConf)
+	err := readRegistryFile(AppsFileName, r, &appConf)
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "failed to read apps file from registry %s", r.Name)
 	}
 
-	iosApps := make([]app.App, 0, len(appConf.IOSApps))
-	desktopApps := make([]app.App, 0, len(appConf.DesktopApps))
+	var errs ErrorList
 
 	// Deal with iOS apps
+	iosApps := make([]app.App, 0, len(appConf.IOSApps))
 	for n, a := range appConf.IOSApps {
 		a.Name = n
 		a.RegistryName = r.Name
 
-		err := validateApp(a, appTypeiOS)
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "app %s failed validation", n)
+		if err := validateApp(a, appTypeiOS); err != nil {
+			errs = append(errs, err)
 		}
 
 		iosApps = append(iosApps, a)
 	}
 
 	// Deal with desktop apps
+	desktopApps := make([]app.App, 0, len(appConf.DesktopApps))
 	for n, a := range appConf.DesktopApps {
 		a.Name = n
 		a.RegistryName = r.Name
@@ -297,6 +401,9 @@ func readApps(r Registry) ([]app.App, []app.App, error) {
 		desktopApps = append(desktopApps, a)
 	}
 
+	if errs != nil {
+		return nil, nil, errs
+	}
 	return iosApps, desktopApps, nil
 }
 
@@ -385,108 +492,93 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 	}, nil
 }
 
-func Validate(path string) error {
+type ValidateResult struct {
+	AppsErr      error
+	PlaylistsErr error
+	ServicesErr  error
+}
+
+// Validate checks to see if the registry located at path is valid. It will read and validate
+// each configuration file in the registry. If strict is true unknown variables will be considered errors.
+//
+// Validate returns a ValidateResult struct that contains errors encountered for each resource.
+// If a configuration file is valid, then the corresponding error value will be nil. Otherwise,
+// the error will be a non-nil value containing the details of why validation failed.
+// If a configuration file does not exist, then the corresponding error will be ErrFileNotExist.
+func Validate(path string, strict bool) ValidateResult {
+	r := Registry{
+		Name: filepath.Base(path),
+		Path: path,
+	}
+	result := ValidateResult{}
+
 	// Validate apps.yml
-	log.Infof(color.Cyan("Validating %s..."), appsFileName)
 
-	appsPath := filepath.Join(path, appsFileName)
+	// Do explicit check for existence because we want to print a custom message
+	// If it doesn't exist
+	appsPath := filepath.Join(path, AppsFileName)
 	if file.FileOrDirExists(appsPath) {
-		af, err := os.Open(appsPath)
+		_, _, err := readApps(r)
 		if err != nil {
-			return errors.Wrapf(err, "failed to open file %s", appsPath)
+			result.AppsErr = err
 		}
-		defer af.Close()
-
-		appConf := registryAppConfig{}
-		err = yaml.NewDecoder(af).Decode(&appConf)
-		if err != nil {
-			return errors.Wrapf(err, "failed to read %s", appsPath)
-		}
-
-		// Make sure all iOS apps are valid
-		for n, a := range appConf.IOSApps {
-			a.Name = n
-			err := validateApp(a, appTypeiOS)
-			if err != nil {
-				log.Infof(color.Red("❌ app %s is invalid"), n)
-				return errors.Wrapf(err, "app %s failed validation", n)
-			}
-		}
-
-		log.Infof(color.Green("✅ %s is valid"), appsFileName)
 	} else {
-		log.Infof(color.Yellow("No %s file"), appsFileName)
+		result.AppsErr = fmt.Errorf("%w: %s", ErrFileNotExist, AppsFileName)
 	}
 
 	// Validate playlists.yml
-	log.Infof(color.Cyan("Validating %s..."), playlistsFileName)
 
-	playlistsPath := filepath.Join(path, playlistsFileName)
+	playlistsPath := filepath.Join(path, PlaylistsFileName)
 	if file.FileOrDirExists(playlistsPath) {
-		pf, err := os.Open(playlistsPath)
+		_, err := readPlaylists(r)
 		if err != nil {
-			return errors.Wrapf(err, "failed to open file %s", playlistsPath)
+			result.PlaylistsErr = err
 		}
-		defer pf.Close()
-
-		playlistMap := make(map[string]playlist.Playlist)
-		err = yaml.NewDecoder(pf).Decode(&playlistMap)
-		if err != nil {
-			return errors.Wrapf(err, "failed to read %s", playlistsPath)
-		}
-
-		log.Infof(color.Green("✅ %s is valid"), playlistsFileName)
 	} else {
-		log.Infof(color.Yellow("No %s file"), playlistsFileName)
+		result.PlaylistsErr = fmt.Errorf("%w: %s", ErrFileNotExist, PlaylistsFileName)
 	}
 
 	// Validate services.yml
-	log.Infof(color.Cyan("Validating %s..."), servicesFileName)
 
-	servicesPath := filepath.Join(path, servicesFileName)
+	servicesPath := filepath.Join(path, ServicesFileName)
 	if file.FileOrDirExists(servicesPath) {
-		sf, err := os.Open(servicesPath)
-		if err != nil {
-			return errors.Wrapf(err, "failed to open file %s", servicesPath)
-		}
-		defer sf.Close()
+		services, _, err := readServices(r, readServicesOptions{strict: strict})
+		if err == nil {
+			// Keep track of ports to check for conflicting ports
+			usedPorts := make(map[string]string)
 
-		serviceConf := registryServiceConfig{}
-		err = yaml.NewDecoder(sf).Decode(&serviceConf)
-		if err != nil {
-			return errors.Wrapf(err, "failed to read %s", servicesPath)
-		}
+			// Perform additional validations
+			var errs ErrorList
+			for _, s := range services {
+				// Check for port conflict
+				for _, p := range s.Ports {
+					// ports are of the form EXTERNAL:INTERNAL
+					// get external part
+					exposedPort := strings.Split(p, ":")[0]
+					conflict, ok := usedPorts[exposedPort]
+					if !ok {
+						usedPorts[exposedPort] = s.Name
+						continue
+					}
 
-		// Keep track of ports to check for conflicting ports
-		usedPorts := make(map[string]string)
-
-		// Make sure all services are valid
-		for n, s := range serviceConf.Services {
-			s.Name = n
-			err := validateService(s)
-			if err != nil {
-				log.Infof(color.Red("❌ service %s is invalid"), n)
-				return errors.Wrapf(err, "service %s failed validation", n)
-			}
-
-			// Check for port conflict
-			for _, p := range s.Ports {
-				// ports are of the form EXTERNAL:INTERNAL
-				// get external part
-				exposedPort := strings.Split(p, ":")[0]
-				if conflict, ok := usedPorts[exposedPort]; ok {
-					log.Infof(color.Red("❌ service %s has conflicting port %s with service %s"), n, exposedPort, conflict)
-					return errors.Errorf("service %s failed validation", n)
+					// Handle port conflict
+					msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
+					errs = append(errs, &ValidationError{
+						ResourceType: resourceTypeService,
+						ResourceName: s.Name,
+						Messages:     []string{msg},
+					})
 				}
-
-				usedPorts[exposedPort] = n
 			}
+			if errs != nil {
+				result.ServicesErr = errs
+			}
+		} else {
+			result.ServicesErr = err
 		}
-
-		log.Infof(color.Green("✅ %s is valid"), servicesFileName)
 	} else {
-		log.Infof(color.Yellow("No %s file"), servicesFileName)
+		result.ServicesErr = fmt.Errorf("%w: %s", ErrFileNotExist, ServicesFileName)
 	}
 
-	return nil
+	return result
 }
