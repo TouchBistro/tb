@@ -1,13 +1,14 @@
 package login
 
 import (
+	"context"
 	"encoding/base64"
 	"io"
 	"os/exec"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/pkg/errors"
 )
 
@@ -17,21 +18,20 @@ func (s ECRLoginStrategy) Name() string {
 	return "ECR"
 }
 
-func (s ECRLoginStrategy) Login() error {
-	sess, err := session.NewSessionWithOptions(session.Options{
-		SharedConfigState: session.SharedConfigEnable,
-	})
+func (ECRLoginStrategy) Login() error {
+	ctx := context.Background()
+	conf, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to start aws session - try running aws configure.")
 	}
 
-	ecrsvc := ecr.New(sess)
-	result, err := ecrsvc.GetAuthorizationToken(&ecr.GetAuthorizationTokenInput{})
+	client := ecr.NewFromConfig(conf)
+	output, err := client.GetAuthorizationToken(ctx, &ecr.GetAuthorizationTokenInput{})
 	if err != nil {
 		return errors.Wrap(err, "failed to get ECR login token - try running aws configure.")
 	}
 
-	authData := result.AuthorizationData[0]
+	authData := output.AuthorizationData[0]
 	tokenData, err := base64.StdEncoding.DecodeString(*authData.AuthorizationToken)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode ECR login token")
