@@ -8,7 +8,6 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
-	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
@@ -48,7 +47,7 @@ func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 		}(successCh, failedCh, s)
 	}
 
-	spinner.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginStrategies))
+	util.SpinnerWait(successCh, failedCh, "\t☑ Finished %s\n", "Error while logging into services", len(loginStrategies))
 	log.Info("☑ Finished logging into services")
 }
 
@@ -93,7 +92,7 @@ func pullTBBaseImages() {
 		}(successCh, failedCh, b)
 	}
 
-	spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
+	util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", len(config.BaseImages()))
 
 	log.Info("☑ finished pulling latest base images")
 }
@@ -244,7 +243,7 @@ Examples:
 			successCh <- "Docker Cleanup"
 		}()
 
-		spinner.SpinnerWait(successCh, failedCh, "☑ Finished %s\n", "Error cleaning up previous Docker state", 1)
+		util.SpinnerWait(successCh, failedCh, "☑ Finished %s\n", "Error cleaning up previous Docker state", 1)
 
 		// check for docker disk usage after cleanup
 		full, usage, err := docker.CheckDockerDiskUsage()
@@ -266,7 +265,7 @@ Examples:
 					cleaned := fmt.Sprintf("%.2f", ((float64(pruned)/1024)/1024)/1024)
 					successCh <- cleaned
 				}(successCh, failedCh)
-				spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pruning docker images, reclaimed %sGB\n", "failed pruning docker images", 1)
+				util.SpinnerWait(successCh, failedCh, "\t☑ finished pruning docker images, reclaimed %sGB\n", "failed pruning docker images", 1)
 			} else {
 				log.Infoln("Continuing, but unexpected behavior is possible if docker usage isn't cleaned.")
 			}
@@ -298,7 +297,7 @@ Examples:
 				}
 			}
 
-			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished pulling %s\n", "failed pulling docker image", count)
 			log.Info("☑ finished pulling docker images for selected services")
 			fmt.Println()
 		}
@@ -331,7 +330,7 @@ Examples:
 				// Any ideas better than a sleep hack are appreciated
 				time.Sleep(time.Second)
 			}
-			spinner.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
+			util.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
 
 			log.Info("☑ finished performing all preRun steps")
 			fmt.Println()
@@ -342,7 +341,9 @@ Examples:
 
 		if !opts.shouldSkipLazydocker {
 			log.Info("☐ Starting lazydocker")
-			err = command.Exec("lazydocker", nil, "lazydocker")
+			w := log.WithField("id", "lazydocker").WriterLevel(log.DebugLevel)
+			defer w.Close()
+			err := command.New(command.WithStdout(w), command.WithStderr(w)).Exec("lazydocker")
 			if err != nil {
 				fatal.ExitErr(err, "failed running lazydocker")
 			}

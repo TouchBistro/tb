@@ -36,7 +36,10 @@ var deps = map[string]Dependency{
 	Pgcli: {
 		Name: "pgcli",
 		BeforeInstall: func() error {
-			err := command.Exec("brew", []string{"tap", "dbcli/tap"}, "pgcli-install")
+			w := log.WithField("id", "pgcli-install").WriterLevel(log.DebugLevel)
+			defer w.Close()
+			cmd := command.New(command.WithStdout(w), command.WithStderr(w))
+			err := cmd.Exec("brew", "tap", "dbcli/tap")
 			return errors.Wrap(err, "failed to tap dbcli/tap")
 		},
 		InstallCmd: []string{"brew", "install", "pgcli"},
@@ -56,7 +59,10 @@ var deps = map[string]Dependency{
 	Lazydocker: {
 		Name: "lazydocker",
 		BeforeInstall: func() error {
-			err := command.Exec("brew", []string{"tap", "jesseduffield/lazydocker"}, "lazydocker-install")
+			w := log.WithField("id", "lazydocker-install").WriterLevel(log.DebugLevel)
+			defer w.Close()
+			cmd := command.New(command.WithStdout(w), command.WithStderr(w))
+			err := cmd.Exec("brew", "tap", "jesseduffield/lazydocker")
 			return errors.Wrap(err, "failed to tap jesseduffield/lazydocker")
 		},
 		InstallCmd: []string{"brew", "install", "lazydocker"},
@@ -80,18 +86,16 @@ func Resolve(depNames ...string) error {
 
 	for _, depName := range depNames {
 		dep, ok := deps[depName]
-
 		if !ok {
 			return errors.Errorf("%s is not a valid dependency.", depName)
 		}
 
-		if command.IsCommandAvailable(dep.Name) {
+		if command.IsAvailable(dep.Name) {
 			log.Debugf("%s was found.\n", dep.Name)
 			continue
-		} else {
-			log.Warnf("%s was NOT found.\n", dep.Name)
 		}
 
+		log.Warnf("%s was NOT found.\n", dep.Name)
 		log.Debugf("installing %s.\n", dep.Name)
 
 		if dep.BeforeInstall != nil {
@@ -102,9 +106,10 @@ func Resolve(depNames ...string) error {
 		}
 
 		installCmd := dep.InstallCmd[0]
-		installArgs := dep.InstallCmd[1:]
-
-		err := command.Exec(installCmd, installArgs, depName)
+		w := log.WithField("id", installCmd).WriterLevel(log.DebugLevel)
+		defer w.Close()
+		cmd := command.New(command.WithStdout(w), command.WithStderr(w))
+		err := cmd.Exec(installCmd, dep.InstallCmd[1:]...)
 		if err != nil {
 			return errors.Wrapf(err, "install failed for %s", dep.Name)
 		}

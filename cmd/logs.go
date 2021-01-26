@@ -1,10 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
-	"os/exec"
-	"strings"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
@@ -29,29 +26,20 @@ var logsCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var services string
-
+		var services []string
 		if len(args) > 0 {
-			var b strings.Builder
 			for _, serviceName := range args {
 				// Make sure it's a valid service
 				s, err := config.LoadedServices().Get(serviceName)
 				if err != nil {
 					fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 				}
-
-				b.WriteString(s.DockerName())
-				b.WriteString(" ")
+				services = append(services, s.DockerName())
 			}
-
-			services = b.String()
 		}
 
-		cmdStr := fmt.Sprintf("%s logs -f %s", docker.ComposeFile(), services)
-		err := command.Exec("docker-compose", strings.Fields(cmdStr), "docker-compose-logs", func(cmd *exec.Cmd) {
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-		})
+		c := command.New(command.WithStdout(os.Stdout), command.WithStderr(os.Stderr))
+		err := docker.ComposeLogs(services, c)
 		if err != nil {
 			fatal.ExitErr(err, "Could not view logs.")
 		}
@@ -60,6 +48,5 @@ var logsCmd = &cobra.Command{
 
 func init() {
 	logsCmd.Flags().BoolVar(&logsOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-
 	rootCmd.AddCommand(logsCmd)
 }

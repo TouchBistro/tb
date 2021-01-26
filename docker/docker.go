@@ -12,6 +12,7 @@ import (
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -19,8 +20,14 @@ var (
 )
 
 func Pull(imageURI string) error {
-	err := command.Exec("docker", []string{"pull", imageURI}, imageURI)
-	return err
+	w := log.WithField("id", "docker-pull").WriterLevel(log.DebugLevel)
+	defer w.Close()
+	cmd := command.New(command.WithStdout(w), command.WithStderr(w))
+	err := cmd.Exec("docker", "pull", imageURI)
+	if err != nil {
+		return errors.Wrapf(err, "failed to pull docker image %s", imageURI)
+	}
+	return nil
 }
 
 func StopAllContainers() error {
@@ -163,13 +170,13 @@ func CheckDockerDiskUsage() (bool, uint64, error) {
 	var maxSize int64
 	if util.IsMacOS() {
 		// TODO: This needs to be cleaned up
-		dockerVmPath := filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
-		fs, err := os.Stat(dockerVmPath)
+		dockerVMPath := filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw")
+		fs, err := os.Stat(dockerVMPath)
 		if err != nil {
 			// The location of the Docker.raw file was moved between docker releases, but only new installations are affected.
 			// Here we check the original path oto support users with the old location.
-			dockerVmPath = filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw")
-			fs, err = os.Stat(dockerVmPath)
+			dockerVMPath = filepath.Join(os.Getenv("HOME"), "Library/Containers/com.docker.docker/Data/vms/0/Docker.raw")
+			fs, err = os.Stat(dockerVMPath)
 			if err != nil {
 				return false, usage, errors.Wrap(err, "could not retreive system disk usage")
 			}

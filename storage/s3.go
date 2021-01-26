@@ -3,7 +3,7 @@ package storage
 import (
 	"context"
 
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/goutils/file"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -60,7 +60,7 @@ func (s S3StorageProvider) DownloadObject(bucket, objKey, dstPath string) error 
 	defer getObjectOutput.Body.Close()
 
 	// Download to a local file.
-	nBytes, err := util.DownloadFile(dstPath, getObjectOutput.Body)
+	nBytes, err := file.Download(dstPath, getObjectOutput.Body)
 	if err != nil {
 		return errors.Wrapf(err, "failed downloading file to %s", dstPath)
 	}

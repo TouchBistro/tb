@@ -122,9 +122,8 @@ func readRegistryFile(fileName string, r Registry, v interface{}) error {
 	log.Debugf("Reading %s from registry %s", fileName, r.Name)
 
 	filePath := filepath.Join(r.Path, fileName)
-	if !file.FileOrDirExists(filePath) {
+	if !file.Exists(filePath) {
 		log.Debugf("registry %s has no %s", r.Name, fileName)
-
 		return nil
 	}
 
@@ -465,7 +464,7 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 
 		pc, err = playlist.NewPlaylistCollection(playlistList, opts.CustomPlaylists)
 		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create PLaylistCollection")
+			return RegistryResult{}, errors.Wrap(err, "failed to create PlaylistCollection")
 		}
 	}
 
@@ -517,7 +516,7 @@ func Validate(path string, strict bool) ValidateResult {
 	// Do explicit check for existence because we want to print a custom message
 	// If it doesn't exist
 	appsPath := filepath.Join(path, AppsFileName)
-	if file.FileOrDirExists(appsPath) {
+	if file.Exists(appsPath) {
 		_, _, err := readApps(r)
 		if err != nil {
 			result.AppsErr = err
@@ -529,7 +528,7 @@ func Validate(path string, strict bool) ValidateResult {
 	// Validate playlists.yml
 
 	playlistsPath := filepath.Join(path, PlaylistsFileName)
-	if file.FileOrDirExists(playlistsPath) {
+	if file.Exists(playlistsPath) {
 		_, err := readPlaylists(r)
 		if err != nil {
 			result.PlaylistsErr = err
@@ -541,7 +540,7 @@ func Validate(path string, strict bool) ValidateResult {
 	// Validate services.yml
 
 	servicesPath := filepath.Join(path, ServicesFileName)
-	if file.FileOrDirExists(servicesPath) {
+	if file.Exists(servicesPath) {
 		services, _, err := readServices(r, readServicesOptions{strict: strict})
 		if err == nil {
 			// Keep track of ports to check for conflicting ports

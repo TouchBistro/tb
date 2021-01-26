@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
-	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/git"
@@ -86,13 +85,12 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 	}
 
 	// Clone if missing
-	if !file.FileOrDirExists(r.Path) {
+	if !file.Exists(r.Path) {
 		log.Debugf("Registry %s is missing, cloning...", r.Name)
 		err := git.Clone(r.Name, r.Path)
 		if err != nil {
 			return errors.Wrapf(err, "failed to clone registry to %s", r.Path)
 		}
-
 		return nil
 	}
 
@@ -103,7 +101,6 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 			return errors.Wrapf(err, "failed to update registry %s", r.Name)
 		}
 	}
-
 	return nil
 }
 
@@ -113,11 +110,8 @@ func Init(opts InitOptions) error {
 	tbRoot := TBRootPath()
 
 	// Create ~/.tb directory if it doesn't exist
-	if !file.FileOrDirExists(tbRoot) {
-		err := os.Mkdir(tbRoot, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "failed to create tb root directory at %s", tbRoot)
-		}
+	if err := os.MkdirAll(tbRoot, 0o755); err != nil {
+		return errors.Wrapf(err, "failed to create tb root directory at %s", tbRoot)
 	}
 
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
@@ -152,7 +146,6 @@ update:
 
 	// THE REGISTRY ZONE
 
-	log.Infoln("Cloning/pulling registries...")
 	if len(tbrc.Registries) == 0 {
 		return errors.New("No registries defined in tbrc")
 	}
@@ -160,20 +153,43 @@ update:
 	// Clone missing registries and pull existing ones
 	successCh := make(chan string)
 	failedCh := make(chan error)
+	// TODO(@cszatmary): For when we switch to the new spinner
+	// s := spinner.New(
+	// 	spinner.WithStartMessage("Cloning/pulling registries"),
+	// 	spinner.WithStopMessage("☑ Finished cloning/pulling registries"),
+	// 	spinner.WithCount(len(tbrc.Registries)),
+	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+	// )
+	// logger := log.New()
+	// logger.SetFormatter(log.StandardLogger().Formatter)
+	// logger.SetOutput(s)
+	// logger.SetLevel(log.StandardLogger().GetLevel())
 
 	for _, r := range tbrc.Registries {
-		go func(successCh chan string, failedCh chan error, r registry.Registry) {
+		go func(r registry.Registry) {
 			err := cloneOrPullRegistry(r, opts.UpdateRegistries)
 			if err != nil {
 				failedCh <- err
 				return
 			}
-
 			successCh <- r.Name
-		}(successCh, failedCh, r)
+		}(r)
 	}
 
-	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
+	// TODO(@cszatmary): For when we switch to the new spinner
+	// s.Start()
+	// for i := 0; i < len(tbrc.Registries); i++ {
+	// 	select {
+	// 	case name := <-successCh:
+	// 		s.IncWithMessagef("☑ finished cloning/pulling registry %s", name)
+	// 	case err := <-failedCh:
+	// 		return errors.Wrap(err, "failed cloning/pulling registry")
+	// 	case <-time.After(time.Minute * 5):
+	// 		return errors.New("timed out while cloning/pulling registries")
+	// 	}
+	// }
+	// s.Stop()
+	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
 
 	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
 		ShouldReadServices: opts.LoadServices,
@@ -209,74 +225,103 @@ update:
 }
 
 func CloneOrPullRepos(shouldPull bool) error {
-	log.Info("☐ checking ~/.tb directory for missing git repos for docker-compose.")
-
-	repos := make([]string, 0)
+	log.Debug("checking ~/.tb directory for missing git repos for docker-compose.")
+	repoSet := make(map[string]bool)
 	it := registryResult.Services.Iter()
 	for it.HasNext() {
 		s := it.Next()
 		if s.HasGitRepo() {
-			repos = append(repos, s.GitRepo.Name)
+			repoSet[s.GitRepo.Name] = true
 		}
 	}
-	repos = util.UniqueStrings(repos)
 
+	// Figure out what actions (if any) are required for each repo
+	// We need to make sure all repos are cloned in order to resolve of all the
+	// references in the compose files to files in the repos.
+	type action struct {
+		repo  string
+		clone bool
+	}
+	var actions []action
+	for repo := range repoSet {
+		log.Debugf("Checking repo %s", repo)
+		repoPath := filepath.Join(ReposPath(), repo)
+		if !file.Exists(repoPath) {
+			actions = append(actions, action{repo, true})
+			continue
+		}
+
+		// Hack to make sure repo was cloned properly
+		// Sometimes it doesn't clone properly if the user does control-c during cloning
+		// Figure out a better way to do this
+		dirlen, err := file.DirLen(repoPath)
+		if err != nil {
+			return errors.Wrapf(err, "could not read project directory for %s", repo)
+		}
+		if dirlen <= 2 {
+			// Directory exists but only contains .git subdirectory, rm and clone again below
+			if err := os.RemoveAll(repoPath); err != nil {
+				return errors.Wrapf(err, "could not remove project directory for %s", repo)
+			}
+			actions = append(actions, action{repo, true})
+			continue
+		}
+		if shouldPull {
+			actions = append(actions, action{repo, false})
+		}
+	}
+
+	// successCh := make(chan action)
 	successCh := make(chan string)
 	failedCh := make(chan error)
+	// TODO(@cszatmary): For when we switch to the new spinner
+	// s := spinner.New(
+	// 	spinner.WithStartMessage("Cloning/pulling service git repositories"),
+	// 	spinner.WithStopMessage("☑ Finished cloning/pulling service git repositories"),
+	// 	spinner.WithCount(len(actions)),
+	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+	// )
+	// logger := log.New()
+	// logger.SetFormatter(log.StandardLogger().Formatter)
+	// logger.SetOutput(s)
+	// logger.SetLevel(log.StandardLogger().GetLevel())
 
-	count := 0
-	// We need to clone every repo to resolve of all the references in the compose files to files in the repos.
-	for _, repo := range repos {
-		path := filepath.Join(ReposPath(), repo)
-
-		if file.FileOrDirExists(path) {
-			dirlen, err := file.DirLen(path)
-			if err != nil {
-				return errors.Wrap(err, "Could not read project directory")
+	for _, a := range actions {
+		go func(a action) {
+			var err error
+			if a.clone {
+				log.Debugf("\t☐ %s is missing. cloning git repo\n", a.repo)
+				err = git.Clone(a.repo, filepath.Join(ReposPath(), a.repo))
+			} else {
+				log.Debugf("\t☐ %s exists. pulling git repo\n", a.repo)
+				err = git.Pull(a.repo, ReposPath())
 			}
-
-			// Hack to make sure repo was cloned properly
-			// Sometimes it doesn't clone properly if the user does control-c during cloning
-			// Figure out a better way to do this
-			if dirlen > 2 {
-				if !shouldPull {
-					continue
-				}
-
-				log.Debugf("\t☐ %s exists. pulling git repo\n", repo)
-				go func(successCh chan string, failedCh chan error, name, root string) {
-					err := git.Pull(name, root)
-					if err != nil {
-						failedCh <- err
-						return
-					}
-					successCh <- name
-				}(successCh, failedCh, repo, ReposPath())
-
-				count++
-				continue
-			}
-
-			// Directory exists but only contains .git subdirectory, rm and clone again
-			err = os.RemoveAll(path)
-			if err != nil {
-				return errors.Wrapf(err, "Couldn't remove project directory for %s", path)
-			}
-		}
-
-		log.Debugf("\t☐ %s is missing. cloning git repo\n", repo)
-		go func(successCh chan string, failedCh chan error, repo, destPath string) {
-			err := git.Clone(repo, destPath)
 			if err != nil {
 				failedCh <- err
-			} else {
-				successCh <- repo
+				return
 			}
-		}(successCh, failedCh, repo, path)
-		count++
+			successCh <- a.repo
+		}(a)
 	}
 
-	spinner.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling %s\n", "failed cloning/pulling git repo", count)
+	// TODO(@cszatmary): For when we switch to the new spinner
+	// s.Start()
+	// for i := 0; i < len(tbrc.Registries); i++ {
+	// 	select {
+	// 	case a := <-successCh:
+	// 		if a.clone {
+	// 			s.IncWithMessagef("☑ finished cloning git repository %s", a.repo)
+	// 		} else {
+	// 			s.IncWithMessagef("☑ finished pulling git repository %s", a.repo)
+	// 		}
+	// 	case err := <-failedCh:
+	// 		return errors.Wrap(err, "failed cloning/pulling git repository")
+	// 	case <-time.After(time.Minute * 10):
+	// 		return errors.New("timed out while cloning/pulling git repositories")
+	// 	}
+	// }
+	// s.Stop()
+	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling %s\n", "failed cloning/pulling git repo", len(actions))
 
 	log.Info("☑ finished checking git repos")
 	return nil

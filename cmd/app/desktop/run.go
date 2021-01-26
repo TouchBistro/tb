@@ -73,7 +73,9 @@ Examples:
 
 		// TODO probably want to figure out a better way to abstract opening an app cross platform
 		if util.IsMacOS() {
-			err = command.Exec("open", []string{appPath}, "tb-app-desktop-run-open")
+			w := log.WithField("id", "tb-app-desktop-run-open").WriterLevel(log.DebugLevel)
+			defer w.Close()
+			err = command.New(command.WithStdout(w), command.WithStderr(w)).Exec("open", appPath)
 		} else {
 			fatal.Exit("tb app desktop run is not supported on your platform")
 		}

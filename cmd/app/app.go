@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
-	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
@@ -149,7 +148,7 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 			successCh <- pathToS3Tarball
 		}(successCh, failedCh)
 		count := 1
-		spinner.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
+		util.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
 
 		// Untar, ungzip and cleanup the file
 		log.Infof("untar-ing %s", dstPath)
