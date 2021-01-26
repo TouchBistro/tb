@@ -32,7 +32,8 @@ func Pull(imageURI string) error {
 
 func StopAllContainers() error {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	// TODO(@cszatmary): Scope options, just go with what it was before
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -52,7 +53,7 @@ func StopAllContainers() error {
 
 func RmContainers() error {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -72,7 +73,7 @@ func RmContainers() error {
 
 func RmImages() error {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
@@ -94,7 +95,7 @@ func RmImages() error {
 
 func PruneImages() (uint64, error) {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to create docker client")
 	}
@@ -110,7 +111,7 @@ func PruneImages() (uint64, error) {
 
 func RmNetworks() error {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -135,7 +136,7 @@ func RmNetworks() error {
 
 func RmVolumes() error {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return errors.Wrap(err, "failed to create docker client")
 	}
@@ -156,7 +157,7 @@ func RmVolumes() error {
 
 func CheckDockerDiskUsage() (bool, uint64, error) {
 	ctx := context.Background()
-	cli, err := client.NewEnvClient()
+	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return false, 0, errors.Wrap(err, "failed to create docker client")
 	}
