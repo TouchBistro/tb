@@ -7,7 +7,6 @@ import (
 	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker/registry"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -31,39 +30,32 @@ Examples:
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 		serviceName := args[0]
-		s, err := config.LoadedServices().Get(serviceName)
+		service, err := config.LoadedServices().Get(serviceName)
 		if err != nil {
 			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
-		} else if s.Remote.Image == "" {
+		}
+		if service.Remote.Image == "" {
 			fatal.Exitf("%s is not available from a remote docker registry\n", serviceName)
 		}
-
-		log.Infof("☐ Fetching images for %s:", serviceName)
-		successCh := make(chan string)
-		failedCh := make(chan error)
-		var images []registry.ImageDetail
 
 		dockerRegistry, err := registry.GetRegistry(imagesOpts.dockerRegistry)
 		if err != nil {
 			fatal.ExitErrf(err, "Failed getting docker registry %s", imagesOpts.dockerRegistry)
 		}
 
-		// Do it for the spinner!
-		go func() {
-			imgs, err := dockerRegistry.FetchRepoImages(s.Remote.Image, imagesOpts.max)
-			if err != nil {
-				failedCh <- err
-				return
-			}
+		s := spinner.New(
+			spinner.WithStartMessage("☐ Fetching images for "+serviceName),
+			spinner.WithStopMessage("☑ Finished fetching images for "+serviceName),
+		)
+		s.Start()
 
-			// This is only being assigned in this one goroutine so locking isn't needed
-			images = imgs
-			successCh <- serviceName
-		}()
+		imgs, err := dockerRegistry.FetchRepoImages(service.Remote.Image, imagesOpts.max)
+		if err != nil {
+			fatal.ExitErr(err, "Failed to fetch docker images")
+		}
+		s.Stop()
 
-		spinner.SpinnerWait(successCh, failedCh, "☑ Finished fetching images for %s\n", "failed loading images", 1)
-
-		for _, img := range images {
+		for _, img := range imgs {
 			fmt.Println(img.PushedAt, img.Tags)
 		}
 	},

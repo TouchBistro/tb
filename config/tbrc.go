@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -43,8 +44,8 @@ func LoadTBRC() error {
 	tbrcPath := filepath.Join(os.Getenv("HOME"), tbrcName)
 
 	// Create default tbrc if it doesn't exist
-	if !file.FileOrDirExists(tbrcPath) {
-		err := file.CreateFile(tbrcPath, rcTemplate)
+	if !file.Exists(tbrcPath) {
+		err := ioutil.WriteFile(tbrcPath, []byte(rcTemplate), 0o644)
 		if err != nil {
 			return errors.Wrapf(err, "couldn't create default tbrc at %s", tbrcPath)
 		}
@@ -61,12 +62,10 @@ func LoadTBRC() error {
 		return errors.Wrapf(err, "couldn't read yaml file at %s", tbrcPath)
 	}
 
-	var logLevel log.Level
+	logLevel := log.InfoLevel
 	if tbrc.DebugEnabled {
 		logLevel = log.DebugLevel
-	} else {
-		logLevel = log.InfoLevel
-		fatal.ShowStackTraces = false
+		fatal.ShowStackTraces(true)
 	}
 
 	log.SetLevel(logLevel)

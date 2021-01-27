@@ -13,7 +13,7 @@ endif
 # Build tb
 build:
 	go build
-	go run build/build.go
+	go run scripts/post-build/main.go
 .PHONY: build
 
 # Clean all build artifacts

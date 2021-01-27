@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/goutils/command"
@@ -55,7 +54,9 @@ Example:
 			openCmd = "xdg-open"
 		}
 
-		err = command.Exec(openCmd, []string{url}, "docs-open")
+		w := log.WithField("id", "docs-open").WriterLevel(log.DebugLevel)
+		defer w.Close()
+		err = command.New(command.WithStdout(w), command.WithStderr(w)).Exec(openCmd, url)
 		if err != nil {
 			fatal.ExitErrf(err, "failed to open docs at %s\n", url)
 		}
@@ -77,12 +78,8 @@ func getDocsURL(dockerName string) (string, error) {
 	args := []string{"sh", "-c", sb.String()}
 
 	buf := &bytes.Buffer{}
-	err := docker.ComposeExec(dockerName, args, func(cmd *exec.Cmd) {
-		cmd.Stdout = buf
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-	})
-
+	cmd := command.New(command.WithStdin(os.Stdin), command.WithStdout(buf), command.WithStderr(os.Stderr))
+	err := docker.ComposeExec(dockerName, args, cmd)
 	if err != nil {
 		return "", errors.Wrap(err, "failed execing command inside this service's container.")
 	}

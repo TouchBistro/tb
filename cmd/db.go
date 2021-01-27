@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/goutils/command"
@@ -41,12 +40,8 @@ func getDbConf(serviceName string) (dbConfig, error) {
 	args := []string{"sh", "-c", sb.String()}
 
 	buf := &bytes.Buffer{}
-	err := docker.ComposeExec(serviceName, args, func(cmd *exec.Cmd) {
-		cmd.Stdout = buf
-		cmd.Stderr = os.Stderr
-		cmd.Stdin = os.Stdin
-	})
-
+	cmd := command.New(command.WithStdin(os.Stdin), command.WithStdout(buf), command.WithStderr(os.Stderr))
+	err := docker.ComposeExec(serviceName, args, cmd)
 	if err != nil {
 		return dbConfig{}, errors.Wrap(err, "failed execing command inside this service's container.")
 	}
@@ -116,7 +111,7 @@ Examples:
 			fatal.Exitf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType)
 		}
 
-		if !command.IsCommandAvailable(cli) {
+		if !command.IsAvailable(cli) {
 			shouldInstallCli := util.Prompt(fmt.Sprintf("This command requires %s. Would you like tb to install it for you? y/n\n> ", cli))
 			if !shouldInstallCli {
 				fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Consider installing it yourself or letting tb install it for you.", cli, serviceName, dbConf.dbType)
@@ -130,12 +125,8 @@ Examples:
 
 		log.Infof("starting %s...", cli)
 
-		err = command.Exec(cli, strings.Fields(connArg), fmt.Sprintf("%s-start", cli), func(cmd *exec.Cmd) {
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Stdin = os.Stdin
-		})
-
+		err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
+			Exec(cli, strings.Fields(connArg)...)
 		if err != nil {
 			fatal.ExitErrf(err, "could not start database client %s", cli)
 		}

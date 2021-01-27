@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"os"
-	"os/exec"
 
+	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
@@ -43,12 +43,8 @@ Examples:
 			fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 		}
 
-		err = docker.ComposeExec(s.DockerName(), args[1:], func(cmd *exec.Cmd) {
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			cmd.Stdin = os.Stdin
-		})
-
+		c := command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr))
+		err = docker.ComposeExec(s.DockerName(), args[1:], c)
 		if err != nil {
 			fatal.ExitErr(err, "Could not execute command against this service.")
 		}

@@ -2,7 +2,6 @@ package ios
 
 import (
 	"os"
-	"os/exec"
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/command"
@@ -75,10 +74,8 @@ Examples:
 		logsPath := filepath.Join(os.Getenv("HOME"), "Library/Logs/CoreSimulator", deviceUDID, "system.log")
 		log.Infof("Attaching to logs for simulator %s\n\n", logOpts.deviceName)
 
-		err = command.Exec("tail", []string{"-f", "-n", logOpts.numberOfLines, logsPath}, "ios-logs-tail", func(cmd *exec.Cmd) {
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-		})
+		c := command.New(command.WithStdout(os.Stdout), command.WithStderr(os.Stderr))
+		err = c.Exec("tail", "-f", "-n", logOpts.numberOfLines, logsPath)
 		if err != nil {
 			fatal.ExitErrf(err, "Failed to get logs for simulator %s with iOS version %s", logOpts.deviceName, logOpts.iosVersion)
 		}

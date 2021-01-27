@@ -29,7 +29,7 @@ func (s NPMLoginStrategy) Login() error {
 	npmrcPath := filepath.Join(os.Getenv("HOME"), ".npmrc")
 	log.Debugf("Required env var %s not set\nChecking %s...", npmToken, npmrcPath)
 
-	if !file.FileOrDirExists(npmrcPath) {
+	if !file.Exists(npmrcPath) {
 		log.Warnf("%s not found.", npmrcPath)
 		log.Warnln("Log in to the npm registry with command: 'npm login' and try again.")
 		// TODO: We could also let them log in here and continue

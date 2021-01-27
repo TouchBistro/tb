@@ -6,15 +6,17 @@ import (
 	"sort"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/aws/external"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	"github.com/pkg/errors"
 )
 
 type ECRDockerRegistry struct{}
 
 func (_ ECRDockerRegistry) FetchRepoImages(image string, limit int) ([]ImageDetail, error) {
-	conf, err := external.LoadDefaultAWSConfig()
+	ctx := context.Background()
+	conf, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to load default aws config")
 	}
@@ -29,29 +31,24 @@ func (_ ECRDockerRegistry) FetchRepoImages(image string, limit int) ([]ImageDeta
 	// We therefore need to fetch all the available images
 	// and sort them ourselves to get the newest ones
 	const max = 1000
-	input := ecr.DescribeImagesInput{
+	describeImagesInput := &ecr.DescribeImagesInput{
 		RepositoryName: aws.String(repoName),
-		MaxResults:     aws.Int64(int64(max)),
+		MaxResults:     aws.Int32(int32(max)),
 	}
 
-	images := []ecr.ImageDetail{}
-
-	client := ecr.New(conf)
-	ctx := context.Background()
-
+	client := ecr.NewFromConfig(conf)
+	var images []types.ImageDetail
 	for {
-		req := client.DescribeImagesRequest(&input)
-		res, err := req.Send(ctx)
+		describeImagesOutput, err := client.DescribeImages(ctx, describeImagesInput)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to load images for repo")
+			return nil, errors.Wrap(err, "failed to load images for ECR repo")
 		}
 
-		images = append(images, res.ImageDetails...)
-		if res.NextToken == nil {
+		images = append(images, describeImagesOutput.ImageDetails...)
+		if describeImagesOutput.NextToken == nil {
 			break
 		}
-
-		input.NextToken = res.NextToken
+		describeImagesInput.NextToken = describeImagesOutput.NextToken
 	}
 
 	sort.Slice(images, func(i, j int) bool {
