@@ -6,6 +6,7 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/spinner"
 	appCmd "github.com/TouchBistro/tb/cmd/app"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/simulator"
@@ -72,8 +73,7 @@ Examples:
 			if err != nil {
 				fatal.ExitErr(err, "failed to get latest iOS version")
 			}
-
-			log.Infof("No iOS version provided, defaulting to version %s\n", runOpts.iosVersion)
+			log.Debugf("No iOS version provided, defaulting to version %s", runOpts.iosVersion)
 		}
 
 		// Figure out default iOS device if it wasn't provided
@@ -82,8 +82,7 @@ Examples:
 			if err != nil {
 				fatal.ExitErr(err, "failed to get default iOS simulator")
 			}
-
-			log.Infof("No iOS simulator provided, defaulting to %s\n", runOpts.deviceName)
+			log.Debugf("No iOS simulator provided, defaulting to %s", runOpts.deviceName)
 		} else {
 			// Make sure provided device is valid for the given app
 			isValid := simulator.IsValidDevice(runOpts.deviceName, a.DeviceType())
@@ -98,77 +97,81 @@ Examples:
 		if err != nil {
 			fatal.ExitErr(err, "Error checking ios build disk space usage")
 		}
-		log.Infof("Current ios build disk usage: %.2fGB", float64(usageBytes)/1024.0/1024.0/1024.0)
+		log.Infof("Current ios build disk usage: %.2fGB", float64(usageBytes)/(1024*1024*1024))
 
 		appPath := appCmd.DownloadLatestApp(a, downloadDest)
 
-		log.Debugln("☐ Finding device UDID")
+		log.Debug("Finding device UDID")
 		deviceUDID, err := deviceList.GetDeviceUDID("iOS "+runOpts.iosVersion, runOpts.deviceName)
 		if err != nil {
-			fatal.ExitErr(err, "☒ Failed to get device UDID.\nRun \"xcrun simctl list devices\" to list available simulators.")
+			fatal.ExitErr(err, "Failed to get device UDID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}
+		log.Debugf("Found device UDID: %s", deviceUDID)
 
-		log.Debugf("☑ Found device UDID: %s\n", deviceUDID)
-		log.Infof("☐ Booting Simulator %s\n", runOpts.deviceName)
+		s := spinner.New(
+			spinner.WithStartMessage("Running iOS app"+a.FullName()),
+			spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+		)
+		log.SetOutput(s)
+		s.Start()
 
+		s.UpdateMessage("Booting Simulator " + runOpts.deviceName)
 		err = simulator.Boot(deviceUDID)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to boot simulator %s", runOpts.deviceName)
+			s.Stop()
+			fatal.ExitErrf(err, "Failed to boot simulator %s", runOpts.deviceName)
 		}
+		log.Debugf("Booted simulator %s", runOpts.deviceName)
 
-		log.Infof("☑ Booted simulator %s\n", runOpts.deviceName)
-		log.Debugln("☐ Opening simulator app")
-
+		s.UpdateMessage("Opening simulator app")
 		err = simulator.Open()
 		if err != nil {
-			fatal.ExitErr(err, "☒ Failed to launch simulator")
+			s.Stop()
+			fatal.ExitErr(err, "Failed to launch simulator")
 		}
+		log.Debug("Opened simulator app")
 
-		log.Debugln("☑ Opened simulator app")
-		log.Infof("☐ Installing app on %s\n", runOpts.deviceName)
-
+		s.UpdateMessage("Installing app on " + runOpts.deviceName)
 		err = simulator.InstallApp(deviceUDID, appPath)
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to install app at path %s on simulator %s", appPath, runOpts.deviceName)
+			s.Stop()
+			fatal.ExitErrf(err, "Failed to install app at path %s on simulator %s", appPath, runOpts.deviceName)
 		}
-
-		log.Infof("☑ Installed app %s on %s\n", a.BundleID, runOpts.deviceName)
+		log.Debugf("Installed app %s on %s\n", a.BundleID, runOpts.deviceName)
 
 		appDataPath, err := simulator.GetAppDataPath(deviceUDID, a.BundleID)
 		if err != nil {
+			s.Stop()
 			fatal.ExitErrf(err, "Failed to get path to data for app %s", a.BundleID)
 		}
-
 		if runOpts.dataPath != "" {
-			log.Infoln("☐ Injecting data files into simulator")
-
+			s.UpdateMessage("Injecting data files into simulator")
 			err = file.CopyDirContents(runOpts.dataPath, appDataPath)
 			if err != nil {
-				fatal.ExitErrf(err, "☒ Failed to inject data into simulator")
+				s.Stop()
+				fatal.ExitErrf(err, "Failed to inject data into simulator")
 			}
-
-			log.Infoln("☑ Injected data into simulator")
+			log.Debugf("Injected data into simulator")
 		}
 
-		log.Info("☐ Setting environment variables")
-
+		s.UpdateMessage("Setting environment variables")
 		for k, v := range a.EnvVars {
 			log.Debugf("Setting %s to %s", k, v)
 			// Env vars can be passed to simctl if they are set in the calling environment with a SIMCTL_CHILD_ prefix.
 			os.Setenv(fmt.Sprintf("SIMCTL_CHILD_%s", k), v)
 		}
+		log.Debugf("Done setting environment variables")
 
-		log.Info("☑ Done setting environment variables")
-		log.Info("☐ Launching app in simulator")
-
+		s.UpdateMessage("Launching app in simulator")
 		err = simulator.LaunchApp(deviceUDID, a.BundleID)
+		s.Stop()
 		if err != nil {
-			fatal.ExitErrf(err, "☒ Failed to launch app %s on simulator %s", a.BundleID, runOpts.deviceName)
+			fatal.ExitErrf(err, "Failed to launch app %s on simulator %s", a.BundleID, runOpts.deviceName)
 		}
+		log.SetOutput(os.Stderr)
 
-		log.Infof("☑ Launched app %s on %s\n", a.BundleID, runOpts.deviceName)
-		log.Infof("App data directory is located at: %s\n", appDataPath)
-		log.Info("🎉🎉🎉 Enjoy!")
+		log.Infof("🎉🎉🎉 Launched app %s on %s, enjoy!", a.FullName(), runOpts.deviceName)
+		log.Infof("App data directory is located at: %s", appDataPath)
 	},
 }
 

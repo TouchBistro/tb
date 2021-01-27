@@ -1,8 +1,11 @@
 package deps
 
 import (
+	"os"
+
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -78,11 +81,19 @@ var deps = map[string]Dependency{
 }
 
 func Resolve(depNames ...string) error {
-	log.Info("☐ checking dependencies")
-
 	if !util.IsMacOS() && !util.IsLinux() {
 		fatal.Exit("tb currently supports Darwin (MacOS) and Linux only for installing dependencies. If you want to support other OSes, please make a pull request.\n")
 	}
+
+	s := spinner.New(
+		spinner.WithStartMessage("Checking dependencies"),
+		spinner.WithStopMessage("Finished checking dependencies"),
+		spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+	)
+	log.SetOutput(s)
+	defer log.SetOutput(os.Stderr)
+	s.Start()
+	defer s.Stop()
 
 	for _, depName := range depNames {
 		dep, ok := deps[depName]
@@ -91,12 +102,12 @@ func Resolve(depNames ...string) error {
 		}
 
 		if command.IsAvailable(dep.Name) {
-			log.Debugf("%s was found.\n", dep.Name)
+			log.Debugf("%s was found", dep.Name)
 			continue
 		}
 
-		log.Warnf("%s was NOT found.\n", dep.Name)
-		log.Debugf("installing %s.\n", dep.Name)
+		log.Warnf("%s was NOT found", dep.Name)
+		log.Debugf("installing %s", dep.Name)
 
 		if dep.BeforeInstall != nil {
 			err := dep.BeforeInstall()
@@ -121,9 +132,7 @@ func Resolve(depNames ...string) error {
 			}
 		}
 
-		log.Debugf("finished installing %s.\n", dep.Name)
+		log.Debugf("finished installing %s", dep.Name)
 	}
-
-	log.Info("☑ finished checking dependencies")
 	return nil
 }

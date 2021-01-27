@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 type S3StorageProvider struct{}
@@ -60,11 +59,9 @@ func (s S3StorageProvider) DownloadObject(bucket, objKey, dstPath string) error 
 	defer getObjectOutput.Body.Close()
 
 	// Download to a local file.
-	nBytes, err := file.Download(dstPath, getObjectOutput.Body)
+	_, err = file.Download(dstPath, getObjectOutput.Body)
 	if err != nil {
 		return errors.Wrapf(err, "failed downloading file to %s", dstPath)
 	}
-
-	log.Debugf("Wrote %d bytes to %s successfully", nBytes, dstPath)
 	return nil
 }

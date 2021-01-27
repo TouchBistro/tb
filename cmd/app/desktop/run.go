@@ -59,7 +59,7 @@ Examples:
 		if err != nil {
 			fatal.ExitErr(err, "Error checking ios build disk space usage")
 		}
-		log.Infof("Current desktop app build disk usage: %.2fGB", float64(usageBytes)/1024.0/1024.0/1024.0)
+		log.Infof("Current desktop app build disk usage: %.2fGB", float64(usageBytes)/(1024*1024*1024))
 
 		appPath := appCmd.DownloadLatestApp(a, downloadDest)
 
@@ -68,8 +68,6 @@ Examples:
 			log.Debugf("Setting %s to %s", k, v)
 			os.Setenv(k, v)
 		}
-
-		log.Info("☐ Launching app")
 
 		// TODO probably want to figure out a better way to abstract opening an app cross platform
 		if util.IsMacOS() {
@@ -83,9 +81,7 @@ Examples:
 		if err != nil {
 			fatal.ExitErrf(err, "failed to run app %s", a.FullName())
 		}
-
-		log.Info("☑ Launched app")
-		log.Info("🎉🎉🎉 Enjoy!")
+		log.Infof("🎉🎉🎉 Launched app %s, enjoy!", a.FullName())
 	},
 }
 

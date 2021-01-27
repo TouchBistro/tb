@@ -75,7 +75,7 @@ func listPlaylists(names []string, tree bool) {
 
 		list, err := config.LoadedPlaylists().ServiceNames(name)
 		if err != nil {
-			fatal.ExitErr(err, "☒ failed resolving service playlist")
+			fatal.ExitErr(err, "failed resolving service playlist")
 		}
 
 		for _, s := range list {
