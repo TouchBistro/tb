@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/tb/config"
@@ -59,7 +60,8 @@ func ComposeRm(services []string) error {
 }
 
 func ComposeRun(serviceName, cmd string) error {
-	return execDockerCompose("run", "--rm", serviceName, cmd)
+	args := append([]string{"--rm", serviceName}, strings.Fields(cmd)...)
+	return execDockerCompose("run", args...)
 }
 
 func execDockerCompose(subcmd string, args ...string) error {
