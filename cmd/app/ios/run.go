@@ -95,7 +95,10 @@ Examples:
 		downloadDest := config.IOSBuildPath()
 		// Check disk utilisation by ios directory
 		usageBytes, err := file.DirSize(downloadDest)
-		if err != nil {
+		if os.IsNotExist(err) {
+			// If no build directory just say no space used!
+			usageBytes = 0
+		} else if err != nil {
 			fatal.ExitErr(err, "Error checking ios build disk space usage")
 		}
 		log.Infof("Current ios build disk usage: %.2fGB", float64(usageBytes)/1024.0/1024.0/1024.0)
