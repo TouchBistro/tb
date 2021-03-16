@@ -7,12 +7,12 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/storage"
 	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +57,7 @@ func AppCmd() *cobra.Command {
 func DownloadLatestApp(a app.App, downloadDest string) string {
 	// Look up the latest build sha for user-specified branch and app.
 	s3Dir := filepath.Join(a.Name, a.Branch)
-	log.Infof("Checking objects on %s in bucket %s matching prefix %s...", a.Storage.Provider, a.Storage.Bucket, s3Dir)
+	log.Debugf("Checking objects on %s in bucket %s matching prefix %s", a.Storage.Provider, a.Storage.Bucket, s3Dir)
 
 	storageProvider, err := storage.GetProvider(a.Storage.Provider)
 	if err != nil {
@@ -83,7 +83,7 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 	// Decide whether or not to pull down a new version.
 
 	localBranchDir := filepath.Join(downloadDest, a.FullName(), a.Branch)
-	log.Infof("Checking contents at %s to see if we need to download a new version from S3", localBranchDir)
+	log.Debugf("Checking contents at %s to see if we need to download a new version from S3", localBranchDir)
 
 	pattern := fmt.Sprintf("%s/*.app", localBranchDir)
 	localBuilds, err := filepath.Glob(pattern)
@@ -102,12 +102,12 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 
 		// If there is a local build, get latest sha from github for desired branch to see if the build available on s3 corresponds to the
 		// latest commit on the branch.
-		log.Infof("Checking latest github sha for %s-%s", a.GitRepo, a.Branch)
+		log.Debugf("Checking latest github sha for %s-%s", a.GitRepo, a.Branch)
 		latestGitsha, err := git.GetBranchHeadSha(a.GitRepo, a.Branch)
 		if err != nil {
 			fatal.ExitErrf(err, "Failed getting branch head sha for %s-%s", a.GitRepo, a.Branch)
 		}
-		log.Infof("Latest github sha is %s", latestGitsha)
+		log.Debugf("Latest github sha is %s", latestGitsha)
 		if !strings.HasPrefix(s3BuildFilename, latestGitsha) {
 			log.Warnf("sha of s3 build %s does not match latest github sha %s for branch %s", s3BuildFilename, latestGitsha, a.Branch)
 		}
@@ -115,18 +115,17 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 		currentSha := strings.Split(filepath.Base(localBuild), ".")[0]
 		s3Sha := strings.Split(s3BuildFilename, ".")[0]
 
-		log.Infof("Current local build sha is %s", currentSha)
-		log.Infof("Latest s3 sha is %s", s3Sha)
+		log.Debugf("Current local build sha is %s", currentSha)
+		log.Debugf("Latest s3 sha is %s", s3Sha)
 
 		if currentSha == s3Sha {
-			log.Infoln("Current build sha matches remote sha")
+			log.Debug("Current build sha matches remote sha")
 		} else {
-			log.Infoln("Current build sha is different from s3 sha. Deleting local version...")
+			log.Debug("Current build sha is different from s3 sha. Deleting local version...")
 			err := os.RemoveAll(localBranchDir)
 			if err != nil {
 				fatal.ExitErrf(err, "failed to delete %s", localBranchDir)
 			}
-
 			refreshLocalBuild = true
 		}
 	}
@@ -136,26 +135,29 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 
 	// If there are no local builds or if our local build was deemed out of date, download the latest object from S3
 	if len(localBuilds) == 0 || refreshLocalBuild {
-		log.Infof("Downloading %s from bucket %s to %s", pathToS3Tarball, a.Storage.Bucket, downloadDest)
-		successCh := make(chan string)
-		failedCh := make(chan error)
-		go func(successCh chan string, failedCh chan error) {
-			err = storageProvider.DownloadObject(a.Storage.Bucket, pathToS3Tarball, dstPath)
-			if err != nil {
-				failedCh <- errors.Wrapf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDest)
-				return
-			}
-			successCh <- pathToS3Tarball
-		}(successCh, failedCh)
-		count := 1
-		util.SpinnerWait(successCh, failedCh, "\t☑ finished downloading %s\n", "failed S3 download", count)
+		log.Debugf("Downloading %s from bucket %s to %s", pathToS3Tarball, a.Storage.Bucket, downloadDest)
+		s := spinner.New(
+			spinner.WithStartMessage("Downloading app "+a.FullName()),
+			spinner.WithStopMessage("Finished downloading app "+a.FullName()),
+			spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+		)
+		log.SetOutput(s)
+		s.Start()
+
+		err = storageProvider.DownloadObject(a.Storage.Bucket, pathToS3Tarball, dstPath)
+		if err != nil {
+			s.Stop()
+			fatal.ExitErrf(err, "Failed to download a file from s3 from %s to %s", pathToS3Tarball, downloadDest)
+		}
 
 		// Untar, ungzip and cleanup the file
-		log.Infof("untar-ing %s", dstPath)
+		log.Debugf("untar-ing %s", dstPath)
 		err := util.Untar(dstPath, true)
+		s.Stop()
 		if err != nil {
 			fatal.ExitErrf(err, "Failed to untar or cleanup app archive at %s", dstPath)
 		}
+		log.SetOutput(os.Stderr)
 	}
 
 	return strings.TrimSuffix(dstPath, ".tgz")

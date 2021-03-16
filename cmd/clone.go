@@ -38,7 +38,7 @@ var cloneCmd = &cobra.Command{
 			fatal.ExitErr(err, "Could not run git clone command.")
 		}
 
-		log.Infof("☑ cloning of %s was successful", serviceName)
+		log.Infof("cloning of %s was successful", serviceName)
 	},
 }
 

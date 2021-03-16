@@ -44,16 +44,16 @@ Examples:
 		}
 
 		s := spinner.New(
-			spinner.WithStartMessage("☐ Fetching images for "+serviceName),
-			spinner.WithStopMessage("☑ Finished fetching images for "+serviceName),
+			spinner.WithStartMessage("Fetching images for "+serviceName),
+			spinner.WithStopMessage("Finished fetching images for "+serviceName),
 		)
 		s.Start()
 
 		imgs, err := dockerRegistry.FetchRepoImages(service.Remote.Image, imagesOpts.max)
+		s.Stop()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to fetch docker images")
 		}
-		s.Stop()
 
 		for _, img := range imgs {
 			fmt.Println(img.PushedAt, img.Tags)

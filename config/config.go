@@ -4,8 +4,10 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/git"
@@ -151,20 +153,17 @@ update:
 	}
 
 	// Clone missing registries and pull existing ones
+	s := spinner.New(
+		spinner.WithStartMessage("Cloning/pulling registries"),
+		spinner.WithStopMessage("Finished cloning/pulling registries"),
+		spinner.WithCount(len(tbrc.Registries)),
+		spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+	)
+	log.SetOutput(s)
+	s.Start()
+
 	successCh := make(chan string)
 	failedCh := make(chan error)
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s := spinner.New(
-	// 	spinner.WithStartMessage("Cloning/pulling registries"),
-	// 	spinner.WithStopMessage("☑ Finished cloning/pulling registries"),
-	// 	spinner.WithCount(len(tbrc.Registries)),
-	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
-	// )
-	// logger := log.New()
-	// logger.SetFormatter(log.StandardLogger().Formatter)
-	// logger.SetOutput(s)
-	// logger.SetLevel(log.StandardLogger().GetLevel())
-
 	for _, r := range tbrc.Registries {
 		go func(r registry.Registry) {
 			err := cloneOrPullRegistry(r, opts.UpdateRegistries)
@@ -176,20 +175,20 @@ update:
 		}(r)
 	}
 
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s.Start()
-	// for i := 0; i < len(tbrc.Registries); i++ {
-	// 	select {
-	// 	case name := <-successCh:
-	// 		s.IncWithMessagef("☑ finished cloning/pulling registry %s", name)
-	// 	case err := <-failedCh:
-	// 		return errors.Wrap(err, "failed cloning/pulling registry")
-	// 	case <-time.After(time.Minute * 5):
-	// 		return errors.New("timed out while cloning/pulling registries")
-	// 	}
-	// }
-	// s.Stop()
-	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
+	for i := 0; i < len(tbrc.Registries); i++ {
+		select {
+		case name := <-successCh:
+			s.IncWithMessagef("Finished cloning/pulling registry %s", name)
+		case err := <-failedCh:
+			s.Stop()
+			return errors.Wrap(err, "failed cloning/pulling registry")
+		case <-time.After(5 * time.Minute):
+			s.Stop()
+			return errors.New("timed out while cloning/pulling registries")
+		}
+	}
+	s.Stop()
+	log.SetOutput(os.Stderr)
 
 	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
 		ShouldReadServices: opts.LoadServices,
@@ -225,7 +224,7 @@ update:
 }
 
 func CloneOrPullRepos(shouldPull bool) error {
-	log.Debug("checking ~/.tb directory for missing git repos for docker-compose.")
+	log.Debug("Checking ~/.tb directory for missing git repos for docker-compose.")
 	repoSet := make(map[string]bool)
 	it := registryResult.Services.Iter()
 	for it.HasNext() {
@@ -271,58 +270,50 @@ func CloneOrPullRepos(shouldPull bool) error {
 		}
 	}
 
-	// successCh := make(chan action)
-	successCh := make(chan string)
-	failedCh := make(chan error)
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s := spinner.New(
-	// 	spinner.WithStartMessage("Cloning/pulling service git repositories"),
-	// 	spinner.WithStopMessage("☑ Finished cloning/pulling service git repositories"),
-	// 	spinner.WithCount(len(actions)),
-	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
-	// )
-	// logger := log.New()
-	// logger.SetFormatter(log.StandardLogger().Formatter)
-	// logger.SetOutput(s)
-	// logger.SetLevel(log.StandardLogger().GetLevel())
+	s := spinner.New(
+		spinner.WithStartMessage("Cloning/pulling service git repositories"),
+		spinner.WithStopMessage("Finished cloning/pulling service git repositories"),
+		spinner.WithCount(len(actions)),
+		spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+	)
+	log.SetOutput(s)
+	defer log.SetOutput(os.Stderr)
+	s.Start()
+	defer s.Stop()
 
+	successCh := make(chan action)
+	failedCh := make(chan error)
 	for _, a := range actions {
 		go func(a action) {
 			var err error
 			if a.clone {
-				log.Debugf("\t☐ %s is missing. cloning git repo\n", a.repo)
+				log.Debugf("\t%s is missing. cloning git repo\n", a.repo)
 				err = git.Clone(a.repo, filepath.Join(ReposPath(), a.repo))
 			} else {
-				log.Debugf("\t☐ %s exists. pulling git repo\n", a.repo)
+				log.Debugf("\t%s exists. pulling git repo\n", a.repo)
 				err = git.Pull(a.repo, ReposPath())
 			}
 			if err != nil {
 				failedCh <- err
 				return
 			}
-			successCh <- a.repo
+			successCh <- a
 		}(a)
 	}
 
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s.Start()
-	// for i := 0; i < len(tbrc.Registries); i++ {
-	// 	select {
-	// 	case a := <-successCh:
-	// 		if a.clone {
-	// 			s.IncWithMessagef("☑ finished cloning git repository %s", a.repo)
-	// 		} else {
-	// 			s.IncWithMessagef("☑ finished pulling git repository %s", a.repo)
-	// 		}
-	// 	case err := <-failedCh:
-	// 		return errors.Wrap(err, "failed cloning/pulling git repository")
-	// 	case <-time.After(time.Minute * 10):
-	// 		return errors.New("timed out while cloning/pulling git repositories")
-	// 	}
-	// }
-	// s.Stop()
-	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling %s\n", "failed cloning/pulling git repo", len(actions))
-
-	log.Info("☑ finished checking git repos")
+	for i := 0; i < len(tbrc.Registries); i++ {
+		select {
+		case a := <-successCh:
+			if a.clone {
+				s.IncWithMessagef("Finished cloning git repository %s", a.repo)
+			} else {
+				s.IncWithMessagef("Finished pulling git repository %s", a.repo)
+			}
+		case err := <-failedCh:
+			return errors.Wrap(err, "failed cloning/pulling git repository")
+		case <-time.After(10 * time.Minute):
+			return errors.New("timed out while cloning/pulling git repositories")
+		}
+	}
 	return nil
 }

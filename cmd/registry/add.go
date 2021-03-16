@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"errors"
 	"os"
 
 	"github.com/TouchBistro/goutils/color"
@@ -21,17 +22,17 @@ Example:
   tb registry add TouchBistro/tb-registry-example`,
 	Run: func(cmd *cobra.Command, args []string) {
 		registryName := args[0]
-		log.Infof(color.Cyan("☐ Adding registry %s..."), registryName)
+		log.Infof(color.Cyan("Adding registry %s..."), registryName)
 
 		err := config.AddRegistry(registryName)
-		if err == config.ErrRegistryExists {
-			log.Infof(color.Green("☑ registry %s has already been added"), registryName)
+		if errors.Is(err, config.ErrRegistryExists) {
+			log.Infof(color.Green("✅ registry %s has already been added"), registryName)
 			os.Exit(0)
 		} else if err != nil {
 			fatal.ExitErrf(err, "failed to add registry %s", registryName)
 		}
 
-		log.Infof(color.Green("☑ Successfully added registry %s"), registryName)
+		log.Infof(color.Green("✅ Successfully added registry %s"), registryName)
 	},
 }
 

@@ -48,8 +48,7 @@ Examples:
 			if err != nil {
 				fatal.ExitErr(err, "failed to get latest iOS version")
 			}
-
-			log.Infof("No iOS version provided, defaulting to version %s\n", logOpts.iosVersion)
+			log.Debugf("No iOS version provided, defaulting to version %s", logOpts.iosVersion)
 		}
 
 		// Figure out default iOS device if it wasn't provided
@@ -58,21 +57,19 @@ Examples:
 			if err != nil {
 				fatal.ExitErr(err, "failed to get default iOS simulator")
 			}
-
-			log.Infof("No iOS simulator provided, defaulting to %s\n", runOpts.deviceName)
+			log.Debugf("No iOS simulator provided, defaulting to %s", runOpts.deviceName)
 		}
 
-		log.Debugln("☐ Finding device UDID")
+		log.Debugln("Finding device UDID")
 
 		deviceUDID, err := deviceList.GetDeviceUDID("iOS "+logOpts.iosVersion, logOpts.deviceName)
 		if err != nil {
-			fatal.ExitErr(err, "☒ Failed to get device UUID.\nRun \"xcrun simctl list devices\" to list available simulators.")
+			fatal.ExitErr(err, "Failed to get device UUID.\nRun \"xcrun simctl list devices\" to list available simulators.")
 		}
 
-		log.Debugf("☑ Found device UDID: %s\n", deviceUDID)
-
+		log.Debugf("Found device UDID: %s", deviceUDID)
 		logsPath := filepath.Join(os.Getenv("HOME"), "Library/Logs/CoreSimulator", deviceUDID, "system.log")
-		log.Infof("Attaching to logs for simulator %s\n\n", logOpts.deviceName)
+		log.Debugf("Attaching to logs for simulator %s", logOpts.deviceName)
 
 		c := command.New(command.WithStdout(os.Stdout), command.WithStderr(os.Stderr))
 		err = c.Exec("tail", "-f", "-n", logOpts.numberOfLines, logsPath)

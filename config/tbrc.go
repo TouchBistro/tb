@@ -75,8 +75,8 @@ func LoadTBRC() error {
 	})
 
 	if IsExperimentalEnabled() {
-		log.Infoln(color.Yellow("🚧 Experimental mode enabled 🚧"))
-		log.Infoln(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
+		log.Info(color.Yellow("🚧 Experimental mode enabled 🚧"))
+		log.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
 	}
 
 	// Resolve registry paths

@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/util"
@@ -44,58 +45,67 @@ var nukeCmd = &cobra.Command{
 		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		s := spinner.New(
+			spinner.WithStartMessage("Cleaning up tb resources"),
+			spinner.WithStopMessage("Finished cleaning up tb resources"),
+			spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
+		)
+		log.SetOutput(s)
+		defer log.SetOutput(os.Stderr)
+		s.Start()
+
 		// Make sure containers are stopped before removing docker resources
 		// to ensure no weirdness
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeImages ||
 			nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeNetworks ||
 			nukeOpts.shouldNukeAll {
-			log.Infoln("Stopping running containers...")
+			s.UpdateMessage("Stopping running containers")
 			err := docker.StopAllContainers()
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed stopping docker containers")
 			}
 		}
 
 		if nukeOpts.shouldNukeContainers || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing containers...")
+			s.UpdateMessage("Removing containers")
 			err := docker.RmContainers()
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing docker containers")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeImages || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing images...")
+			s.UpdateMessage("Removing images")
 			_, err := docker.PruneImages()
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing docker images.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeNetworks || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing networks...")
+			s.UpdateMessage("Removing networks")
 			err := docker.RmNetworks()
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing docker networks.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeVolumes || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing volumes...")
+			s.UpdateMessage("Removing volumes")
 			err := docker.RmVolumes()
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing docker volumes.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeRepos || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing repos...")
-
-			repos := make([]string, 0)
+			s.UpdateMessage("Removing git repositories")
+			var repos []string
 			it := config.LoadedServices().Iter()
 			for it.HasNext() {
 				s := it.Next()
@@ -106,73 +116,75 @@ var nukeCmd = &cobra.Command{
 			repos = util.UniqueStrings(repos)
 
 			for _, repo := range repos {
-				log.Debugf("Removing repo %s...", repo)
+				log.Debugf("Removing repo %s", repo)
 				repoPath := filepath.Join(config.ReposPath(), repo)
 				err := os.RemoveAll(repoPath)
 				if err != nil {
+					s.Stop()
 					fatal.ExitErrf(err, "Failed removing repo %s.", repo)
 				}
 			}
 
-			log.Infoln("Removing any remaining repo directorys...")
+			log.Debugf("Removing any remaining repo directorys")
 			err := os.RemoveAll(config.ReposPath())
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing repos.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeDesktopApps || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing desktop app builds...")
+			s.UpdateMessage("Removing desktop app builds")
 			err := os.RemoveAll(config.DesktopAppsPath())
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing desktop app builds.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeIOSBuilds || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing ios builds...")
+			s.UpdateMessage("Removing iOS app builds")
 			err := os.RemoveAll(config.IOSBuildPath())
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing ios builds.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeRegistries || nukeOpts.shouldNukeAll {
-			log.Infoln("Removing registries...")
+			s.UpdateMessage("Removing registries")
 			for _, r := range config.Registries() {
 				// Don't remove local registries
 				if r.LocalPath != "" {
 					continue
 				}
 
-				log.Debugf("Removing registry %s...", r.Name)
+				log.Debugf("Removing registry %s", r.Name)
 				err := os.RemoveAll(r.Path)
 				if err != nil {
+					s.Stop()
 					fatal.ExitErrf(err, "Failed removing registry %s", r.Name)
 				}
 			}
 
-			log.Infoln("Removing any remaining registry directories...")
+			log.Debug("Removing any remaining registry directories")
 			err := os.RemoveAll(config.RegistriesPath())
 			if err != nil {
+				s.Stop()
 				fatal.ExitErr(err, "Failed removing registries.")
 			}
-			log.Infoln("...done")
 		}
 
 		if nukeOpts.shouldNukeAll {
+			s.UpdateMessage("Removing any remaining files managed by tb")
 			rootPath := config.TBRootPath()
-			log.Infof("Removing any remaining files in %s...\n", rootPath)
-
 			err := os.RemoveAll(rootPath)
 			if err != nil {
+				s.Stop()
 				fatal.ExitErrf(err, "Failed removing files in %s", rootPath)
 			}
-			log.Infoln("...done")
 		}
+		s.Stop()
 	},
 }
 
