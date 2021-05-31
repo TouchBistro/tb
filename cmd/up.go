@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"time"
-
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
@@ -307,9 +305,7 @@ Examples:
 
 		if !opts.shouldSkipServicePreRun {
 			log.Info("☐ performing preRun step for services")
-			successCh = make(chan string)
-			failedCh = make(chan error)
-			count := 0
+
 			for _, s := range selectedServices {
 				if s.PreRun == "" {
 					continue
@@ -317,20 +313,14 @@ Examples:
 
 				name := s.FullName()
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
-				go func(successCh chan string, failedCh chan error, name, preRun string) {
-					err := docker.ComposeRun(name, preRun)
-					if err != nil {
-						failedCh <- err
-						return
-					}
-					successCh <- name
-				}(successCh, failedCh, s.DockerName(), s.PreRun)
-				count++
-				// We need to wait a bit in between launching goroutines or else they all create seperated docker-compose environments
-				// Any ideas better than a sleep hack are appreciated
-				time.Sleep(time.Second)
+
+				err := docker.ComposeRun(s.DockerName(), s.PreRun)
+				if err != nil {
+					fatal.ExitErrf(err, "failed running preRun command for %s.", name)
+				}
+
+				log.Infof("\t☑ finished running preRun command for %s", name)
 			}
-			util.SpinnerWait(successCh, failedCh, "\t☑ finished running preRun command for %s.\n", "failed running preRun command", count)
 
 			log.Info("☑ finished performing all preRun steps")
 			fmt.Println()

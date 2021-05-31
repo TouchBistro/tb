@@ -102,10 +102,10 @@ func DownloadLatestApp(a app.App, downloadDest string) string {
 
 		// If there is a local build, get latest sha from github for desired branch to see if the build available on s3 corresponds to the
 		// latest commit on the branch.
-		log.Infof("Checking latest github sha for %s-%s", a.GitRepo, a.Branch)
+		log.Infof("Checking latest github sha for %s/%s", a.GitRepo, a.Branch)
 		latestGitsha, err := git.GetBranchHeadSha(a.GitRepo, a.Branch)
 		if err != nil {
-			fatal.ExitErrf(err, "Failed getting branch head sha for %s-%s", a.GitRepo, a.Branch)
+			fatal.ExitErrf(err, "Failed getting branch head sha for %s/%s", a.GitRepo, a.Branch)
 		}
 		log.Infof("Latest github sha is %s", latestGitsha)
 		if !strings.HasPrefix(s3BuildFilename, latestGitsha) {
