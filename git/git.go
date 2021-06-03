@@ -3,7 +3,6 @@ package git
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/command"
@@ -34,8 +33,7 @@ func GetBranchHeadSha(repo, branch string) (string, error) {
 	w := log.WithField("id", "git-ls-remote").WriterLevel(log.DebugLevel)
 	defer w.Close()
 	stdout := new(bytes.Buffer)
-	mw := io.MultiWriter(stdout, w)
-	cmd := command.New(command.WithStdout(mw), command.WithStderr(w))
+	cmd := command.New(command.WithStdout(stdout), command.WithStderr(w))
 	err := cmd.Exec("git", "ls-remote", repoUrl, branch)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get %s head sha of %s", branch, repo)
