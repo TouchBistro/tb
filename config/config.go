@@ -142,8 +142,6 @@ update:
 		return errors.Wrap(err, "failed to create lazydocker config file")
 	}
 
-	git.CheckGithubAPIToken()
-
 	// THE REGISTRY ZONE
 
 	if len(tbrc.Registries) == 0 {
