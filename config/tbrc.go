@@ -32,6 +32,10 @@ type userConfig struct {
 
 /* Getters for private & computed vars */
 
+func IsDebugEnabled() bool {
+	return tbrc.DebugEnabled
+}
+
 func IsExperimentalEnabled() bool {
 	return tbrc.ExperimentalEnabled
 }

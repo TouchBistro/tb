@@ -6,9 +6,11 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
+	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
@@ -205,6 +207,49 @@ Examples:
 		fmt.Println()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		if config.IsExperimentalEnabled() {
+			// TODO(@cszatmary): Figure out how to handle login strategies
+			loginStrategies, err := config.LoginStategies()
+			if err != nil {
+				fatal.ExitErr(err, "Failed to get login strategies")
+			}
+			if loginStrategies != nil {
+				performLoginStrategies(loginStrategies)
+			}
+
+			eng := config.Engine()
+			// TODO(@cszatmary): Use ResolveServices and ResolvePlaylists
+			services := selectServices()
+
+			tracker := &progress.SpinnerTracker{
+				OutputLogger:    util.OutputLogger{Logger: log.StandardLogger()},
+				PersistMessages: config.IsDebugEnabled(),
+			}
+			ctx := progress.ContextWithTracker(cmd.Context(), tracker)
+			err = eng.Up(ctx, services, engine.UpOptions{
+				SkipPreRun:     opts.shouldSkipServicePreRun,
+				SkipDockerPull: opts.shouldSkipDockerPull,
+				SkipGitPull:    opts.shouldSkipGitPull,
+			})
+			if err != nil {
+				fatal.ExitErr(err, "Failed to stop services")
+			}
+			tracker.Info("✔ Started services")
+
+			if !opts.shouldSkipLazydocker {
+				log.Info("Running lazydocker")
+				w := log.WithField("id", "lazydocker").WriterLevel(log.DebugLevel)
+				defer w.Close()
+				err := command.New(command.WithStdout(w), command.WithStderr(w)).Exec("lazydocker")
+				if err != nil {
+					fatal.ExitErr(err, "failed running lazydocker")
+				}
+			}
+
+			log.Info("🔈 the containers are running in the background. If you want to terminate them, run tb down")
+			return
+		}
+
 		selectedServices := selectServices()
 		serviceNames := make([]string, len(selectedServices))
 		for i, s := range selectedServices {

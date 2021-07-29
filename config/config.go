@@ -7,6 +7,7 @@ import (
 
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/compose"
+	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/registry"
@@ -21,6 +22,12 @@ import (
 // Package state for storing config info
 var tbrc userConfig
 var registryResult registry.ReadAllResult
+
+// TODO(@cszatmary): I wish this wasn't global state and in the config package but one thing at a time.
+// For now I am concerned about moving the business logic to the engine layer.
+// After that we can clean this up and move to a dependency injection style in commands.
+
+var globalEngine *engine.Engine
 
 type InitOptions struct {
 	LoadServices     bool
@@ -75,6 +82,10 @@ func LoadedIOSApps() *app.Collection {
 
 func LoadedDesktopApps() *app.Collection {
 	return registryResult.DesktopApps
+}
+
+func Engine() *engine.Engine {
+	return globalEngine
 }
 
 /* Private Functions */
@@ -226,6 +237,15 @@ update:
 		log.Debugln("Successfully generated docker-compose.yml")
 	}
 
+	globalEngine, err = engine.New(engine.Options{
+		Workdir:    TBRootPath(),
+		Services:   registryResult.Services,
+		Playlists:  registryResult.Playlists,
+		BaseImages: registryResult.BaseImages,
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to initialize engine")
+	}
 	return nil
 }
 
