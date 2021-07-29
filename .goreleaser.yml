@@ -17,6 +17,7 @@ builds:
       - linux
     goarch:
       - amd64
+      - arm64
     hooks:
       post: go run scripts/post-build/main.go
 

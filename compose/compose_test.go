@@ -99,48 +99,48 @@ func TestCreateComposeFile(t *testing.T) {
 
 version: "3.7"
 services:
-  examplezone-tb-registry-postgres:
-    container_name: examplezone-tb-registry-postgres
-    environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: user
-    image: postgres:12
-    ports:
-    - 5432:5432
-    volumes:
-    - postgres:/var/lib/postgresql/data
-  touchbistro-tb-registry-postgres:
-    container_name: touchbistro-tb-registry-postgres
-    environment:
-      DB_PASSWORD: localdev
-      DB_USER: core
-    image: postgres:10.6-alpine
-    ports:
-    - 5432:5432
-    volumes:
-    - postgres:/var/lib/postgresql/data
-  touchbistro-tb-registry-venue-core-service:
-    build:
-      args:
-        NODE_ENV: development
-        NPM_TOKEN: $NPM_TOKEN
-      context: .tb/repos/TouchBistro/venue-core-service
-      target: dev
-    command: yarn start
-    container_name: touchbistro-tb-registry-venue-core-service
-    depends_on:
-    - touchbistro-tb-registry-postgres
-    env_file:
-    - .tb/repos/TouchBistro/venue-core-service/.env.example
-    environment:
-      DB_HOST: touchbistro-tb-registry-postgres
-      HTTP_PORT: "8080"
-    ports:
-    - 8081:8080
-    volumes:
-    - .tb/repos/TouchBistro/venue-core-service:/home/node/app:delegated
+    examplezone-tb-registry-postgres:
+        container_name: examplezone-tb-registry-postgres
+        environment:
+            POSTGRES_PASSWORD: password
+            POSTGRES_USER: user
+        image: postgres:12
+        ports:
+            - 5432:5432
+        volumes:
+            - postgres:/var/lib/postgresql/data
+    touchbistro-tb-registry-postgres:
+        container_name: touchbistro-tb-registry-postgres
+        environment:
+            DB_PASSWORD: localdev
+            DB_USER: core
+        image: postgres:10.6-alpine
+        ports:
+            - 5432:5432
+        volumes:
+            - postgres:/var/lib/postgresql/data
+    touchbistro-tb-registry-venue-core-service:
+        build:
+            args:
+                NODE_ENV: development
+                NPM_TOKEN: $NPM_TOKEN
+            context: .tb/repos/TouchBistro/venue-core-service
+            target: dev
+        command: yarn start
+        container_name: touchbistro-tb-registry-venue-core-service
+        depends_on:
+            - touchbistro-tb-registry-postgres
+        env_file:
+            - .tb/repos/TouchBistro/venue-core-service/.env.example
+        environment:
+            DB_HOST: touchbistro-tb-registry-postgres
+            HTTP_PORT: "8080"
+        ports:
+            - 8081:8080
+        volumes:
+            - .tb/repos/TouchBistro/venue-core-service:/home/node/app:delegated
 volumes:
-  postgres: null
+    postgres: null
 `
 
 	buf := &bytes.Buffer{}
