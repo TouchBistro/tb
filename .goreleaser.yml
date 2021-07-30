@@ -2,13 +2,11 @@ project_name: tb
 
 before:
   hooks:
-    - go mod download
-    # you may remove this if you don't need go generate
-    - go generate ./...
+    - go mod tidy
+    - go run scripts/build-artifacts/main.go
 
 builds:
-  -
-    env:
+  - env:
       - CGO_ENABLED=0
     ldflags:
       - -s -w -X github.com/TouchBistro/tb/cmd.version={{.Version}}
@@ -18,12 +16,9 @@ builds:
     goarch:
       - amd64
       - arm64
-    hooks:
-      post: go run scripts/post-build/main.go
 
 archives:
-  -
-    replacements:
+  - replacements:
       darwin: Darwin
       linux: Linux
       windows: Windows
@@ -31,9 +26,9 @@ archives:
       amd64: x86_64
     files:
       - README.md
-      - dist/tb.bash
-      - dist/_tb
-      - dist/man1/*
+      - artifacts/tb.bash
+      - artifacts/_tb
+      - artifacts/man1/*
 
 checksum:
   name_template: 'checksums.txt'
@@ -49,8 +44,7 @@ changelog:
     - '^test:'
 
 brews:
-  -
-    github:
+  - tap:
       owner: TouchBistro
       name: homebrew-tap
     commit_author:
@@ -64,8 +58,8 @@ brews:
 
     install: |
       bin.install "tb"
-      bash_completion.install "dist/tb.bash"
-      zsh_completion.install "dist/_tb"
+      bash_completion.install "artifacts/tb.bash"
+      zsh_completion.install "artifacts/_tb"
       man1.install Dir["dist/man1/*.1"]
 
 release:

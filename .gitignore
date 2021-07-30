@@ -32,3 +32,5 @@ bin
 
 # Test coverage
 coverage/
+
+artifacts
