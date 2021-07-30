@@ -22,10 +22,6 @@ if [ $2 = "rollback" ]; then
 fi
 
 fail_notif() {
-	# test if $3 is set to a webhook url
-	if !([ -z ${3+x} ]); then
-		curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_slack_post_data)" $3
-	fi
 	curl --write-out '%{http_code}' --silent --output /dev/null --header "Content-Type: application/json" --request POST --data "$(generate_slack_post_data)" $SLACK_WEBHOOK_URL
 	exit 1
 }
@@ -56,4 +52,4 @@ git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
 echo "Successfully pushed tag: $NEW_GIT_TAG"
 
-goreleaser release || fail_notif
+goreleaser release --debug || fail_notif
