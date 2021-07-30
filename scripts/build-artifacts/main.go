@@ -11,7 +11,7 @@ import (
 
 func main() {
 	rootCmd := cmd.Root()
-	dir := "dist"
+	dir := "artifacts"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		fatal.ExitErr(err, "Failed to create dist directory")
 	}
