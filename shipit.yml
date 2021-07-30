@@ -3,7 +3,8 @@ deploy:
     - /notif/slack/pre "touchbistro/tb" "deploy"
 
   override:
-    - scripts/shipit.deploy "touchbistro/tb" "deploy"
+    - 'scripts/shipit.deploy "touchbistro/tb" "deploy"':
+        timeout: 600 # 10min
 
   post:
     - /notif/slack/post "touchbistro/tb" "deploy"
