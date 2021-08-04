@@ -60,7 +60,7 @@ brews:
       bin.install "tb"
       bash_completion.install "artifacts/tb.bash"
       zsh_completion.install "artifacts/_tb"
-      man1.install Dir["dist/man1/*.1"]
+      man1.install Dir["artifacts/man1/*.1"]
 
 release:
   github:
