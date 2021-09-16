@@ -307,11 +307,12 @@ Examples:
 			log.Info("☐ performing preRun step for services")
 
 			for _, s := range selectedServices {
+				name := s.FullName()
 				if s.PreRun == "" {
+					log.Infof("\t☐ no preRun command for %s, continuing...\n", name)
 					continue
 				}
 
-				name := s.FullName()
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
 
 				err := docker.ComposeRun(s.DockerName(), s.PreRun)
