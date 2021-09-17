@@ -16,15 +16,24 @@ const (
 	stopTimeoutSecs = 2
 )
 
+var _composeCommand string
+
 func composeCommand() string {
-	_, err := exec.LookPath("docker-compose-v1")
-	if err == nil {
-		log.Debugf("docker-compose-v1 exists, using it to avoid race condition issue with Docker Compose version v2.0.0-rc.3...")
-		return "docker-compose-v1"
+	if _composeCommand != "" {
+		return _composeCommand
 	}
 
-	log.Debugf("docker-compose-v1 does not exist, falling back to docker-compose (this might break if using Docker Compose version v2.0.0-rc.3)...")
-	return "docker-compose"
+	_, err := exec.LookPath("docker-compose-v1")
+
+	if err == nil {
+		log.Debugf("docker-compose-v1 exists, using it to avoid race condition issue with Docker Compose version v2.0.0-rc.3...")
+		_composeCommand = "docker-compose-v1"
+	} else {
+		log.Debugf("docker-compose-v1 does not exist, falling back to docker-compose (this might break if using Docker Compose version v2.0.0-rc.3)...")
+		_composeCommand = "docker-compose"
+	}
+
+	return _composeCommand
 }
 
 func composeFile() string {
