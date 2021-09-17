@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"os/exec"
 	"strconv"
 	"strings"
 
@@ -15,6 +16,26 @@ const (
 	stopTimeoutSecs = 2
 )
 
+var composeCmd string
+
+func composeCommand() string {
+	if composeCmd != "" {
+		return composeCmd
+	}
+
+	_, err := exec.LookPath("docker-compose-v1")
+
+	if err == nil {
+		log.Debugf("docker-compose-v1 exists, using it to avoid race condition issue with Docker Compose version v2.0.0-rc.3...")
+		composeCmd = "docker-compose-v1"
+	} else {
+		log.Debugf("docker-compose-v1 does not exist, falling back to docker-compose (this might break if using Docker Compose version v2.0.0-rc.3)...")
+		composeCmd = "docker-compose"
+	}
+
+	return composeCmd
+}
+
 func composeFile() string {
 	return fmt.Sprintf("%s/docker-compose.yml", config.TBRootPath())
 }
@@ -22,7 +43,7 @@ func composeFile() string {
 func ComposeExec(serviceName string, execArgs []string, cmd *command.Command) error {
 	args := []string{"-f", composeFile(), "exec", serviceName}
 	args = append(args, execArgs...)
-	err := cmd.Exec("docker-compose", args...)
+	err := cmd.Exec(composeCommand(), args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to run docker-compose exec")
 	}
@@ -32,7 +53,7 @@ func ComposeExec(serviceName string, execArgs []string, cmd *command.Command) er
 func ComposeLogs(services []string, cmd *command.Command) error {
 	args := []string{"-f", composeFile(), "logs", "-f"}
 	args = append(args, services...)
-	err := cmd.Exec("docker-compose", args...)
+	err := cmd.Exec(composeCommand(), args...)
 	if err != nil {
 		return errors.Wrap(err, "failed to run docker-compose logs")
 	}
@@ -69,7 +90,7 @@ func execDockerCompose(subcmd string, args ...string) error {
 	defer w.Close()
 	cmd := command.New(command.WithStdout(w), command.WithStderr(w))
 	args = append([]string{"-f", composeFile(), subcmd}, args...)
-	err := cmd.Exec("docker-compose", args...)
+	err := cmd.Exec(composeCommand(), args...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to run docker-compose %s", subcmd)
 	}
