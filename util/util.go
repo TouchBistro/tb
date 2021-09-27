@@ -83,6 +83,7 @@ func UniqueStrings(s []string) []string {
 	return us
 }
 
+// This is deprecated, use resource.ParseName.
 func SplitNameParts(name string) (string, string, error) {
 	// Full form of item name in a registry is
 	// <org>/<repo>/<item> where an item is a service, playlist or app

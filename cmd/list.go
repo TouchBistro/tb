@@ -6,7 +6,7 @@ import (
 
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource/service"
 	"github.com/spf13/cobra"
 )
 
@@ -49,12 +49,12 @@ var listCmd = &cobra.Command{
 	},
 }
 
-func listServices(services *service.ServiceCollection) {
+func listServices(services *service.Collection) {
 	names := make([]string, services.Len())
 	i := 0
 	it := services.Iter()
-	for it.HasNext() {
-		s := it.Next()
+	for it.Next() {
+		s := it.Value()
 		names[i] = s.FullName()
 		i++
 	}

@@ -7,9 +7,10 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/file"
-	"github.com/TouchBistro/tb/app"
-	"github.com/TouchBistro/tb/playlist"
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource"
+	"github.com/TouchBistro/tb/resource/app"
+	"github.com/TouchBistro/tb/resource/playlist"
+	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -24,20 +25,8 @@ const (
 	staticDirName     = "static"
 )
 
-const (
-	resourceTypeApp     = "app"
-	resourceTypeService = "service"
-)
-
 // ErrFileNotExist indicates a registry file does not exist.
 var ErrFileNotExist = os.ErrNotExist
-
-// TODO(@cszatmary): Figure out a better way to differentiate between app types
-type appType int
-
-const (
-	appTypeiOS appType = iota
-)
 
 type Registry struct {
 	Name      string `yaml:"name"`
@@ -74,37 +63,12 @@ type ReadOptions struct {
 }
 
 type RegistryResult struct {
-	Services        *service.ServiceCollection
-	Playlists       *playlist.PlaylistCollection
-	IOSApps         *app.AppCollection
-	DesktopApps     *app.AppCollection
+	Services        *service.Collection
+	Playlists       *playlist.Collection
+	IOSApps         *app.Collection
+	DesktopApps     *app.Collection
 	BaseImages      []string
 	LoginStrategies []string
-}
-
-// ValidationError represents a resource having failed validation.
-// It contains the resource type, name, and a list of validation
-// failure messages.
-type ValidationError struct {
-	ResourceType string
-	ResourceName string
-	Messages     []string
-}
-
-func (ve *ValidationError) Error() string {
-	var sb strings.Builder
-	sb.WriteString(ve.ResourceType)
-	sb.WriteString(": ")
-	sb.WriteString(ve.ResourceName)
-	sb.WriteString(": ")
-
-	for i, msg := range ve.Messages {
-		if i > 0 {
-			sb.WriteString(", ")
-		}
-		sb.WriteString(msg)
-	}
-	return sb.String()
 }
 
 // ErrorList is a list of errors encountered.
@@ -135,60 +99,6 @@ func readRegistryFile(fileName string, r Registry, v interface{}) error {
 
 	err = yaml.NewDecoder(f).Decode(v)
 	return errors.Wrapf(err, "failed to read %s in registry %s", fileName, r.Name)
-}
-
-func validateService(s service.Service) error {
-	var msgs []string
-
-	// Make sure mode is a valid value
-	if s.Mode != service.ModeRemote && s.Mode != service.ModeBuild {
-		msg := fmt.Sprintf("invalid 'mode' value %q, must be 'remote' or 'build'", s.Mode)
-		msgs = append(msgs, msg)
-	}
-
-	// Make sure image is specified if using remote
-	if s.UseRemote() && s.Remote.Image == "" {
-		msgs = append(msgs, "'mode' is set to 'remote' but 'remote.image' was not provided")
-	}
-
-	// Make sure repo is specified if not using remote
-	if !s.UseRemote() && !s.CanBuild() {
-		msgs = append(msgs, "'mode' is set to 'build' but 'build.dockerfilePath' was not provided")
-	}
-
-	if msgs == nil {
-		return nil
-	}
-
-	return &ValidationError{
-		ResourceType: resourceTypeService,
-		ResourceName: s.Name,
-		Messages:     msgs,
-	}
-}
-
-func validateApp(a app.App, t appType) error {
-	// No validations needed for desktop currently
-	if t != appTypeiOS {
-		return nil
-	}
-
-	var msgs []string
-
-	// Make sure RunsOn is valid
-	if a.DeviceType() == app.DeviceTypeUnknown {
-		msgs = append(msgs, "'runsOn' value is invalid, must be 'all', 'ipad', or 'iphone'")
-	}
-
-	if msgs == nil {
-		return nil
-	}
-
-	return &ValidationError{
-		ResourceType: resourceTypeApp,
-		ResourceName: a.Name,
-		Messages:     msgs,
-	}
 }
 
 type readServicesOptions struct {
@@ -228,7 +138,7 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 		s.Name = n
 		s.RegistryName = r.Name
 
-		if err := validateService(s); err != nil {
+		if err := service.Validate(s); err != nil {
 			errs = append(errs, err)
 			continue
 		}
@@ -283,10 +193,9 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 
 		// Report unknown vars as an error if in strict mode
 		if len(errMsgs) > 0 && opts.strict {
-			errs = append(errs, &ValidationError{
-				ResourceType: resourceTypeService,
-				ResourceName: s.Name,
-				Messages:     errMsgs,
+			errs = append(errs, &resource.ValidationError{
+				Resource: s,
+				Messages: errMsgs,
 			})
 			continue
 		}
@@ -384,7 +293,7 @@ func readApps(r Registry) ([]app.App, []app.App, error) {
 		a.Name = n
 		a.RegistryName = r.Name
 
-		if err := validateApp(a, appTypeiOS); err != nil {
+		if err := app.Validate(a, app.TypeiOS); err != nil {
 			errs = append(errs, err)
 		}
 
@@ -453,31 +362,50 @@ func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, er
 		}
 	}
 
-	var sc *service.ServiceCollection
-	var pc *playlist.PlaylistCollection
+	var sc *service.Collection
+	var pc *playlist.Collection
 	var err error
 	if opts.ShouldReadServices {
-		sc, err = service.NewServiceCollection(serviceList, opts.Overrides)
-		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create ServiceCollection")
+		// TODO(@cszatmary): Refactor the registry implementation to create collections at the start
+		// and add to them as each registry is read.
+		sc = &service.Collection{}
+		for _, s := range serviceList {
+			if o, ok := opts.Overrides[s.FullName()]; ok {
+				s, err = service.Override(s, o)
+				if err != nil {
+					return RegistryResult{}, errors.Wrap(err, "failed to apply override to service")
+				}
+			}
+			if err := sc.Set(s); err != nil {
+				return RegistryResult{}, errors.Wrap(err, "failed to add service to collection")
+			}
 		}
 
-		pc, err = playlist.NewPlaylistCollection(playlistList, opts.CustomPlaylists)
-		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create PlaylistCollection")
+		pc = &playlist.Collection{}
+		for _, p := range playlistList {
+			if err := pc.Set(p); err != nil {
+				return RegistryResult{}, errors.Wrap(err, "failed to add playlist to collection")
+			}
+		}
+		for n, p := range opts.CustomPlaylists {
+			p.Name = n
+			pc.SetCustom(p)
 		}
 	}
 
-	var iosAC, desktopAC *app.AppCollection
+	var iosAC, desktopAC *app.Collection
 	if opts.ShouldReadApps {
-		iosAC, err = app.NewAppCollection(iosAppList)
-		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for iOS apps")
+		iosAC = &app.Collection{}
+		for _, a := range iosAppList {
+			if err := iosAC.Set(a); err != nil {
+				return RegistryResult{}, errors.Wrap(err, "failed to add iOS app to collection")
+			}
 		}
-
-		desktopAC, err = app.NewAppCollection(desktopAppList)
-		if err != nil {
-			return RegistryResult{}, errors.Wrap(err, "failed to create AppCollection for desktop apps")
+		desktopAC = &app.Collection{}
+		for _, a := range desktopAppList {
+			if err := desktopAC.Set(a); err != nil {
+				return RegistryResult{}, errors.Wrap(err, "failed to add desktop app to collection")
+			}
 		}
 	}
 
@@ -562,10 +490,9 @@ func Validate(path string, strict bool) ValidateResult {
 
 					// Handle port conflict
 					msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
-					errs = append(errs, &ValidationError{
-						ResourceType: resourceTypeService,
-						ResourceName: s.Name,
-						Messages:     []string{msg},
+					errs = append(errs, &resource.ValidationError{
+						Resource: s,
+						Messages: []string{msg},
 					})
 				}
 			}

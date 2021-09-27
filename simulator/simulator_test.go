@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/TouchBistro/tb/app"
+	"github.com/TouchBistro/tb/resource/app"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -40,7 +40,7 @@ Example:
 			fatal.Exitf("%s does not have a repo or is a third-party repo\n", serviceName)
 		}
 
-		url, err := getDocsURL(service.DockerName())
+		url, err := getDocsURL(util.DockerName(service.FullName()))
 		if err != nil {
 			fatal.ExitErrf(err, "could not find docs url for %s\n", serviceName)
 		}

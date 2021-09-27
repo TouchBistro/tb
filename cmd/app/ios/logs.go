@@ -6,7 +6,7 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
-	"github.com/TouchBistro/tb/app"
+	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/simulator"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"

@@ -7,6 +7,7 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
+	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +35,7 @@ var logsCmd = &cobra.Command{
 				if err != nil {
 					fatal.ExitErrf(err, "%s is not a valid service\n. Try running `tb list` to see available services\n", serviceName)
 				}
-				services = append(services, s.DockerName())
+				services = append(services, util.DockerName(s.FullName()))
 			}
 		}
 

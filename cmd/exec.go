@@ -7,6 +7,7 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/docker"
+	"github.com/TouchBistro/tb/util"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +45,7 @@ Examples:
 		}
 
 		c := command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr))
-		err = docker.ComposeExec(s.DockerName(), args[1:], c)
+		err = docker.ComposeExec(util.DockerName(s.FullName()), args[1:], c)
 		if err != nil {
 			fatal.ExitErr(err, "Could not execute command against this service.")
 		}

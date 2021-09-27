@@ -88,7 +88,7 @@ Examples:
 
 		log.Info("checking required env vars.")
 
-		dbConf, err := getDbConf(s.DockerName())
+		dbConf, err := getDbConf(util.DockerName(s.FullName()))
 		if err != nil {
 			fatal.ExitErr(err, "Could not retrieve database config for this service.")
 		}

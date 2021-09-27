@@ -4,7 +4,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource/service"
+	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
@@ -36,7 +37,7 @@ type composeFile struct {
 
 func createComposeService(s service.Service) composeService {
 	cs := composeService{
-		ContainerName: s.DockerName(),
+		ContainerName: util.DockerName(s.FullName()),
 		DependsOn:     s.Dependencies,
 		Entrypoint:    s.Entrypoint,
 		EnvFile:       []string{},
@@ -49,7 +50,7 @@ func createComposeService(s service.Service) composeService {
 	}
 
 	var volumes []service.Volume
-	if s.UseRemote() {
+	if s.Mode == service.ModeRemote {
 		cs.Command = s.Remote.Command
 		cs.Image = s.ImageURI()
 		volumes = s.Remote.Volumes
@@ -71,7 +72,7 @@ func createComposeService(s service.Service) composeService {
 	return cs
 }
 
-func CreateComposeFile(services *service.ServiceCollection, w io.Writer) error {
+func CreateComposeFile(services *service.Collection, w io.Writer) error {
 	composeServices := make(map[string]composeService)
 	// Top level named volumes are an empty field, i.e. `postgres:`
 	// There's no way to create an empty field with go-yaml
@@ -80,15 +81,15 @@ func CreateComposeFile(services *service.ServiceCollection, w io.Writer) error {
 	composeVolumes := make(map[string]interface{})
 
 	it := services.Iter()
-	for it.HasNext() {
-		s := it.Next()
+	for it.Next() {
+		s := it.Value()
 
-		name := s.DockerName()
+		name := util.DockerName(s.FullName())
 		composeServices[name] = createComposeService(s)
 
 		// Add named volumes
 		var volumes []service.Volume
-		if s.UseRemote() {
+		if s.Mode == service.ModeRemote {
 			volumes = s.Remote.Volumes
 		} else {
 			volumes = s.Build.Volumes

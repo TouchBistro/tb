@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
-	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/git"
 	"github.com/TouchBistro/tb/login"
-	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/registry"
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource/app"
+	"github.com/TouchBistro/tb/resource/playlist"
+	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
@@ -61,19 +61,19 @@ func BaseImages() []string {
 	return registryResult.BaseImages
 }
 
-func LoadedServices() *service.ServiceCollection {
+func LoadedServices() *service.Collection {
 	return registryResult.Services
 }
 
-func LoadedPlaylists() *playlist.PlaylistCollection {
+func LoadedPlaylists() *playlist.Collection {
 	return registryResult.Playlists
 }
 
-func LoadedIOSApps() *app.AppCollection {
+func LoadedIOSApps() *app.Collection {
 	return registryResult.IOSApps
 }
 
-func LoadedDesktopApps() *app.AppCollection {
+func LoadedDesktopApps() *app.Collection {
 	return registryResult.DesktopApps
 }
 
@@ -226,8 +226,8 @@ func CloneOrPullRepos(shouldPull bool) error {
 	log.Debug("checking ~/.tb directory for missing git repos for docker-compose.")
 	repoSet := make(map[string]bool)
 	it := registryResult.Services.Iter()
-	for it.HasNext() {
-		s := it.Next()
+	for it.Next() {
+		s := it.Value()
 		if s.HasGitRepo() {
 			repoSet[s.GitRepo.Name] = true
 		}

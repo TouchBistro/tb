@@ -5,10 +5,11 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/TouchBistro/tb/app"
-	"github.com/TouchBistro/tb/playlist"
 	"github.com/TouchBistro/tb/registry"
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource"
+	"github.com/TouchBistro/tb/resource/app"
+	"github.com/TouchBistro/tb/resource/playlist"
+	"github.com/TouchBistro/tb/resource/service"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -278,32 +279,32 @@ func TestValidateErrors(t *testing.T) {
 	result := registry.Validate("testdata/invalid-registry-1", true)
 
 	var errList registry.ErrorList
-	var validationErr *registry.ValidationError
+	var validationErr *resource.ValidationError
 
 	assert.True(t, errors.As(result.AppsErr, &errList))
 	assert.Len(t, errList, 1)
 	assert.True(t, errors.As(errList[0], &validationErr))
-	assert.Equal(t, "app", validationErr.ResourceType)
-	assert.Equal(t, "GemSwapper", validationErr.ResourceName)
+	assert.Equal(t, resource.TypeApp, validationErr.Resource.Type())
+	assert.Equal(t, "invalid-registry-1/GemSwapper", validationErr.Resource.FullName())
 
 	assert.True(t, errors.Is(result.PlaylistsErr, registry.ErrFileNotExist))
 
 	assert.True(t, errors.As(result.ServicesErr, &errList))
 	assert.Len(t, errList, 3)
-	var serviceErrs []*registry.ValidationError
+	var serviceErrs []*resource.ValidationError
 	for _, err := range errList {
-		var ve *registry.ValidationError
+		var ve *resource.ValidationError
 		assert.True(t, errors.As(err, &ve))
-		assert.Equal(t, "service", ve.ResourceType)
+		assert.Equal(t, resource.TypeService, ve.Resource.Type())
 		serviceErrs = append(serviceErrs, ve)
 	}
 	// The order the services are unmarshed in is not guaranteed so sort them
 	// to make sure the test isn't flaky
 	sort.Slice(serviceErrs, func(i, j int) bool {
-		return serviceErrs[i].ResourceName < serviceErrs[j].ResourceName
+		return serviceErrs[i].Resource.FullName() < serviceErrs[j].Resource.FullName()
 	})
 
-	assert.Equal(t, "postgres", serviceErrs[0].ResourceName)
-	assert.Equal(t, "venue-core-service", serviceErrs[1].ResourceName)
-	assert.Equal(t, "venue-example-service", serviceErrs[2].ResourceName)
+	assert.Equal(t, "invalid-registry-1/postgres", serviceErrs[0].Resource.FullName())
+	assert.Equal(t, "invalid-registry-1/venue-core-service", serviceErrs[1].Resource.FullName())
+	assert.Equal(t, "invalid-registry-1/venue-example-service", serviceErrs[2].Resource.FullName())
 }

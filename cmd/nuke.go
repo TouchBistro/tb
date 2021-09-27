@@ -97,8 +97,8 @@ var nukeCmd = &cobra.Command{
 
 			repos := make([]string, 0)
 			it := config.LoadedServices().Iter()
-			for it.HasNext() {
-				s := it.Next()
+			for it.Next() {
+				s := it.Value()
 				if s.HasGitRepo() {
 					repos = append(repos, s.GitRepo.Name)
 				}

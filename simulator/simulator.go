@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/TouchBistro/tb/app"
+	"github.com/TouchBistro/tb/resource/app"
 	"github.com/pkg/errors"
 )
 

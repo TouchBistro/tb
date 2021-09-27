@@ -10,7 +10,7 @@ import (
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
 	"github.com/TouchBistro/tb/login"
-	"github.com/TouchBistro/tb/service"
+	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -52,7 +52,7 @@ func performLoginStrategies(loginStrategies []login.LoginStrategy) {
 func cleanupPrevDocker(services []service.Service) {
 	dockerNames := make([]string, len(services))
 	for i, s := range services {
-		dockerNames[i] = s.DockerName()
+		dockerNames[i] = util.DockerName(s.FullName())
 	}
 
 	log.Infof("The following services will be restarted if they are running: %s", strings.Join(dockerNames, "\n"))
@@ -100,8 +100,8 @@ func dockerComposeBuild(services []service.Service) {
 
 	var names []string
 	for _, s := range services {
-		if !s.UseRemote() {
-			names = append(names, s.DockerName())
+		if s.Mode == service.ModeBuild {
+			names = append(names, util.DockerName(s.FullName()))
 		}
 	}
 
@@ -124,7 +124,7 @@ func dockerComposeUp(services []service.Service) {
 
 	dockerNames := make([]string, len(services))
 	for i, s := range services {
-		dockerNames[i] = s.DockerName()
+		dockerNames[i] = util.DockerName(s.FullName())
 	}
 
 	err := docker.ComposeUp(dockerNames)
@@ -280,7 +280,7 @@ Examples:
 			failedCh = make(chan error)
 			count := 0
 			for _, s := range selectedServices {
-				if s.UseRemote() {
+				if s.Mode == service.ModeRemote {
 					uri := s.ImageURI()
 					log.Infof("\t☐ pulling image %s\n", uri)
 					go func() {
@@ -315,7 +315,7 @@ Examples:
 
 				log.Infof("\t☐ running preRun command %s for %s. this may take a long time.\n", s.PreRun, name)
 
-				err := docker.ComposeRun(s.DockerName(), s.PreRun)
+				err := docker.ComposeRun(util.DockerName(s.FullName()), s.PreRun)
 				if err != nil {
 					fatal.ExitErrf(err, "failed running preRun command for %s.", name)
 				}

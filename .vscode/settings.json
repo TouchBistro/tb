@@ -1,0 +1,6 @@
+{
+  // Disable colour from the is package as it breaks the vscode testing feature.
+  "go.testEnvVars": {
+    "IS_NO_COLOR": true
+  }
+}

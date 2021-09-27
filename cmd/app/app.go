@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/fatal"
-	"github.com/TouchBistro/tb/app"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/storage"
 	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
