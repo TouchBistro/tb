@@ -1,21 +1,21 @@
 package registry_test
 
 import (
-	"errors"
+	"io/fs"
 	"sort"
 	"testing"
 
+	"github.com/TouchBistro/tb/errors"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	"github.com/stretchr/testify/assert"
+	"github.com/matryer/is"
 )
 
 func TestReadRegistries(t *testing.T) {
-	assert := assert.New(t)
-
+	is := is.New(t)
 	registries := []registry.Registry{
 		{
 			Name: "TouchBistro/tb-registry",
@@ -26,33 +26,30 @@ func TestReadRegistries(t *testing.T) {
 			Path: "testdata/registry-2",
 		},
 	}
-	result, err := registry.ReadRegistries(registries, registry.ReadOptions{
-		ShouldReadApps:     true,
-		ShouldReadServices: true,
-		RootPath:           "/home/test/.tb",
-		ReposPath:          "/home/test/.tb/repos",
-		Overrides:          nil,
-		CustomPlaylists:    nil,
+	result, err := registry.ReadAll(registries, registry.ReadAllOptions{
+		ReadApps:     true,
+		ReadServices: true,
+		RootPath:     "/home/test/.tb",
+		ReposPath:    "/home/test/.tb/repos",
 	})
+	is.NoErr(err)
 
-	assert.NoError(err)
-
-	expectedBaseImages := []string{
+	// Sort slices to make sure different order doesn't cause flakiness
+	sort.Strings(result.BaseImages)
+	sort.Strings(result.LoginStrategies)
+	is.Equal(result.BaseImages, []string{
+		"alpine-node",
 		"swift",
 		"touchbistro/alpine-node:12-runtime",
-		"alpine-node",
-	}
-	expectedLoginStrategies := []string{"ecr", "npm"}
-
-	assert.ElementsMatch(expectedBaseImages, result.BaseImages)
-	assert.ElementsMatch(expectedLoginStrategies, result.LoginStrategies)
+	})
+	is.Equal(result.LoginStrategies, []string{"ecr", "npm"})
 
 	tbPostgres, err := result.Services.Get("TouchBistro/tb-registry/postgres")
 	if err != nil {
-		assert.FailNow("Failed to get service TouchBistro/tb-registry/postgres")
+		t.Fatal("Failed to get service TouchBistro/tb-registry/postgres")
 	}
 
-	assert.Equal(service.Service{
+	is.Equal(tbPostgres, service.Service{
 		EnvVars: map[string]string{
 			"POSTGRES_USER":     "core",
 			"POSTGRES_PASSWORD": "localdev",
@@ -63,7 +60,7 @@ func TestReadRegistries(t *testing.T) {
 			Image: "postgres",
 			Tag:   "10.6-alpine",
 			Volumes: []service.Volume{
-				service.Volume{
+				{
 					Value:   "postgres:/var/lib/postgresql/data",
 					IsNamed: true,
 				},
@@ -71,14 +68,14 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "postgres",
 		RegistryName: "TouchBistro/tb-registry",
-	}, tbPostgres)
+	})
 
 	vcs, err := result.Services.Get("venue-core-service")
 	if err != nil {
-		assert.FailNow("Failed to get service venue-core-service")
+		t.Fatal("Failed to get service venue-core-service")
 	}
 
-	assert.Equal(service.Service{
+	is.Equal(vcs, service.Service{
 		Dependencies: []string{
 			"touchbistro-tb-registry-postgres",
 		},
@@ -102,7 +99,7 @@ func TestReadRegistries(t *testing.T) {
 			DockerfilePath: "/home/test/.tb/repos/TouchBistro/venue-core-service",
 			Target:         "dev",
 			Volumes: []service.Volume{
-				service.Volume{
+				{
 					Value: "/home/test/.tb/repos/TouchBistro/venue-core-service:/home/node/app:delegated",
 				},
 			},
@@ -114,14 +111,14 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "venue-core-service",
 		RegistryName: "TouchBistro/tb-registry",
-	}, vcs)
+	})
 
 	ezPostgres, err := result.Services.Get("ExampleZone/tb-registry/postgres")
 	if err != nil {
-		assert.FailNow("Failed to get service ExampleZone/tb-registry/postgres")
+		t.Fatal("Failed to get service ExampleZone/tb-registry/postgres")
 	}
 
-	assert.Equal(service.Service{
+	is.Equal(ezPostgres, service.Service{
 		EnvVars: map[string]string{
 			"POSTGRES_USER":     "user",
 			"POSTGRES_PASSWORD": "password",
@@ -132,7 +129,7 @@ func TestReadRegistries(t *testing.T) {
 			Image: "postgres",
 			Tag:   "12",
 			Volumes: []service.Volume{
-				service.Volume{
+				{
 					Value:   "postgres:/var/lib/postgresql/data",
 					IsNamed: true,
 				},
@@ -140,14 +137,14 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "postgres",
 		RegistryName: "ExampleZone/tb-registry",
-	}, ezPostgres)
+	})
 
 	ves, err := result.Services.Get("venue-example-service")
 	if err != nil {
-		assert.FailNow("Failed to get service venue-example-service")
+		t.Fatal("Failed to get service venue-example-service")
 	}
 
-	assert.Equal(service.Service{
+	is.Equal(ves, service.Service{
 		Entrypoint: []string{"bash", "entrypoints/docker.sh"},
 		EnvFile:    "/home/test/.tb/repos/ExampleZone/venue-example-service/.env.compose",
 		EnvVars: map[string]string{
@@ -172,70 +169,70 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "venue-example-service",
 		RegistryName: "ExampleZone/tb-registry",
-	}, ves)
+	})
 
 	dbPlaylist, err := result.Playlists.Get("db")
 	if err != nil {
-		assert.FailNow("Failed to get db playlist")
+		t.Fatal("Failed to get db playlist")
 	}
 
-	assert.Equal(playlist.Playlist{
+	is.Equal(dbPlaylist, playlist.Playlist{
 		Services: []string{
 			"TouchBistro/tb-registry/postgres",
 		},
 		Name:         "db",
 		RegistryName: "TouchBistro/tb-registry",
-	}, dbPlaylist)
+	})
 
 	tbCorePlayist, err := result.Playlists.Get("TouchBistro/tb-registry/core")
 	if err != nil {
-		assert.FailNow("Failed to get TouchBistro/tb-registry/core playlist")
+		t.Fatal("Failed to get TouchBistro/tb-registry/core playlist")
 	}
 
-	assert.Equal(playlist.Playlist{
+	is.Equal(tbCorePlayist, playlist.Playlist{
 		Extends: "TouchBistro/tb-registry/db",
 		Services: []string{
 			"TouchBistro/tb-registry/venue-core-service",
 		},
 		Name:         "core",
 		RegistryName: "TouchBistro/tb-registry",
-	}, tbCorePlayist)
+	})
 
 	ezCorePlaylist, err := result.Playlists.Get("ExampleZone/tb-registry/core")
 	if err != nil {
-		assert.FailNow("Failed to get ExampleZone/tb-registry/core playlist")
+		t.Fatal("Failed to get ExampleZone/tb-registry/core playlist")
 	}
 
-	assert.Equal(playlist.Playlist{
+	is.Equal(ezCorePlaylist, playlist.Playlist{
 		Services: []string{
 			"ExampleZone/tb-registry/postgres",
 		},
 		Name:         "core",
 		RegistryName: "ExampleZone/tb-registry",
-	}, ezCorePlaylist)
+	})
 
 	ezExampleZonePlaylist, err := result.Playlists.Get("example-zone")
 	if err != nil {
-		assert.FailNow("Failed to get example-zone playlist")
+		t.Fatal("Failed to get example-zone playlist")
 	}
 
-	assert.Equal(playlist.Playlist{
+	is.Equal(ezExampleZonePlaylist, playlist.Playlist{
 		Extends: "ExampleZone/tb-registry/core",
 		Services: []string{
 			"ExampleZone/tb-registry/venue-example-service",
 		},
 		Name:         "example-zone",
 		RegistryName: "ExampleZone/tb-registry",
-	}, ezExampleZonePlaylist)
+	})
 
 	// Check apps
 
 	gemSwapper, err := result.IOSApps.Get("GemSwapper")
 	if err != nil {
-		assert.FailNow("Failed to get GemSwapper iOS app")
+		t.Fatal("Failed to get GemSwapper iOS app")
 	}
 
-	assert.Equal(app.App{
+	is.Equal(gemSwapper, app.App{
 		BundleID: "com.example.GemSwapper",
 		Branch:   "master",
 		GitRepo:  "ExampleZone/gem-swapper",
@@ -245,15 +242,15 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "GemSwapper",
 		RegistryName: "ExampleZone/tb-registry",
-	}, gemSwapper)
-	assert.Equal(app.DeviceTypeAll, gemSwapper.DeviceType())
+	})
+	is.Equal(gemSwapper.DeviceType(), app.DeviceTypeAll)
 
 	iCode, err := result.IOSApps.Get("iCode")
 	if err != nil {
-		assert.FailNow("Failed to get iCode iOS app")
+		t.Fatal("Failed to get iCode iOS app")
 	}
 
-	assert.Equal(app.App{
+	is.Equal(iCode, app.App{
 		BundleID: "com.example.iCode",
 		Branch:   "develop",
 		GitRepo:  "ExampleZone/iCode",
@@ -264,38 +261,40 @@ func TestReadRegistries(t *testing.T) {
 		},
 		Name:         "iCode",
 		RegistryName: "ExampleZone/tb-registry",
-	}, iCode)
-	assert.Equal(app.DeviceTypeiPad, iCode.DeviceType())
+	})
+	is.Equal(iCode.DeviceType(), app.DeviceTypeiPad)
 }
 
 func TestValidate(t *testing.T) {
-	result := registry.Validate("testdata/registry-2", true)
-	assert.NoError(t, result.AppsErr)
-	assert.NoError(t, result.PlaylistsErr)
-	assert.NoError(t, result.ServicesErr)
+	is := is.New(t)
+	result := registry.Validate("testdata/registry-2", true, nil)
+	is.NoErr(result.AppsErr)
+	is.NoErr(result.PlaylistsErr)
+	is.NoErr(result.ServicesErr)
 }
 
 func TestValidateErrors(t *testing.T) {
-	result := registry.Validate("testdata/invalid-registry-1", true)
+	is := is.New(t)
+	result := registry.Validate("testdata/invalid-registry-1", true, nil)
 
-	var errList registry.ErrorList
+	var errs errors.List
 	var validationErr *resource.ValidationError
 
-	assert.True(t, errors.As(result.AppsErr, &errList))
-	assert.Len(t, errList, 1)
-	assert.True(t, errors.As(errList[0], &validationErr))
-	assert.Equal(t, resource.TypeApp, validationErr.Resource.Type())
-	assert.Equal(t, "invalid-registry-1/GemSwapper", validationErr.Resource.FullName())
+	is.True(errors.As(result.AppsErr, &errs))
+	is.Equal(len(errs), 1)
+	is.True(errors.As(errs[0], &validationErr))
+	is.Equal(validationErr.Resource.Type(), resource.TypeApp)
+	is.Equal(validationErr.Resource.FullName(), "local/invalid-registry-1/GemSwapper")
 
-	assert.True(t, errors.Is(result.PlaylistsErr, registry.ErrFileNotExist))
+	is.True(errors.Is(result.PlaylistsErr, fs.ErrNotExist))
 
-	assert.True(t, errors.As(result.ServicesErr, &errList))
-	assert.Len(t, errList, 3)
+	is.True(errors.As(result.ServicesErr, &errs))
+	is.Equal(len(errs), 3)
 	var serviceErrs []*resource.ValidationError
-	for _, err := range errList {
+	for _, err := range errs {
 		var ve *resource.ValidationError
-		assert.True(t, errors.As(err, &ve))
-		assert.Equal(t, resource.TypeService, ve.Resource.Type())
+		is.True(errors.As(err, &ve))
+		is.Equal(ve.Resource.Type(), resource.TypeService)
 		serviceErrs = append(serviceErrs, ve)
 	}
 	// The order the services are unmarshed in is not guaranteed so sort them
@@ -303,8 +302,7 @@ func TestValidateErrors(t *testing.T) {
 	sort.Slice(serviceErrs, func(i, j int) bool {
 		return serviceErrs[i].Resource.FullName() < serviceErrs[j].Resource.FullName()
 	})
-
-	assert.Equal(t, "invalid-registry-1/postgres", serviceErrs[0].Resource.FullName())
-	assert.Equal(t, "invalid-registry-1/venue-core-service", serviceErrs[1].Resource.FullName())
-	assert.Equal(t, "invalid-registry-1/venue-example-service", serviceErrs[2].Resource.FullName())
+	is.Equal(serviceErrs[0].Resource.FullName(), "local/invalid-registry-1/postgres")
+	is.Equal(serviceErrs[1].Resource.FullName(), "local/invalid-registry-1/venue-core-service")
+	is.Equal(serviceErrs[2].Resource.FullName(), "local/invalid-registry-1/venue-example-service")
 }

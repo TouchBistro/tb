@@ -2,18 +2,18 @@ package registry
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/tb/errors"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -25,13 +25,19 @@ const (
 	staticDirName     = "static"
 )
 
-// ErrFileNotExist indicates a registry file does not exist.
-var ErrFileNotExist = os.ErrNotExist
-
+// Registry configures a registry. A registry is a Git repo
+// that contains configuration for services, playlists, and
+// apps that tb can run.
 type Registry struct {
-	Name      string `yaml:"name"`
+	// Name is the name of the registry.
+	// Must be of the form <org>/<repo>.
+	Name string `yaml:"name"`
+	// LocalPath specifies the location of the registry
+	// on the local filesystem.
 	LocalPath string `yaml:"localPath,omitempty"`
-	Path      string `yaml:"-"`
+
+	// Path is the path to the local clone of the registry.
+	Path string `yaml:"-"`
 }
 
 type registryServiceConfig struct {
@@ -43,101 +49,65 @@ type registryServiceConfig struct {
 	Services map[string]service.Service `yaml:"services"`
 }
 
-type serviceGlobalConfig struct {
-	BaseImages      []string
-	LoginStrategies []string
-}
-
 type registryAppConfig struct {
 	IOSApps     map[string]app.App `yaml:"iosApps"`
 	DesktopApps map[string]app.App `yaml:"desktopApps"`
 }
 
-type ReadOptions struct {
-	ShouldReadServices bool
-	ShouldReadApps     bool
-	RootPath           string
-	ReposPath          string
-	Overrides          map[string]service.ServiceOverride
-	CustomPlaylists    map[string]playlist.Playlist
-}
-
-type RegistryResult struct {
-	Services        *service.Collection
-	Playlists       *playlist.Collection
-	IOSApps         *app.Collection
-	DesktopApps     *app.Collection
-	BaseImages      []string
-	LoginStrategies []string
-}
-
-// ErrorList is a list of errors encountered.
-type ErrorList []error
-
-func (e ErrorList) Error() string {
-	errStrs := make([]string, len(e))
-	for i, err := range e {
-		errStrs[i] = err.Error()
-	}
-	return strings.Join(errStrs, "\n")
-}
-
-func readRegistryFile(fileName string, r Registry, v interface{}) error {
-	log.Debugf("Reading %s from registry %s", fileName, r.Name)
-
-	filePath := filepath.Join(r.Path, fileName)
-	if !file.Exists(filePath) {
-		log.Debugf("registry %s has no %s", r.Name, fileName)
-		return nil
-	}
-
-	f, err := os.Open(filePath)
+func readRegistryFile(op errors.Op, filename string, r Registry, v interface{}) error {
+	fp := filepath.Join(r.Path, filename)
+	f, err := os.Open(fp)
 	if err != nil {
-		return errors.Wrapf(err, "failed to open file %s", filePath)
+		return errors.New(errors.IO, fmt.Sprintf("failed to open file %s in registry %s", filename, r.Name), op, err)
 	}
 	defer f.Close()
-
-	err = yaml.NewDecoder(f).Decode(v)
-	return errors.Wrapf(err, "failed to read %s in registry %s", fileName, r.Name)
+	if err := yaml.NewDecoder(f).Decode(v); err != nil {
+		return errors.New(errors.IO, fmt.Sprintf("failed to decode %s in registry %s", filename, r.Name), op, err)
+	}
+	return nil
 }
 
 type readServicesOptions struct {
-	rootPath  string
-	reposPath string
-	overrides map[string]service.ServiceOverride
-	strict    bool
+	collection *service.Collection
+	homeDir    string
+	rootPath   string
+	reposPath  string
+	overrides  map[string]service.ServiceOverride
+	strict     bool
 }
 
-func readServices(r Registry, opts readServicesOptions) ([]service.Service, serviceGlobalConfig, error) {
-	serviceConf := registryServiceConfig{}
-	err := readRegistryFile(ServicesFileName, r, &serviceConf)
+type serviceGlobalConfig struct {
+	baseImages      []string
+	loginStrategies []string
+}
+
+// readServices reads the service config from the registry r.
+func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGlobalConfig, error) {
+	var serviceConf registryServiceConfig
+	err := readRegistryFile(op, ServicesFileName, r, &serviceConf)
 	if err != nil {
-		return nil, serviceGlobalConfig{}, errors.Wrapf(err, "failed to read services file from registry %s", r.Name)
+		return serviceGlobalConfig{}, err
 	}
 
 	// Set special vars
 	vars := serviceConf.Global.Variables
-
 	// If no variables are defined in services.yml the map will be nil
 	if vars == nil {
 		vars = make(map[string]string)
 	}
-
 	vars["@ROOTPATH"] = opts.rootPath
 	vars["@STATICPATH"] = filepath.Join(r.Path, staticDirName)
 
 	// Add vars for each service name
 	for name := range serviceConf.Services {
-		fullName := fmt.Sprintf("%s/%s", r.Name, name)
+		fullName := resource.FullName(r.Name, name)
 		vars["@"+name] = util.DockerName(fullName)
 	}
 
-	services := make([]service.Service, 0, len(serviceConf.Services))
-	var errs ErrorList
+	var errs errors.List
 	for n, s := range serviceConf.Services {
 		s.Name = n
 		s.RegistryName = r.Name
-
 		if err := service.Validate(s); err != nil {
 			errs = append(errs, err)
 			continue
@@ -146,18 +116,15 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 		override, ok := opts.overrides[s.FullName()]
 
 		// Set special service specific vars
-		repoPath := ""
+		var repoPath string
 		if ok && override.GitRepo.Path != "" {
-			p := override.GitRepo.Path
-			if strings.HasPrefix(p, "~") {
-				repoPath = filepath.Join(os.Getenv("HOME"), strings.TrimPrefix(p, "~"))
-			} else {
-				repoPath = p
+			repoPath = override.GitRepo.Path
+			if strings.HasPrefix(repoPath, "~") {
+				repoPath = filepath.Join(opts.homeDir, strings.TrimPrefix(repoPath, "~"))
 			}
 		} else if s.HasGitRepo() {
 			repoPath = filepath.Join(opts.reposPath, s.GitRepo.Name)
 		}
-
 		vars["@REPOPATH"] = repoPath
 
 		// Expand any vars
@@ -167,7 +134,6 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 			expandVarsInField(&d, vars, &errMsgs, "dependencies")
 			s.Dependencies[i] = d
 		}
-
 		expandVarsInField(&s.Build.DockerfilePath, vars, &errMsgs, "build.dockerfilePath")
 		expandVarsInField(&s.EnvFile, vars, &errMsgs, "envFile")
 		expandVarsInField(&s.Remote.Image, vars, &errMsgs, "remote.image")
@@ -177,13 +143,11 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 			expandVarsInField(&v, vars, &errMsgs, "envVars")
 			s.EnvVars[key] = v
 		}
-
 		for i, volume := range s.Build.Volumes {
 			v := volume.Value
 			expandVarsInField(&v, vars, &errMsgs, "build.volumes")
 			s.Build.Volumes[i].Value = v
 		}
-
 		for i, volume := range s.Remote.Volumes {
 			v := volume.Value
 			expandVarsInField(&v, vars, &errMsgs, "remote.volumes")
@@ -200,19 +164,27 @@ func readServices(r Registry, opts readServicesOptions) ([]service.Service, serv
 			continue
 		}
 
-		services = append(services, s)
+		// Apply overrides
+		if ok {
+			s, err = service.Override(s, override)
+			if err != nil {
+				msg := fmt.Sprintf("failed to apply override to service %s", s.FullName())
+				errs = append(errs, errors.New(msg, op, err))
+				continue
+			}
+		}
+		if err := opts.collection.Set(s); err != nil {
+			errs = append(errs, err)
+			continue
+		}
 	}
-
-	if errs != nil {
-		return nil, serviceGlobalConfig{}, errs
+	if len(errs) > 0 {
+		return serviceGlobalConfig{}, errs
 	}
-
-	globalConf := serviceGlobalConfig{
-		BaseImages:      serviceConf.Global.BaseImages,
-		LoginStrategies: serviceConf.Global.LoginStrategies,
-	}
-
-	return services, globalConf, nil
+	return serviceGlobalConfig{
+		baseImages:      serviceConf.Global.BaseImages,
+		loginStrategies: serviceConf.Global.LoginStrategies,
+	}, nil
 }
 
 // expandVarsInField is a small helper to expand vars in a service field
@@ -225,19 +197,19 @@ func expandVarsInField(field *string, vars map[string]string, errMsgs *[]string,
 		*field = e
 		return
 	}
-
 	msg := fmt.Sprintf("%s: %s", fieldName, err)
 	*errMsgs = append(*errMsgs, msg)
 }
 
-func readPlaylists(r Registry) ([]playlist.Playlist, error) {
+// readPlaylists reads the playlist config from the registry r.
+func readPlaylists(op errors.Op, r Registry, collection *playlist.Collection) error {
 	playlistMap := make(map[string]playlist.Playlist)
-	err := readRegistryFile(PlaylistsFileName, r, &playlistMap)
+	err := readRegistryFile(op, PlaylistsFileName, r, &playlistMap)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read playlist file from registry %s", r.Name)
+		return err
 	}
 
-	playlists := make([]playlist.Playlist, 0, len(playlistMap))
+	var errs errors.List
 	for n, p := range playlistMap {
 		// Set necessary fields for each playlist
 		p.Name = n
@@ -245,178 +217,193 @@ func readPlaylists(r Registry) ([]playlist.Playlist, error) {
 
 		// Make sure extends is a full name
 		if p.Extends != "" {
-			registryName, playlistName, err := util.SplitNameParts(p.Extends)
+			registryName, playlistName, err := resource.ParseName(p.Extends)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve full name for extends field of playlist %s", n)
+				msg := fmt.Sprintf("failed to resolve full name for extends field of playlist %s", p.FullName())
+				errs = append(errs, errors.New(msg, op, err))
+				continue
 			}
-
 			if registryName == "" {
-				p.Extends = fmt.Sprintf("%s/%s", r.Name, playlistName)
+				p.Extends = resource.FullName(r.Name, playlistName)
 			}
 		}
 
 		// Make sure each service name is the full name
 		serviceNames := make([]string, len(p.Services))
 		for i, name := range p.Services {
-			registryName, serviceName, err := util.SplitNameParts(name)
+			registryName, serviceName, err := resource.ParseName(name)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to resolve full name for service %s in playlist %s", n, name)
+				msg := fmt.Sprintf("failed to resolve full name for service %s in playlist %s", name, p.FullName())
+				errs = append(errs, errors.New(msg, op, err))
+				continue
 			}
-
 			if registryName == "" {
-				serviceNames[i] = fmt.Sprintf("%s/%s", r.Name, serviceName)
+				serviceNames[i] = resource.FullName(r.Name, serviceName)
 			} else {
 				serviceNames[i] = name
 			}
 		}
-
 		p.Services = serviceNames
-
-		playlists = append(playlists, p)
+		if err := collection.Set(p); err != nil {
+			errs = append(errs, err)
+			continue
+		}
 	}
-
-	return playlists, nil
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
 }
 
-func readApps(r Registry) ([]app.App, []app.App, error) {
-	appConf := registryAppConfig{}
-	err := readRegistryFile(AppsFileName, r, &appConf)
+type readAppsOptions struct {
+	iosCollection     *app.Collection
+	desktopCollection *app.Collection
+}
+
+// readPlaylists reads the app config from the registry r.
+// If the given collection is nil, apps are only validated.
+func readApps(op errors.Op, r Registry, opts readAppsOptions) error {
+	var appConf registryAppConfig
+	err := readRegistryFile(op, AppsFileName, r, &appConf)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to read apps file from registry %s", r.Name)
+		return err
 	}
 
-	var errs ErrorList
-
+	var errs errors.List
 	// Deal with iOS apps
-	iosApps := make([]app.App, 0, len(appConf.IOSApps))
 	for n, a := range appConf.IOSApps {
 		a.Name = n
 		a.RegistryName = r.Name
-
 		if err := app.Validate(a, app.TypeiOS); err != nil {
 			errs = append(errs, err)
+			continue
 		}
-
-		iosApps = append(iosApps, a)
+		if err := opts.iosCollection.Set(a); err != nil {
+			errs = append(errs, err)
+			continue
+		}
 	}
 
 	// Deal with desktop apps
-	desktopApps := make([]app.App, 0, len(appConf.DesktopApps))
 	for n, a := range appConf.DesktopApps {
 		a.Name = n
 		a.RegistryName = r.Name
-
-		desktopApps = append(desktopApps, a)
+		if err := opts.desktopCollection.Set(a); err != nil {
+			errs = append(errs, err)
+			continue
+		}
 	}
-
-	if errs != nil {
-		return nil, nil, errs
+	if len(errs) > 0 {
+		return errs
 	}
-	return iosApps, desktopApps, nil
+	return nil
 }
 
-func ReadRegistries(registries []Registry, opts ReadOptions) (RegistryResult, error) {
-	serviceList := make([]service.Service, 0)
-	playlistList := make([]playlist.Playlist, 0)
-	baseImages := make([]string, 0)
-	loginStrategies := make([]string, 0)
-	iosAppList := make([]app.App, 0)
-	desktopAppList := make([]app.App, 0)
+// ReadAllOptions allows for customizing the behaviour of ReadAll.
+type ReadAllOptions struct {
+	// ReadServices specifies if services and playlists should be read.
+	ReadServices bool
+	// ReadApps specifies if apps should be read.
+	ReadApps bool
+	// HomeDir specifies the home directory that should be used for expanding paths.
+	HomeDir string
+	// RootPath is the root path where tb stores files.
+	// It is required if ReadServices is true.
+	RootPath string
+	// ReposPath is the path where cloned repos are stored.
+	// It is required if ReadServices is true.
+	ReposPath string
+	// Overrides are any overrides that should be applied to services.
+	Overrides map[string]service.ServiceOverride
+	// Logger can be provided to log debug details while reading registries.
+	// If it is nil, logging is off.
+	Logger logrus.FieldLogger
+}
+
+// ReadAllResult contains the result of reading a list of registries.
+type ReadAllResult struct {
+	// Services is a collection of all services read.
+	// If ReadAllOptions.ReadServices was false, it will be nil.
+	Services *service.Collection
+	// Playlists is a collection of all playlists read.
+	// If ReadAllOptions.ReadServices was false, it will be nil.
+	Playlists *playlist.Collection
+	// IOSApps is a collection of all iOS apps read.
+	// If ReadAllOptions.ReadApps was false, it will be nil.
+	IOSApps *app.Collection
+	// DesktopApps is a collection of all desktop apps read.
+	// If ReadAllOptions.ReadApps was false, it will be nil.
+	DesktopApps *app.Collection
+	// BaseImages is a list of all base images read.
+	// If ReadAllOptions.ReadServices was false, it will be empty.
+	BaseImages []string
+	// BaseImages is a list of all login strategies read.
+	// If ReadAllOptions.ReadServices was false, it will be empty.
+	LoginStrategies []string
+}
+
+// ReadAll reads all the given registries and returns the combined result.
+func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) {
+	const op = errors.Op("registry.ReadAll")
+	var result ReadAllResult
+	if opts.ReadServices {
+		result.Services = &service.Collection{}
+		result.Playlists = &playlist.Collection{}
+	}
+	if opts.ReadApps {
+		result.IOSApps = &app.Collection{}
+		result.DesktopApps = &app.Collection{}
+	}
+	if opts.Logger == nil {
+		opts.Logger = util.DiscardLogger()
+	}
 
 	for _, r := range registries {
-		if opts.ShouldReadServices {
-			log.Debugf("Reading services from registry %s", r.Name)
-
-			services, globalConf, err := readServices(r, readServicesOptions{
-				rootPath:  opts.RootPath,
-				reposPath: opts.ReposPath,
-				overrides: opts.Overrides,
+		if opts.ReadServices {
+			opts.Logger.Debugf("Reading services from registry %s", r.Name)
+			globalConf, err := readServices(op, r, readServicesOptions{
+				collection: result.Services,
+				homeDir:    opts.HomeDir,
+				rootPath:   opts.RootPath,
+				reposPath:  opts.ReposPath,
+				overrides:  opts.Overrides,
 			})
-			if err != nil {
-				return RegistryResult{}, errors.Wrapf(err, "failed to read services from registry %s", r.Name)
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, ServicesFileName)
+			} else if err != nil {
+				return result, errors.New(fmt.Sprintf("failed to read services from registry %s", r.Name), op, err)
 			}
 
-			log.Debugf("Reading playlists from registry %s", r.Name)
-
-			playlists, err := readPlaylists(r)
-			if err != nil {
-				return RegistryResult{}, errors.Wrapf(err, "failed to read playlists from registry %s", r.Name)
+			opts.Logger.Debugf("Reading playlists from registry %s", r.Name)
+			err = readPlaylists(op, r, result.Playlists)
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, PlaylistsFileName)
+			} else if err != nil {
+				return result, errors.New(fmt.Sprintf("failed to read playlists from registry %s", r.Name), op, err)
 			}
 
-			serviceList = append(serviceList, services...)
-			playlistList = append(playlistList, playlists...)
-			baseImages = append(baseImages, globalConf.BaseImages...)
-			loginStrategies = append(loginStrategies, globalConf.LoginStrategies...)
+			result.BaseImages = append(result.BaseImages, globalConf.baseImages...)
+			result.LoginStrategies = append(result.LoginStrategies, globalConf.loginStrategies...)
 		}
-
-		if opts.ShouldReadApps {
-			log.Debugf("Reading apps from registry %s", r.Name)
-
-			iosApps, desktopApps, err := readApps(r)
-			if err != nil {
-				return RegistryResult{}, errors.Wrapf(err, "failed to read apps from registry %s", r.Name)
-			}
-
-			iosAppList = append(iosAppList, iosApps...)
-			desktopAppList = append(desktopAppList, desktopApps...)
-		}
-	}
-
-	var sc *service.Collection
-	var pc *playlist.Collection
-	var err error
-	if opts.ShouldReadServices {
-		// TODO(@cszatmary): Refactor the registry implementation to create collections at the start
-		// and add to them as each registry is read.
-		sc = &service.Collection{}
-		for _, s := range serviceList {
-			if o, ok := opts.Overrides[s.FullName()]; ok {
-				s, err = service.Override(s, o)
-				if err != nil {
-					return RegistryResult{}, errors.Wrap(err, "failed to apply override to service")
-				}
-			}
-			if err := sc.Set(s); err != nil {
-				return RegistryResult{}, errors.Wrap(err, "failed to add service to collection")
-			}
-		}
-
-		pc = &playlist.Collection{}
-		for _, p := range playlistList {
-			if err := pc.Set(p); err != nil {
-				return RegistryResult{}, errors.Wrap(err, "failed to add playlist to collection")
-			}
-		}
-		for n, p := range opts.CustomPlaylists {
-			p.Name = n
-			pc.SetCustom(p)
-		}
-	}
-
-	var iosAC, desktopAC *app.Collection
-	if opts.ShouldReadApps {
-		iosAC = &app.Collection{}
-		for _, a := range iosAppList {
-			if err := iosAC.Set(a); err != nil {
-				return RegistryResult{}, errors.Wrap(err, "failed to add iOS app to collection")
-			}
-		}
-		desktopAC = &app.Collection{}
-		for _, a := range desktopAppList {
-			if err := desktopAC.Set(a); err != nil {
-				return RegistryResult{}, errors.Wrap(err, "failed to add desktop app to collection")
+		if opts.ReadApps {
+			opts.Logger.Debugf("Reading apps from registry %s", r.Name)
+			err := readApps(op, r, readAppsOptions{
+				iosCollection:     result.IOSApps,
+				desktopCollection: result.DesktopApps,
+			})
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, AppsFileName)
+			} else if err != nil {
+				return result, errors.New(fmt.Sprintf("failed to read apps from registry %s", r.Name), op, err)
 			}
 		}
 	}
-
-	return RegistryResult{
-		Services:        sc,
-		Playlists:       pc,
-		IOSApps:         iosAC,
-		DesktopApps:     desktopAC,
-		BaseImages:      util.UniqueStrings(baseImages),
-		LoginStrategies: util.UniqueStrings(loginStrategies),
-	}, nil
+	result.BaseImages = util.UniqueStrings(result.BaseImages)
+	result.LoginStrategies = util.UniqueStrings(result.LoginStrategies)
+	return result, nil
 }
 
 type ValidateResult struct {
@@ -431,80 +418,76 @@ type ValidateResult struct {
 // Validate returns a ValidateResult struct that contains errors encountered for each resource.
 // If a configuration file is valid, then the corresponding error value will be nil. Otherwise,
 // the error will be a non-nil value containing the details of why validation failed.
-// If a configuration file does not exist, then the corresponding error will be ErrFileNotExist.
-func Validate(path string, strict bool) ValidateResult {
+// If a configuration file does not exist, then the corresponding error will be fs.ErrNotExist.
+//
+// logger can be provided to allow debug logging of actions while validating.
+// If logger is nil, logging is off.
+func Validate(path string, strict bool, logger logrus.FieldLogger) ValidateResult {
+	const op = errors.Op("registry.Validate")
 	r := Registry{
-		Name: filepath.Base(path),
+		// Name needs to be a proper registry name so just say the org is local
+		Name: "local/" + filepath.Base(path),
 		Path: path,
 	}
-	result := ValidateResult{}
-
-	// Validate apps.yml
-
-	// Do explicit check for existence because we want to print a custom message
-	// If it doesn't exist
-	appsPath := filepath.Join(path, AppsFileName)
-	if file.Exists(appsPath) {
-		_, _, err := readApps(r)
-		if err != nil {
-			result.AppsErr = err
-		}
-	} else {
-		result.AppsErr = fmt.Errorf("%w: %s", ErrFileNotExist, AppsFileName)
+	var result ValidateResult
+	if logger == nil {
+		logger = util.DiscardLogger()
 	}
 
+	// Validate apps.yml
+	logger.Debug("Validating apps")
+	err := readApps(op, r, readAppsOptions{
+		iosCollection:     &app.Collection{},
+		desktopCollection: &app.Collection{},
+	})
+	if err != nil {
+		result.AppsErr = err
+	}
 	// Validate playlists.yml
-
-	playlistsPath := filepath.Join(path, PlaylistsFileName)
-	if file.Exists(playlistsPath) {
-		_, err := readPlaylists(r)
-		if err != nil {
-			result.PlaylistsErr = err
-		}
-	} else {
-		result.PlaylistsErr = fmt.Errorf("%w: %s", ErrFileNotExist, PlaylistsFileName)
+	logger.Debug("Validating playlists")
+	if err := readPlaylists(op, r, &playlist.Collection{}); err != nil {
+		result.PlaylistsErr = err
 	}
 
 	// Validate services.yml
-
-	servicesPath := filepath.Join(path, ServicesFileName)
-	if file.Exists(servicesPath) {
-		services, _, err := readServices(r, readServicesOptions{strict: strict})
-		if err == nil {
-			// Keep track of ports to check for conflicting ports
-			usedPorts := make(map[string]string)
-
-			// Perform additional validations
-			var errs ErrorList
-			for _, s := range services {
-				// Check for port conflict
-				for _, p := range s.Ports {
-					// ports are of the form EXTERNAL:INTERNAL
-					// get external part
-					exposedPort := strings.Split(p, ":")[0]
-					conflict, ok := usedPorts[exposedPort]
-					if !ok {
-						usedPorts[exposedPort] = s.Name
-						continue
-					}
-
-					// Handle port conflict
-					msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
-					errs = append(errs, &resource.ValidationError{
-						Resource: s,
-						Messages: []string{msg},
-					})
-				}
-			}
-			if errs != nil {
-				result.ServicesErr = errs
-			}
-		} else {
-			result.ServicesErr = err
-		}
+	logger.Debug("Validating services")
+	var services service.Collection
+	_, err = readServices(op, r, readServicesOptions{
+		collection: &services,
+		strict:     strict,
+	})
+	if err != nil {
+		result.ServicesErr = err
 	} else {
-		result.ServicesErr = fmt.Errorf("%w: %s", ErrFileNotExist, ServicesFileName)
-	}
+		// Perform additional validations
+		// Keep track of ports to check for conflicting ports
+		usedPorts := make(map[string]string)
+		var errs errors.List
+		it := services.Iter()
+		for it.Next() {
+			s := it.Value()
+			// Check for port conflict
+			for _, p := range s.Ports {
+				// ports are of the form EXTERNAL:INTERNAL
+				// get external part
+				exposedPort := strings.Split(p, ":")[0]
+				conflict, ok := usedPorts[exposedPort]
+				if !ok {
+					usedPorts[exposedPort] = s.Name
+					continue
+				}
 
+				// Handle port conflict
+				msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
+				errs = append(errs, &resource.ValidationError{
+					Resource: s,
+					Messages: []string{msg},
+				})
+			}
+		}
+		if len(errs) > 0 {
+			result.ServicesErr = errs
+		}
+	}
 	return result
 }

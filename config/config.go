@@ -20,7 +20,7 @@ import (
 
 // Package state for storing config info
 var tbrc userConfig
-var registryResult registry.RegistryResult
+var registryResult registry.ReadAllResult
 
 type InitOptions struct {
 	LoadServices     bool
@@ -189,19 +189,26 @@ update:
 	// s.Stop()
 	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
 
-	registryResult, err = registry.ReadRegistries(tbrc.Registries, registry.ReadOptions{
-		ShouldReadServices: opts.LoadServices,
-		ShouldReadApps:     opts.LoadApps,
-		RootPath:           TBRootPath(),
-		ReposPath:          ReposPath(),
-		Overrides:          tbrc.Overrides,
-		CustomPlaylists:    tbrc.Playlists,
+	registryResult, err = registry.ReadAll(tbrc.Registries, registry.ReadAllOptions{
+		ReadServices: opts.LoadServices,
+		ReadApps:     opts.LoadApps,
+		HomeDir:      os.Getenv("HOME"),
+		RootPath:     TBRootPath(),
+		ReposPath:    ReposPath(),
+		Overrides:    tbrc.Overrides,
+		Logger:       log.StandardLogger(),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to read config files from registries")
 	}
 
 	if opts.LoadServices {
+		// Add custom playlists
+		for n, p := range tbrc.Playlists {
+			p.Name = n
+			registryResult.Playlists.SetCustom(p)
+		}
+
 		// Create docker-compose.yml
 		log.Debugln("Generating docker-compose.yml file...")
 

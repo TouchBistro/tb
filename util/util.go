@@ -2,11 +2,13 @@ package util
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"runtime"
 	"strings"
 
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 func IsMacOS() bool {
@@ -102,4 +104,11 @@ func DockerName(name string) string {
 	// docker does not allow upper case letters in image names
 	// need to convert it all to lower case or docker-compose build breaks
 	return strings.ToLower(sanitized)
+}
+
+// DiscardLogger returns a new logger that logs to nothing.
+func DiscardLogger() logrus.FieldLogger {
+	logger := logrus.New()
+	logger.Out = io.Discard
+	return logger
 }
