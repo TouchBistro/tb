@@ -57,14 +57,7 @@ var deps = map[string]Dependency{
 		InstallCmd: []string{"brew", "install", "awscli"},
 	},
 	Lazydocker: {
-		Name: "lazydocker",
-		BeforeInstall: func() error {
-			w := log.WithField("id", "lazydocker-install").WriterLevel(log.DebugLevel)
-			defer w.Close()
-			cmd := command.New(command.WithStdout(w), command.WithStderr(w))
-			err := cmd.Exec("brew", "tap", "jesseduffield/lazydocker")
-			return errors.Wrap(err, "failed to tap jesseduffield/lazydocker")
-		},
+		Name:       "lazydocker",
 		InstallCmd: []string{"brew", "install", "lazydocker"},
 	},
 	Node: {

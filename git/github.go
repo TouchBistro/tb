@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	apiURL             = "https://api.github.com"
+	apiURL = "https://api.github.com"
 )
 
 func GetLatestRelease() (string, error) {
