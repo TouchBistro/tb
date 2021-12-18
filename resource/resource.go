@@ -8,7 +8,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/tb/errkind"
 )
 
 // ErrInvalidName is returned when a resource name is provided that does not have
@@ -75,7 +76,7 @@ func ParseName(name string) (registryName, resourceName string, err error) {
 	matches := nameRegex.FindStringSubmatch(name)
 	if len(matches) == 0 {
 		msg := fmt.Sprintf("%s should have format <org>/<repo>/<item>", name)
-		err = errors.New(errors.Invalid, msg, errors.Op("resource.ParseName"), ErrInvalidName)
+		err = errors.Wrap(ErrInvalidName, errors.Meta{Kind: errkind.Invalid, Reason: msg, Op: "resource.ParseName"})
 		return
 	}
 	// If no registry name matches[1] will be an empty string so this is safe.
@@ -119,17 +120,17 @@ func (c *Collection) Get(name string) (Resource, error) {
 	const op = errors.Op("resource.Collection.Get")
 	registryName, resourceName, err := ParseName(name)
 	if err != nil {
-		return nil, errors.New(op, err)
+		return nil, errors.Wrap(err, errors.Meta{Op: op})
 	}
 	bucket, ok := c.nameMap[resourceName]
 	if !ok {
-		return nil, errors.New(errors.Invalid, name, op, ErrNotFound)
+		return nil, errors.Wrap(ErrNotFound, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
 	}
 
 	// Handle short name
 	if registryName == "" {
 		if len(bucket) > 1 {
-			return nil, errors.New(errors.Invalid, name, op, ErrMultipleResources)
+			return nil, errors.Wrap(ErrMultipleResources, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
 		}
 		return c.resources[bucket[0]], nil
 	}
@@ -139,7 +140,7 @@ func (c *Collection) Get(name string) (Resource, error) {
 			return r, nil
 		}
 	}
-	return nil, errors.New(errors.Invalid, name, op, ErrNotFound)
+	return nil, errors.Wrap(ErrNotFound, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
 }
 
 // Set adds or replaces the resource in the Collection.
@@ -148,10 +149,10 @@ func (c *Collection) Set(r Resource) error {
 	const op = errors.Op("resource.Collection.Set")
 	registryName, resourceName, err := ParseName(r.FullName())
 	if err != nil {
-		return errors.New(errors.Internal, op, err)
+		return errors.Wrap(err, errors.Meta{Kind: errkind.Internal, Op: op})
 	}
 	if registryName == "" {
-		return errors.New(errors.Internal, "registry name missing from resource", op)
+		return errors.New(errkind.Internal, "registry name missing from resource", op)
 	}
 	if c.nameMap == nil {
 		c.nameMap = make(map[string][]int)

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"

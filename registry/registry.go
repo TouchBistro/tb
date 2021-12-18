@@ -7,13 +7,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/progress"
+	"github.com/TouchBistro/goutils/text"
+	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -58,11 +60,19 @@ func readRegistryFile(op errors.Op, filename string, r Registry, v interface{}) 
 	fp := filepath.Join(r.Path, filename)
 	f, err := os.Open(fp)
 	if err != nil {
-		return errors.New(errors.IO, fmt.Sprintf("failed to open file %s in registry %s", filename, r.Name), op, err)
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to open file %s in registry %s", filename, r.Name),
+			Op:     op,
+		})
 	}
 	defer f.Close()
 	if err := yaml.NewDecoder(f).Decode(v); err != nil {
-		return errors.New(errors.IO, fmt.Sprintf("failed to decode %s in registry %s", filename, r.Name), op, err)
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to decode %s in registry %s", filename, r.Name),
+			Op:     op,
+		})
 	}
 	return nil
 }
@@ -128,38 +138,29 @@ func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGl
 		vars["@REPOPATH"] = repoPath
 
 		// Expand any vars
-		var errMsgs []string
+		ve := variableExpander{vars: vars}
 		for i, dep := range s.Dependencies {
-			d := dep
-			expandVarsInField(&d, vars, &errMsgs, "dependencies")
-			s.Dependencies[i] = d
+			s.Dependencies[i] = ve.expand(dep, "dependencies")
 		}
-		expandVarsInField(&s.Build.DockerfilePath, vars, &errMsgs, "build.dockerfilePath")
-		expandVarsInField(&s.EnvFile, vars, &errMsgs, "envFile")
-		expandVarsInField(&s.Remote.Image, vars, &errMsgs, "remote.image")
+		s.Build.DockerfilePath = ve.expand(s.Build.DockerfilePath, "build.dockerfilePath")
+		s.EnvFile = ve.expand(s.EnvFile, "envFile")
+		s.Remote.Image = ve.expand(s.Remote.Image, "remote.image")
 
 		for key, value := range s.EnvVars {
-			v := value
-			expandVarsInField(&v, vars, &errMsgs, "envVars")
-			s.EnvVars[key] = v
+			s.EnvVars[key] = ve.expand(value, "envVars")
 		}
 		for i, volume := range s.Build.Volumes {
-			v := volume.Value
-			expandVarsInField(&v, vars, &errMsgs, "build.volumes")
-			s.Build.Volumes[i].Value = v
+			s.Build.Volumes[i].Value = ve.expand(volume.Value, "build.volumes")
 		}
 		for i, volume := range s.Remote.Volumes {
-			v := volume.Value
-			expandVarsInField(&v, vars, &errMsgs, "remote.volumes")
-			s.Remote.Volumes[i].Value = v
-
+			s.Remote.Volumes[i].Value = ve.expand(volume.Value, "remote.volumes")
 		}
 
 		// Report unknown vars as an error if in strict mode
-		if len(errMsgs) > 0 && opts.strict {
+		if len(ve.errMsgs) > 0 && opts.strict {
 			errs = append(errs, &resource.ValidationError{
 				Resource: s,
-				Messages: errMsgs,
+				Messages: ve.errMsgs,
 			})
 			continue
 		}
@@ -169,7 +170,7 @@ func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGl
 			s, err = service.Override(s, override)
 			if err != nil {
 				msg := fmt.Sprintf("failed to apply override to service %s", s.FullName())
-				errs = append(errs, errors.New(msg, op, err))
+				errs = append(errs, errors.Wrap(err, errors.Meta{Reason: msg, Op: op}))
 				continue
 			}
 		}
@@ -187,18 +188,33 @@ func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGl
 	}, nil
 }
 
-// expandVarsInField is a small helper to expand vars in a service field
-// and report any errors. If the expansion is successful, the value pointed to
-// by field will be updated. If an error occurs, the error message will be appended
-// to errMsgs.
-func expandVarsInField(field *string, vars map[string]string, errMsgs *[]string, fieldName string) {
-	e, err := util.ExpandVars(*field, vars)
-	if err == nil {
-		*field = e
-		return
+// variableExpander is a small helper type which expands variables in a service field.
+// It records a list of error messages for missing variables.
+type variableExpander struct {
+	vars      map[string]string
+	errMsgs   []string
+	fieldName string // temp, used for expansion
+}
+
+// expand expands any variables in field. It is not safe for concurrent use.
+func (ve *variableExpander) expand(field string, fieldName string) string {
+	ve.fieldName = fieldName
+	return text.ExpandVariablesString(field, ve.mapping)
+}
+
+func (ve *variableExpander) mapping(name string) string {
+	// @env is used to "escape" expansion. The value after will be used literally.
+	// Ex: ${@env:HOME} becomes ${HOME}
+	const envPrefix = "@env:"
+	if strings.HasPrefix(name, envPrefix) {
+		return fmt.Sprintf("${%s}", strings.TrimPrefix(name, envPrefix))
 	}
-	msg := fmt.Sprintf("%s: %s", fieldName, err)
-	*errMsgs = append(*errMsgs, msg)
+	if v, ok := ve.vars[name]; ok {
+		return v
+	}
+	// Missing var, record error
+	ve.errMsgs = append(ve.errMsgs, fmt.Sprintf("%s: unknown variable %q", ve.fieldName, name))
+	return ""
 }
 
 // readPlaylists reads the playlist config from the registry r.
@@ -220,7 +236,7 @@ func readPlaylists(op errors.Op, r Registry, collection *playlist.Collection) er
 			registryName, playlistName, err := resource.ParseName(p.Extends)
 			if err != nil {
 				msg := fmt.Sprintf("failed to resolve full name for extends field of playlist %s", p.FullName())
-				errs = append(errs, errors.New(msg, op, err))
+				errs = append(errs, errors.Wrap(err, errors.Meta{Reason: msg, Op: op}))
 				continue
 			}
 			if registryName == "" {
@@ -234,7 +250,7 @@ func readPlaylists(op errors.Op, r Registry, collection *playlist.Collection) er
 			registryName, serviceName, err := resource.ParseName(name)
 			if err != nil {
 				msg := fmt.Sprintf("failed to resolve full name for service %s in playlist %s", name, p.FullName())
-				errs = append(errs, errors.New(msg, op, err))
+				errs = append(errs, errors.Wrap(err, errors.Meta{Reason: msg, Op: op}))
 				continue
 			}
 			if registryName == "" {
@@ -317,7 +333,7 @@ type ReadAllOptions struct {
 	Overrides map[string]service.ServiceOverride
 	// Logger can be provided to log debug details while reading registries.
 	// If it is nil, logging is off.
-	Logger logrus.FieldLogger
+	Logger progress.Logger
 }
 
 // ReadAllResult contains the result of reading a list of registries.
@@ -355,7 +371,7 @@ func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) 
 		result.DesktopApps = &app.Collection{}
 	}
 	if opts.Logger == nil {
-		opts.Logger = util.DiscardLogger()
+		opts.Logger = progress.NoopTracker{}
 	}
 
 	for _, r := range registries {
@@ -372,7 +388,10 @@ func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) 
 				// No file, do nothing
 				opts.Logger.Debugf("registry %s has no %s", r.Name, ServicesFileName)
 			} else if err != nil {
-				return result, errors.New(fmt.Sprintf("failed to read services from registry %s", r.Name), op, err)
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read services from registry %s", r.Name),
+					Op:     op,
+				})
 			}
 
 			opts.Logger.Debugf("Reading playlists from registry %s", r.Name)
@@ -381,7 +400,10 @@ func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) 
 				// No file, do nothing
 				opts.Logger.Debugf("registry %s has no %s", r.Name, PlaylistsFileName)
 			} else if err != nil {
-				return result, errors.New(fmt.Sprintf("failed to read playlists from registry %s", r.Name), op, err)
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read playlists from registry %s", r.Name),
+					Op:     op,
+				})
 			}
 
 			result.BaseImages = append(result.BaseImages, globalConf.baseImages...)
@@ -397,7 +419,10 @@ func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) 
 				// No file, do nothing
 				opts.Logger.Debugf("registry %s has no %s", r.Name, AppsFileName)
 			} else if err != nil {
-				return result, errors.New(fmt.Sprintf("failed to read apps from registry %s", r.Name), op, err)
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read apps from registry %s", r.Name),
+					Op:     op,
+				})
 			}
 		}
 	}
@@ -422,7 +447,7 @@ type ValidateResult struct {
 //
 // logger can be provided to allow debug logging of actions while validating.
 // If logger is nil, logging is off.
-func Validate(path string, strict bool, logger logrus.FieldLogger) ValidateResult {
+func Validate(path string, strict bool, logger progress.Logger) ValidateResult {
 	const op = errors.Op("registry.Validate")
 	r := Registry{
 		// Name needs to be a proper registry name so just say the org is local
@@ -431,7 +456,7 @@ func Validate(path string, strict bool, logger logrus.FieldLogger) ValidateResul
 	}
 	var result ValidateResult
 	if logger == nil {
-		logger = util.DiscardLogger()
+		logger = progress.NoopTracker{}
 	}
 
 	// Validate apps.yml

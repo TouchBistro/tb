@@ -4,7 +4,8 @@ package playlist
 import (
 	"fmt"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/util"
 )
@@ -54,7 +55,7 @@ func (c *Collection) Get(name string) (Playlist, error) {
 	}
 	r, err := c.collection.Get(name)
 	if err != nil {
-		return Playlist{}, errors.New(errors.Op("playlist.Collection.Get"), err)
+		return Playlist{}, errors.Wrap(err, errors.Meta{Op: "playlist.Collection.Get"})
 	}
 	return r.(Playlist), nil
 }
@@ -63,7 +64,7 @@ func (c *Collection) Get(name string) (Playlist, error) {
 // p.FullName() must return a valid full name or an error will be returned.
 func (c *Collection) Set(p Playlist) error {
 	if err := c.collection.Set(p); err != nil {
-		return errors.New(errors.Op("playlist.Collection.Set"), err)
+		return errors.Wrap(err, errors.Meta{Op: "playlist.Collection.Set"})
 	}
 	return nil
 }
@@ -91,7 +92,7 @@ func (c *Collection) ServiceNames(playlistName string) ([]string, error) {
 func (c *Collection) resolveServiceNames(op errors.Op, name string, deps map[string]bool) ([]string, error) {
 	p, err := c.Get(name)
 	if err != nil {
-		return nil, errors.New(op, err)
+		return nil, errors.Wrap(err, errors.Meta{Op: op})
 	}
 	if p.Extends == "" {
 		return p.Services, nil
@@ -99,7 +100,7 @@ func (c *Collection) resolveServiceNames(op errors.Op, name string, deps map[str
 	// Check for dependency cycle
 	if deps[p.Extends] {
 		msg := fmt.Sprintf("circular dependency of services, %s and %s", p.Extends, name)
-		return nil, errors.New(errors.Invalid, msg, op)
+		return nil, errors.New(errkind.Invalid, msg, op)
 	}
 	// Resolve parent playlist defined in extends
 	deps[name] = true

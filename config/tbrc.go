@@ -10,9 +10,9 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/tb/registry"
+	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	"github.com/TouchBistro/tb/util"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -65,7 +65,7 @@ func LoadTBRC() error {
 	logLevel := log.InfoLevel
 	if tbrc.DebugEnabled {
 		logLevel = log.DebugLevel
-		fatal.ShowStackTraces(true)
+		fatal.PrintDetailedError(true)
 	}
 
 	log.SetLevel(logLevel)
@@ -108,7 +108,7 @@ func LoadTBRC() error {
 
 	// Make sure all overrides use the full name of the service
 	for name := range tbrc.Overrides {
-		registryName, _, err := util.SplitNameParts(name)
+		registryName, _, err := resource.ParseName(name)
 		if err != nil {
 			return errors.Wrapf(err, "invalid service name to override %s", name)
 		}

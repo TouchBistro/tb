@@ -4,7 +4,8 @@ package service
 import (
 	"fmt"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/resource"
 )
 
@@ -133,14 +134,14 @@ func Override(s Service, o ServiceOverride) (Service, error) {
 	if o.Mode != "" {
 		if o.Mode != ModeRemote && o.Mode != ModeBuild {
 			msg := fmt.Sprintf("invalid override value for '%s.mode', must be 'remote' or 'build'", s.FullName())
-			return s, errors.New(errors.Invalid, msg, op)
+			return s, errors.New(errkind.Invalid, msg, op)
 		}
 		if o.Mode == ModeRemote && s.Remote.Image == "" {
 			msg := fmt.Sprintf("'%s.mode' is overridden to 'remote' but it is not available from a remote source", s.FullName())
-			return s, errors.New(errors.Invalid, msg, op)
+			return s, errors.New(errkind.Invalid, msg, op)
 		} else if o.Mode == ModeBuild && !s.CanBuild() {
 			msg := fmt.Sprintf("'%s.mode' is overridden to 'build' but it cannot be built locally", s.FullName())
-			return s, errors.New(errors.Invalid, msg, op)
+			return s, errors.New(errkind.Invalid, msg, op)
 		}
 	}
 
@@ -193,7 +194,7 @@ func (c *Collection) Len() int {
 func (c *Collection) Get(name string) (Service, error) {
 	r, err := c.collection.Get(name)
 	if err != nil {
-		return Service{}, errors.New(errors.Op("service.Collection.Get"), err)
+		return Service{}, errors.Wrap(err, errors.Meta{Op: errors.Op("service.Collection.Get")})
 	}
 	return r.(Service), nil
 }
@@ -202,7 +203,7 @@ func (c *Collection) Get(name string) (Service, error) {
 // s.FullName() must return a valid full name or an error will be returned.
 func (c *Collection) Set(s Service) error {
 	if err := c.collection.Set(s); err != nil {
-		return errors.New(errors.Op("service.Collection.Set"), err)
+		return errors.Wrap(err, errors.Meta{Op: errors.Op("service.Collection.Set")})
 	}
 	return nil
 }

@@ -3,7 +3,7 @@ package app
 import (
 	"strings"
 
-	"github.com/TouchBistro/tb/errors"
+	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/resource"
 )
 
@@ -112,7 +112,7 @@ type Collection struct {
 func (c *Collection) Get(name string) (App, error) {
 	r, err := c.collection.Get(name)
 	if err != nil {
-		return App{}, errors.New(errors.Op("app.Collection.Get"), err)
+		return App{}, errors.Wrap(err, errors.Meta{Op: "app.Collection.Get"})
 	}
 	return r.(App), nil
 }
@@ -121,7 +121,7 @@ func (c *Collection) Get(name string) (App, error) {
 // a.FullName() must return a valid full name or an error will be returned.
 func (c *Collection) Set(a App) error {
 	if err := c.collection.Set(a); err != nil {
-		return errors.New(errors.Op("app.Collection.Set"), err)
+		return errors.Wrap(err, errors.Meta{Op: "app.Collection.Set"})
 	}
 	return nil
 }

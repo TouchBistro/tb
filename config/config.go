@@ -196,7 +196,7 @@ update:
 		RootPath:     TBRootPath(),
 		ReposPath:    ReposPath(),
 		Overrides:    tbrc.Overrides,
-		Logger:       log.StandardLogger(),
+		Logger:       util.Logger{FieldLogger: log.StandardLogger()},
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to read config files from registries")

@@ -7,6 +7,7 @@ import (
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/registry"
+	"github.com/TouchBistro/tb/util"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -31,7 +32,7 @@ Example:
 		log.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)
 
 		valid := true
-		result := registry.Validate(registryPath, validateOpts.strict, log.StandardLogger())
+		result := registry.Validate(registryPath, validateOpts.strict, util.Logger{FieldLogger: log.StandardLogger()})
 		if errors.Is(result.AppsErr, fs.ErrNotExist) {
 			log.Infof(color.Yellow("No %s file"), registry.AppsFileName)
 		} else if result.AppsErr == nil {
