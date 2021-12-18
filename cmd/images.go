@@ -18,10 +18,11 @@ type imagesOptions struct {
 var imagesOpts imagesOptions
 
 var imagesCmd = &cobra.Command{
-	Use:     "images",
-	Aliases: []string{"img"},
-	Args:    cobra.ExactArgs(1),
-	Short:   "List latest available images for a service",
+	Use:        "images",
+	Deprecated: "it will be removed soon",
+	Aliases:    []string{"img"},
+	Args:       cobra.ExactArgs(1),
+	Short:      "List latest available images for a service",
 	Long: `List latest available images for a service.
 
 Examples:

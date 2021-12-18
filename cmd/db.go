@@ -71,8 +71,9 @@ func getDbConf(serviceName string) (dbConfig, error) {
 }
 
 var dbCmd = &cobra.Command{
-	Use:   "db <service-name>",
-	Short: "Connects to the database in a service",
+	Use:        "db <service-name>",
+	Deprecated: "it will be removed soon",
+	Short:      "Connects to the database in a service",
 	Long: `Connects to the database in a service using a cli database client.
 
 Examples:

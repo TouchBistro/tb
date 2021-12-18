@@ -13,8 +13,9 @@ import (
 )
 
 var cloneCmd = &cobra.Command{
-	Use:   "clone [service]",
-	Short: "Clone a tb service",
+	Use:        "clone [service]",
+	Deprecated: "it will be removed soon",
+	Short:      "Clone a tb service",
 	Long: `Clone any service in service.yml that has repo set to true
 
 	Examples:

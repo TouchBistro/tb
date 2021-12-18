@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
 	appCmd "github.com/TouchBistro/tb/cmd/app"
@@ -10,7 +8,6 @@ import (
 	"github.com/TouchBistro/tb/cmd/app/ios"
 	registryCmd "github.com/TouchBistro/tb/cmd/registry"
 	"github.com/TouchBistro/tb/config"
-	"github.com/TouchBistro/tb/fortune"
 	"github.com/TouchBistro/tb/git"
 	"github.com/blang/semver"
 	log "github.com/sirupsen/logrus"
@@ -52,9 +49,6 @@ func init() {
 	rootCmd.AddCommand(appCmd.AppCmd(), registryCmd.RegistryCmd())
 
 	cobra.OnInitialize(func() {
-		f := fortune.Random().String()
-		fmt.Println(color.Magenta(f))
-
 		err := config.LoadTBRC()
 		if err != nil {
 			fatal.ExitErr(err, "Failed to load tbrc.")
