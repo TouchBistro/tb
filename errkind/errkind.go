@@ -12,6 +12,7 @@ const (
 	Git                       // A Git operation returned an error.
 	Docker                    // A Docker operation returned an error.
 	DockerCompose             // A docker-compose operation returned an error.
+	Simulator                 // A iOS simulator operation returned an error.
 )
 
 func (k Kind) Kind() string {
@@ -30,6 +31,8 @@ func (k Kind) Kind() string {
 		return "docker error"
 	case DockerCompose:
 		return "docker-compose error"
+	case Simulator:
+		return "iOS simulator error"
 	}
 	return "unknown error kind"
 }

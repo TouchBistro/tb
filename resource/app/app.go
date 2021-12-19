@@ -4,17 +4,8 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/resource"
-)
-
-// DeviceType specifies the type of device that an app can run on.
-type DeviceType int
-
-const (
-	DeviceTypeAll DeviceType = iota
-	DeviceTypeiPad
-	DeviceTypeiPhone
-	DeviceTypeUnknown
 )
 
 // Type specifies the type of app.
@@ -27,11 +18,12 @@ const (
 
 // App specifies the configuration for an app that can be run by tb.
 type App struct {
-	// TODO(@cszatmary): Need to figure out a better way to handle iOS vs deskop
-	// iOS only
+	// These fields are iOS specific
+
 	BundleID string `yaml:"bundleID"`
-	// Assume DeviceTypeAll if empty
-	RunsOn string `yaml:"runsOn"`
+	RunsOn   string `yaml:"runsOn"`
+
+	// General fields
 
 	Branch  string            `yaml:"branch"`
 	GitRepo string            `yaml:"repo"`
@@ -57,23 +49,16 @@ func (a App) FullName() string {
 	return resource.FullName(a.RegistryName, a.Name)
 }
 
-func (a App) DeviceType() DeviceType {
-	if a.RunsOn == "" {
-		return DeviceTypeAll
-	}
-
-	// Make it case insensitive because we don't want to worry about if
-	// people wrote ipad vs iPad
+// DeviceType returns the device type that the app runs on if it is an iOS app.
+func (a App) DeviceType() simulator.DeviceType {
 	runsOn := strings.ToLower(a.RunsOn)
 	switch runsOn {
-	case "all":
-		return DeviceTypeAll
 	case "ipad":
-		return DeviceTypeiPad
+		return simulator.DeviceTypeiPad
 	case "iphone":
-		return DeviceTypeiPhone
+		return simulator.DeviceTypeiPhone
 	default:
-		return DeviceTypeUnknown
+		return simulator.DeviceTypeUnspecified
 	}
 }
 
@@ -86,7 +71,9 @@ func Validate(a App, t Type) error {
 	}
 
 	var msgs []string
-	if a.DeviceType() == DeviceTypeUnknown {
+	switch strings.ToLower(a.RunsOn) {
+	case "", "all", "ipad", "iphone":
+	default:
 		msgs = append(msgs, "'runsOn' value is invalid, must be 'all', 'ipad', or 'iphone'")
 	}
 	if msgs == nil {

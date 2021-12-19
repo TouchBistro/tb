@@ -4,10 +4,10 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/matryer/is"
-	"github.com/stretchr/testify/assert"
 )
 
 func newCollection(t *testing.T) *app.Collection {
@@ -60,42 +60,41 @@ func newCollection(t *testing.T) *app.Collection {
 
 func TestDeviceType(t *testing.T) {
 	tests := []struct {
-		name               string
-		app                app.App
-		expectedDeviceType app.DeviceType
+		name           string
+		app            app.App
+		wantDeviceType simulator.DeviceType
 	}{
 		{
 			"No device type provided",
 			app.App{},
-			app.DeviceTypeAll,
+			simulator.DeviceTypeUnspecified,
 		},
 		{
 			"All devices",
 			app.App{RunsOn: "all"},
-			app.DeviceTypeAll,
+			simulator.DeviceTypeUnspecified,
 		},
 		{
 			"Only iPads",
 			app.App{RunsOn: "iPad"},
-			app.DeviceTypeiPad,
+			simulator.DeviceTypeiPad,
 		},
 		{
 			"Only iPhones",
 			app.App{RunsOn: "iPhone"},
-			app.DeviceTypeiPhone,
+			simulator.DeviceTypeiPhone,
 		},
 		{
 			"Unknown device type",
 			app.App{RunsOn: "iPod"},
-			app.DeviceTypeUnknown,
+			simulator.DeviceTypeUnspecified,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			deviceType := tt.app.DeviceType()
-
-			assert.Equal(t, tt.expectedDeviceType, deviceType)
+			is := is.New(t)
+			is.Equal(tt.app.DeviceType(), tt.wantDeviceType)
 		})
 	}
 }
