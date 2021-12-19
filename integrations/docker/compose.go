@@ -72,18 +72,17 @@ func (c compose) Up(ctx context.Context, services []string) error {
 
 func (c compose) exec(ctx context.Context, op errors.Op, subcmd string, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
-	fields := progress.Fields{"id": fmt.Sprintf("%s-%s", c.cmd, subcmd)}
-	w := progress.LogWriter(tracker, tracker.WithFields(fields).Debug)
+	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
 	defer w.Close()
 
-	args = append([]string{"-f", c.composeFile, subcmd}, args...)
-	cmd := exec.CommandContext(ctx, c.cmd, args...)
+	finalArgs := append([]string{c.cmd, "-f", c.composeFile, subcmd}, args...)
+	cmd := exec.CommandContext(ctx, finalArgs[0], finalArgs[1:]...)
 	cmd.Stdout = w
 	cmd.Stderr = w
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.DockerCompose,
-			Reason: fmt.Sprintf("failed to run %s %s", c.cmd, strings.Join(args, " ")),
+			Reason: fmt.Sprintf("failed to run %q", strings.Join(finalArgs, " ")),
 			Op:     op,
 		})
 	}
