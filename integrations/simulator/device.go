@@ -167,6 +167,10 @@ func (dl DeviceList) getDevices(osVersion string, op errors.Op) ([]Device, error
 	// Ex: `iOS 13.5` will become `iOS-13-5`
 	regex := regexp.MustCompile(`(\.|\(|\)|\s)`)
 	osKey := regex.ReplaceAllString(osVersion, "-")
+	// Add iOS prefix if missing
+	if !strings.HasPrefix(osKey, "iOS-") {
+		osKey = "iOS-" + osKey
+	}
 	devices, ok := dl.deviceMap[osKey]
 	if !ok {
 		return nil, errors.Wrap(ErrOSNotFound, errors.Meta{Kind: errkind.Invalid, Op: op})

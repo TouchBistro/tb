@@ -39,8 +39,8 @@ type simulator struct {
 	device Device
 }
 
-// NewSimulator creates a new Simulator using the given device.
-func NewSimulator(device Device) Simulator {
+// New creates a new Simulator using the given device.
+func New(device Device) Simulator {
 	return &simulator{device: device}
 }
 
