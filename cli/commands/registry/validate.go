@@ -58,7 +58,6 @@ func newValidateCommand(c *cli.Container) *cobra.Command {
 
 			if !valid {
 				return &cli.ExitError{
-					Code:    1,
 					Message: color.Red("❌ registry is invalid"),
 				}
 			}

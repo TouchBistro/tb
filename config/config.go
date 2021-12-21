@@ -1,17 +1,19 @@
 package config
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/registry"
-	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
@@ -76,14 +78,6 @@ func LoadedPlaylists() *playlist.Collection {
 	return registryResult.Playlists
 }
 
-func LoadedIOSApps() *app.Collection {
-	return registryResult.IOSApps
-}
-
-func LoadedDesktopApps() *app.Collection {
-	return registryResult.DesktopApps
-}
-
 func Engine() *engine.Engine {
 	return globalEngine
 }
@@ -117,7 +111,7 @@ func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
 
 /* Public Functions */
 
-func Init(opts InitOptions) error {
+func Init(ctx context.Context, opts InitOptions) error {
 	tbRoot := TBRootPath()
 
 	// Create ~/.tb directory if it doesn't exist
@@ -207,7 +201,7 @@ update:
 		RootPath:     TBRootPath(),
 		ReposPath:    ReposPath(),
 		Overrides:    tbrc.Overrides,
-		Logger:       util.Logger{FieldLogger: log.StandardLogger()},
+		Logger:       progress.TrackerFromContext(ctx),
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to read config files from registries")
@@ -236,12 +230,26 @@ update:
 		}
 		log.Debugln("Successfully generated docker-compose.yml")
 	}
+	var deviceList simulator.DeviceList
+	if opts.LoadApps {
+		deviceData, err := simulator.ListDevices(ctx)
+		if err != nil {
+			return errors.Wrap(err, "ailed to get list of simulators")
+		}
+		deviceList, err = simulator.ParseDevices(deviceData)
+		if err != nil {
+			return errors.Wrap(err, "failed to find available iOS simulators")
+		}
+	}
 
 	globalEngine, err = engine.New(engine.Options{
-		Workdir:    TBRootPath(),
-		Services:   registryResult.Services,
-		Playlists:  registryResult.Playlists,
-		BaseImages: registryResult.BaseImages,
+		Workdir:     TBRootPath(),
+		Services:    registryResult.Services,
+		Playlists:   registryResult.Playlists,
+		IOSApps:     registryResult.IOSApps,
+		DesktopApps: registryResult.DesktopApps,
+		DeviceList:  deviceList,
+		BaseImages:  registryResult.BaseImages,
 	})
 	if err != nil {
 		return errors.Wrap(err, "failed to initialize engine")

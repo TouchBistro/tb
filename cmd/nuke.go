@@ -177,7 +177,6 @@ var nukeCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(nukeCmd)
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeContainers, "containers", false, "nuke all containers")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeImages, "images", false, "nuke all images")
 	nukeCmd.Flags().BoolVar(&nukeOpts.shouldNukeVolumes, "volumes", false, "nuke all volumes")

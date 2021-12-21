@@ -27,7 +27,6 @@ func newAddCommand(c *cli.Container) *cobra.Command {
 				return nil
 			} else if err != nil {
 				return &cli.ExitError{
-					Code:    1,
 					Message: fmt.Sprintf("failed to add registry %s", registryName),
 					Err:     err,
 				}

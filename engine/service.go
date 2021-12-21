@@ -329,6 +329,9 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 
 // stopServices stops and removes any containers for the given services.
 func (e *Engine) stopServices(ctx context.Context, op errors.Op, serviceNames []string) error {
+	// DISCUSS(@cszatmary): Not sure why we did this but we call compose stop & compose rm
+	// instead of calling compose down. down also removes any networks created which we don't
+	// This is probably why we've seen spooky network stuff before.
 	tracker := progress.TrackerFromContext(ctx)
 	if err := e.composeClient.Stop(ctx, serviceNames); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop running containers", Op: op})

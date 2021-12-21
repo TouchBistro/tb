@@ -54,6 +54,4 @@ Examples:
 
 func init() {
 	execCmd.Flags().BoolVar(&execOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-
-	rootCmd.AddCommand(execCmd)
 }

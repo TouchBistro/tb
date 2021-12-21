@@ -63,7 +63,6 @@ Examples:
 }
 
 func init() {
-	rootCmd.AddCommand(imagesCmd)
 	imagesCmd.Flags().IntVarP(&imagesOpts.max, "max", "m", 10, "maximum results to display")
 	imagesCmd.Flags().StringVarP(&imagesOpts.dockerRegistry, "docker-registry", "r", "ecr", "type of docker registry, valid values: ecr")
 }

@@ -23,7 +23,7 @@ const tbrcName = ".tbrc.yml"
 var ErrRegistryExists = errors.New("registry already exists")
 
 type userConfig struct {
-	DebugEnabled        bool                               `yaml:"debug"`
+	DebugEnabled        *bool                              `yaml:"debug"`
 	ExperimentalEnabled bool                               `yaml:"experimental"`
 	Playlists           map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides           map[string]service.ServiceOverride `yaml:"overrides"`
@@ -33,7 +33,10 @@ type userConfig struct {
 /* Getters for private & computed vars */
 
 func IsDebugEnabled() bool {
-	return tbrc.DebugEnabled
+	if tbrc.DebugEnabled == nil {
+		return false
+	}
+	return *tbrc.DebugEnabled
 }
 
 func IsExperimentalEnabled() bool {
@@ -66,17 +69,22 @@ func LoadTBRC() error {
 		return errors.Wrapf(err, "couldn't read yaml file at %s", tbrcPath)
 	}
 
-	logLevel := log.InfoLevel
-	if tbrc.DebugEnabled {
-		logLevel = log.DebugLevel
-		fatal.PrintDetailedError(true)
-	}
+	// Triple state bools suck but we need this so we can tell if the user set it explicitly.
+	if tbrc.DebugEnabled != nil {
+		logLevel := log.InfoLevel
+		if *tbrc.DebugEnabled {
+			logLevel = log.DebugLevel
+			fatal.PrintDetailedError(true)
+		}
 
-	log.SetLevel(logLevel)
-	log.SetFormatter(&log.TextFormatter{
-		// TODO: Remove the log level - its quite ugly
-		DisableTimestamp: true,
-	})
+		log.SetLevel(logLevel)
+		log.SetFormatter(&log.TextFormatter{
+			// TODO: Remove the log level - its quite ugly
+			DisableTimestamp: true,
+		})
+		// This prints a warning sign
+		log.Warn("\u26A0\uFE0F  Using the 'debug' field in tbrc.yml is deprecated. Use the '--verbose' or '-v' flag instead.")
+	}
 
 	if IsExperimentalEnabled() {
 		log.Infoln(color.Yellow("🚧 Experimental mode enabled 🚧"))

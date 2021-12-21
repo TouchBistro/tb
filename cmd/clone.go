@@ -42,7 +42,3 @@ var cloneCmd = &cobra.Command{
 		log.Infof("☑ cloning of %s was successful", serviceName)
 	},
 }
-
-func init() {
-	rootCmd.AddCommand(cloneCmd)
-}

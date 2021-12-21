@@ -15,6 +15,7 @@ import (
 type Container struct {
 	Engine  *engine.Engine
 	Tracker progress.Tracker
+	Verbose bool
 }
 
 // ExitError is used to signal that the CLI should exit with a given

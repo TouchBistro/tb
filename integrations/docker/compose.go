@@ -105,3 +105,30 @@ func normalizeNames(names []string) []string {
 	}
 	return nn
 }
+
+// ComposeConfig represents the configuration for docker compose
+// that is specified in a docker-compose.yml file.
+type ComposeConfig struct {
+	Version  string                          `yaml:"version"`
+	Services map[string]ComposeServiceConfig `yaml:"services"`
+	Volumes  map[string]interface{}          `yaml:"volumes,omitempty"`
+}
+
+type ComposeServiceConfig struct {
+	Build         ComposeBuildConfig `yaml:"build,omitempty"` // non-remote
+	Command       string             `yaml:"command,omitempty"`
+	ContainerName string             `yaml:"container_name"`
+	DependsOn     []string           `yaml:"depends_on,omitempty"`
+	Entrypoint    []string           `yaml:"entrypoint,omitempty"`
+	EnvFile       []string           `yaml:"env_file,omitempty"`
+	Environment   map[string]string  `yaml:"environment,omitempty"`
+	Image         string             `yaml:"image,omitempty"` // remote
+	Ports         []string           `yaml:"ports,omitempty"`
+	Volumes       []string           `yaml:"volumes,omitempty"`
+}
+
+type ComposeBuildConfig struct {
+	Args    map[string]string `yaml:"args,omitempty"`
+	Context string            `yaml:"context,omitempty"`
+	Target  string            `yaml:"target,omitempty"`
+}

@@ -49,5 +49,4 @@ var logsCmd = &cobra.Command{
 
 func init() {
 	logsCmd.Flags().BoolVar(&logsOpts.shouldSkipGitPull, "no-git-pull", false, "dont update git repositories")
-	rootCmd.AddCommand(logsCmd)
 }

@@ -79,6 +79,10 @@ func ParseDevices(data []byte) (DeviceList, error) {
 				d.Type = DeviceTypeiPad
 			case strings.Contains(d.Name, "iPhone"):
 				d.Type = DeviceTypeiPhone
+			case strings.Contains(d.Name, "iPod"):
+				// There is still apparently an iPod simulator
+				// Just treat it as iPhone
+				d.Type = DeviceTypeiPhone
 			default:
 				// This should never happen. If it does we either have a bug, or apple has
 				// added a new device type. In either case it means a fix is needed.

@@ -10,6 +10,7 @@ const (
 	Internal                  // Internal error or inconsistency.
 	IO                        // An OS level I/O error.
 	Git                       // A Git operation returned an error.
+	GitHub                    // A GitHub operation returned an error.
 	Docker                    // A Docker operation returned an error.
 	DockerCompose             // A docker-compose operation returned an error.
 	Simulator                 // A iOS simulator operation returned an error.
@@ -28,6 +29,8 @@ func (k Kind) Kind() string {
 		return "I/O error"
 	case Git:
 		return "git error"
+	case GitHub:
+		return "GitHub error"
 	case Docker:
 		return "docker error"
 	case DockerCompose:

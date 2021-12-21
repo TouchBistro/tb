@@ -7,6 +7,7 @@ import (
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/progress"
+	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
@@ -222,7 +223,7 @@ Examples:
 			services := selectServices()
 
 			tracker := &progress.SpinnerTracker{
-				OutputLogger:    util.OutputLogger{Logger: log.StandardLogger()},
+				OutputLogger:    cli.OutputLogger{Logger: log.StandardLogger()},
 				PersistMessages: config.IsDebugEnabled(),
 			}
 			ctx := progress.ContextWithTracker(cmd.Context(), tracker)
@@ -296,7 +297,7 @@ Examples:
 		log.Infof("Current docker disk usage: %.2fGB", float64(usage)/1024/1024/1024)
 
 		if full {
-			if util.Prompt("Your free disk space is running out, would you like to cleanup? y/n >") {
+			if cli.Prompt("Your free disk space is running out, would you like to cleanup? y/n >") {
 				// Images are all we really care about as far as space cleaning
 				log.Infoln("Removing images...")
 				go func(successCh chan string, failedCh chan error) {
@@ -398,6 +399,4 @@ func init() {
 	upCmd.PersistentFlags().BoolVar(&opts.shouldSkipLazydocker, "no-lazydocker", false, "dont start lazydocker")
 	upCmd.PersistentFlags().StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
 	upCmd.PersistentFlags().StringSliceVarP(&opts.cliServiceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
-
-	rootCmd.AddCommand(upCmd)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/docker"
@@ -94,46 +95,42 @@ Examples:
 			fatal.ExitErr(err, "Could not retrieve database config for this service.")
 		}
 
-		var cli string
+		var cliName string
 		var connArg string
 
 		switch dbConf.dbType {
 		case "postgresql":
-			cli = deps.Pgcli
+			cliName = deps.Pgcli
 			connArg = fmt.Sprintf("%s://%s:%s@localhost:%s/%s", dbConf.dbType, dbConf.user, dbConf.password, dbConf.port, dbConf.name)
 		case "mysql":
-			cli = deps.Mycli
+			cliName = deps.Mycli
 			connArg = fmt.Sprintf("%s://%s:%s@localhost:%s/%s", dbConf.dbType, dbConf.user, dbConf.password, dbConf.port, dbConf.name)
 		case "mssql":
-			cli = deps.Mssqlcli
+			cliName = deps.Mssqlcli
 			connArg = fmt.Sprintf("-U %s -P %s -S localhost -d %s", dbConf.user, dbConf.password, dbConf.name)
 			fmt.Println(connArg)
 		default:
 			fatal.Exitf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType)
 		}
 
-		if !command.IsAvailable(cli) {
-			shouldInstallCli := util.Prompt(fmt.Sprintf("This command requires %s. Would you like tb to install it for you? y/n\n> ", cli))
+		if !command.IsAvailable(cliName) {
+			shouldInstallCli := cli.Prompt(fmt.Sprintf("This command requires %s. Would you like tb to install it for you? y/n\n> ", cliName))
 			if !shouldInstallCli {
-				fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Consider installing it yourself or letting tb install it for you.", cli, serviceName, dbConf.dbType)
+				fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Consider installing it yourself or letting tb install it for you.", cliName, serviceName, dbConf.dbType)
 			}
 		}
 
-		err = deps.Resolve(cli)
+		err = deps.Resolve(cliName)
 		if err != nil {
-			fatal.ExitErrf(err, "could not install %s", cli)
+			fatal.ExitErrf(err, "could not install %s", cliName)
 		}
 
-		log.Infof("starting %s...", cli)
+		log.Infof("starting %s...", cliName)
 
 		err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
-			Exec(cli, strings.Fields(connArg)...)
+			Exec(cliName, strings.Fields(connArg)...)
 		if err != nil {
-			fatal.ExitErrf(err, "could not start database client %s", cli)
+			fatal.ExitErrf(err, "could not start database client %s", cliName)
 		}
 	},
-}
-
-func init() {
-	rootCmd.AddCommand(dbCmd)
 }

@@ -85,7 +85,6 @@ func listPlaylists(names []string, tree bool) {
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
 	listCmd.Flags().BoolVarP(&shouldListServices, "services", "s", false, "list services")
 	listCmd.Flags().BoolVarP(&shouldListPlaylists, "playlists", "p", false, "list playlists")
 	listCmd.Flags().BoolVarP(&shouldListCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
