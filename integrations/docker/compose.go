@@ -3,8 +3,10 @@ package docker
 import (
 	"context"
 	"fmt"
+	"io"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
@@ -14,6 +16,21 @@ import (
 
 const filename = "docker-compose.yml"
 
+type LogsOptions struct {
+	Follow bool
+	Tail   int
+}
+
+type ExecOptions struct {
+	// Cmd is the command to execute. It must have at
+	// least one element which is the name of the command.
+	// Any additional elements are args for the command.
+	Cmd    []string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
 // Compose represents functionality provided by docker-compose.
 type Compose interface {
 	Build(ctx context.Context, services []string) error
@@ -21,11 +38,14 @@ type Compose interface {
 	Rm(ctx context.Context, services []string) error
 	Run(ctx context.Context, service, cmd string) error
 	Up(ctx context.Context, services []string) error
+	Logs(ctx context.Context, services []string, w io.Writer, opts LogsOptions) error
+	Exec(ctx context.Context, service string, opts ExecOptions) (int, error)
 }
 
 // NewCompose returns a new Compose instance.
 // projectDir is expected to contain a docker-compose.yml file.
-func NewCompose(projectDir string) Compose {
+// projectName is used for labeling resources created by Compose.
+func NewCompose(projectDir, projectName string) Compose {
 	// Determine what compose command to use.
 	// v2 appears to be barfing for ridiculous reasons.
 	// It's complaining about invalid syntax in .env files
@@ -35,7 +55,7 @@ func NewCompose(projectDir string) Compose {
 	if _, err := exec.LookPath("docker-compose-v1"); err == nil {
 		cmd = "docker-compose-v1"
 	}
-	return compose{composeFile: filepath.Join(projectDir, filename), cmd: cmd}
+	return &compose{filepath.Join(projectDir, filename), cmd, projectName}
 }
 
 // compose is an implementation of Compose that uses the docker-compose command.
@@ -43,41 +63,102 @@ type compose struct {
 	// composeFile is the path to the docker-compose.yml file.
 	composeFile string
 	cmd         string // the command to run
+	projectName string
 }
 
-func (c compose) Build(ctx context.Context, services []string) error {
-	args := append([]string{"--parallel"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Build", "build", args...)
+func (c *compose) Build(ctx context.Context, services []string) error {
+	args := append([]string{"build", "--parallel"}, normalizeNames(services)...)
+	return c.exec(ctx, "docker.Compose.Build", nil, args...)
 }
 
-func (c compose) Stop(ctx context.Context, services []string) error {
-	args := append([]string{"-t", "2"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Stop", "stop", args...)
+func (c *compose) Stop(ctx context.Context, services []string) error {
+	args := append([]string{"stop", "-t", "2"}, normalizeNames(services)...)
+	return c.exec(ctx, "docker.Compose.Stop", nil, args...)
 }
 
-func (c compose) Rm(ctx context.Context, services []string) error {
-	args := append([]string{"-f"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Rm", "rm", args...)
+func (c *compose) Rm(ctx context.Context, services []string) error {
+	args := append([]string{"rm", "-f"}, normalizeNames(services)...)
+	return c.exec(ctx, "docker.Compose.Rm", nil, args...)
 }
 
-func (c compose) Run(ctx context.Context, service, cmd string) error {
-	args := append([]string{"--rm", normalizeName(service)}, strings.Fields(cmd)...)
-	return c.exec(ctx, "docker.Compose.Run", "run", args...)
+func (c *compose) Run(ctx context.Context, service, cmd string) error {
+	args := append([]string{"run", "--rm", NormalizeName(service)}, strings.Fields(cmd)...)
+	return c.exec(ctx, "docker.Compose.Run", nil, args...)
 }
 
-func (c compose) Up(ctx context.Context, services []string) error {
-	args := append([]string{"-d"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Up", "up", args...)
+func (c *compose) Up(ctx context.Context, services []string) error {
+	args := append([]string{"up", "-d"}, normalizeNames(services)...)
+	return c.exec(ctx, "docker.Compose.Up", nil, args...)
 }
 
-func (c compose) exec(ctx context.Context, op errors.Op, subcmd string, args ...string) error {
+func (c *compose) Logs(ctx context.Context, services []string, w io.Writer, opts LogsOptions) error {
+	tail := "all"
+	if opts.Tail >= 0 {
+		tail = strconv.Itoa(opts.Tail)
+	}
+	args := []string{"logs", "--tail", tail}
+	if opts.Follow {
+		args = append(args, "--follow")
+	}
+	args = append(args, normalizeNames(services)...)
+	return c.exec(ctx, "docker.Compose.Up", w, args...)
+}
+
+func (c *compose) Exec(ctx context.Context, service string, opts ExecOptions) (int, error) {
+	const op = errors.Op("docker.Compose.Exec")
+	if len(opts.Cmd) == 0 {
+		panic("ExecOptions.Cmd must have at least one element")
+	}
+
+	// Exec is special so we won't use c.exec but do it manually
+
+	if opts.Stdout == nil || opts.Stderr == nil {
+		tracker := progress.TrackerFromContext(ctx)
+		w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+		defer w.Close()
+		if opts.Stdout == nil {
+			opts.Stdout = w
+		}
+		if opts.Stderr == nil {
+			opts.Stderr = w
+		}
+	}
+
+	args := []string{c.cmd, "--project-name", c.projectName, "--file", c.composeFile, "exec", NormalizeName(service)}
+	args = append(args, opts.Cmd...)
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd.Stdin = opts.Stdin
+	cmd.Stdout = opts.Stdout
+	cmd.Stderr = opts.Stderr
+	err := cmd.Run()
+
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		// This isn't actually an error with tb, it means the underlying command that was executed
+		// was unsuccessful so don't treat it as an error but signal the status code.
+		return exitErr.ExitCode(), nil
+	}
+	if err != nil {
+		return -1, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.DockerCompose,
+			Reason: fmt.Sprintf("failed to run %q", strings.Join(args, " ")),
+			Op:     op,
+		})
+	}
+	return 0, nil
+}
+
+func (c *compose) exec(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
 	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
 	defer w.Close()
+	if stdout == nil {
+		stdout = w
+	}
 
-	finalArgs := append([]string{c.cmd, "-f", c.composeFile, subcmd}, args...)
+	finalArgs := append([]string{c.cmd, "--project-name", c.projectName, "--file", c.composeFile}, args...)
 	cmd := exec.CommandContext(ctx, finalArgs[0], finalArgs[1:]...)
-	cmd.Stdout = w
+	cmd.Stdout = stdout
 	cmd.Stderr = w
 	if err := cmd.Run(); err != nil {
 		return errors.Wrap(err, errors.Meta{
@@ -89,19 +170,11 @@ func (c compose) exec(ctx context.Context, op errors.Op, subcmd string, args ...
 	return nil
 }
 
-// normalizeName ensures that name is allowed by docker-compose.
-// docker-compose does not allow slashes or upper case letters in service names,
-// they are replaced with dashes and lower case letters respectively.
-func normalizeName(name string) string {
-	sanitized := strings.ReplaceAll(name, "/", "-")
-	return strings.ToLower(sanitized)
-}
-
 // normalizeNames calls normalizeName on each name.
 func normalizeNames(names []string) []string {
 	nn := make([]string, len(names))
 	for i, n := range names {
-		nn[i] = normalizeName(n)
+		nn[i] = NormalizeName(n)
 	}
 	return nn
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
@@ -243,7 +244,7 @@ func TestReadRegistries(t *testing.T) {
 		Name:         "GemSwapper",
 		RegistryName: "ExampleZone/tb-registry",
 	})
-	is.Equal(gemSwapper.DeviceType(), app.DeviceTypeAll)
+	is.Equal(gemSwapper.DeviceType(), simulator.DeviceTypeUnspecified)
 
 	iCode, err := result.IOSApps.Get("iCode")
 	if err != nil {
@@ -262,7 +263,7 @@ func TestReadRegistries(t *testing.T) {
 		Name:         "iCode",
 		RegistryName: "ExampleZone/tb-registry",
 	})
-	is.Equal(iCode.DeviceType(), app.DeviceTypeiPad)
+	is.Equal(iCode.DeviceType(), simulator.DeviceTypeiPad)
 }
 
 func TestValidate(t *testing.T) {

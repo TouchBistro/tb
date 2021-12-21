@@ -27,7 +27,7 @@ type Engine struct {
 	concurrency uint
 
 	gitClient        git.Git
-	dockerClient     docker.Docker
+	dockerClient     *docker.Docker
 	composeClient    docker.Compose
 	storageProviders map[string]storage.Provider // cached providers for reuse
 }
@@ -63,6 +63,7 @@ type Options struct {
 // New creates a new Engine instance.
 func New(opts Options) (*Engine, error) {
 	const op = errors.Op("engine.New")
+	const projectName = "tb"
 
 	// Set defaults
 	if opts.Workdir == "" {
@@ -91,7 +92,7 @@ func New(opts Options) (*Engine, error) {
 
 	// TODO(@cszatmary): We need to change this to allow dependency injection for tests.
 	// Initialize clients
-	dockerClient, err := docker.New()
+	dockerClient, err := docker.New(projectName)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Op: op})
 	}
@@ -107,25 +108,18 @@ func New(opts Options) (*Engine, error) {
 		concurrency:      opts.Concurrency,
 		gitClient:        git.New(),
 		dockerClient:     dockerClient,
-		composeClient:    docker.NewCompose(opts.Workdir),
+		composeClient:    docker.NewCompose(opts.Workdir, projectName),
 		storageProviders: make(map[string]storage.Provider),
 	}, nil
 }
 
-// resolveRepoPath resolve the absolute path to where the repo is stored on the OS filesystem.
-func (e *Engine) resolveRepoPath(repo string) string {
-	return filepath.Join(e.workdir, "repos", repo)
-}
-
-// resolveiOSAppPath resolve the absolute path to where the iOS app is stored on the OS filesystem.
-func (e *Engine) resolveiOSAppPath(name string) string {
-	return filepath.Join(e.workdir, "ios", name)
-}
-
-// resolveDesktopAppPath resolve the absolute path to where the desktop app is stored on the OS filesystem.
-func (e *Engine) resolveDesktopAppPath(name string) string {
-	return filepath.Join(e.workdir, "desktop", name)
-}
+// Paths used to store data under workdir.
+const (
+	reposDir      = "repos"
+	iosDir        = "ios"
+	desktopDir    = "desktop"
+	registriesDir = "registries"
+)
 
 // getStorageProvider returns a storage.Provider for the given provider name.
 func (e *Engine) getStorageProvider(providerName string) (storage.Provider, error) {

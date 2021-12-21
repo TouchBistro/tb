@@ -5,14 +5,29 @@ package engine
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/resource/service"
 )
+
+// ResolveService resolves a single service from the given name.
+func (e *Engine) ResolveService(serviceName string) (service.Service, error) {
+	s, err := e.services.Get(serviceName)
+	if err != nil {
+		return s, errors.Wrap(err, errors.Meta{
+			Reason: "unable to resolve service",
+			Op:     "engine.Engine.ResolveService",
+		})
+	}
+	return s, nil
+}
 
 // ResolveServices resolves a list of services from the given names.
 func (e *Engine) ResolveServices(serviceNames []string) ([]service.Service, error) {
@@ -66,17 +81,10 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 	if len(services) == 0 {
 		return errors.New(errkind.Invalid, "no services provided to run", op)
 	}
-
-	tracker := progress.TrackerFromContext(ctx)
-	tracker.Debug("Preparing Git repos for services")
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
-		return errors.Wrap(err, errors.Meta{Reason: "failed to prepare git repos", Op: op})
+		return err
 	}
-
-	serviceNames := make([]string, len(services))
-	for i, s := range services {
-		serviceNames[i] = s.FullName()
-	}
+	serviceNames := getServiceNames(services)
 
 	// Cleanup previous docker state
 	err := progress.Run(ctx, progress.RunOptions{
@@ -87,6 +95,7 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to clean up previous docker state", Op: op})
 	}
+	tracker := progress.TrackerFromContext(ctx)
 	tracker.Info("✔ Cleaned up previous docker state")
 
 	// MISSING(@cszatmary): Implement checking disk usage & cleanup
@@ -198,30 +207,316 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 	return nil
 }
 
+// DownOptions customizes the behaviour of Down.
+type DownOptions struct {
+	// SkipGitPull skips pulling existing git repos to update them.
+	// Missing repos will still be cloned however.
+	SkipGitPull bool
+}
+
 // Down stops services and removes the containers.
 // If no services are provided, all currently running services will be stopped.
-func (e *Engine) Down(ctx context.Context, services []service.Service) error {
+func (e *Engine) Down(ctx context.Context, services []service.Service, opts DownOptions) error {
 	const op = errors.Op("engine.Engine.Down")
-	tracker := progress.TrackerFromContext(ctx)
-	tracker.Debug("Preparing Git repos for services")
 	// TODO(@cszatmary): Figure out if we actually need this. Would be nice to only
 	// have to do this for services being stopped instead of all.
-	if err := e.prepareGitRepos(ctx, op, true); err != nil {
-		return errors.Wrap(err, errors.Meta{Reason: "failed to prepare git repos", Op: op})
-	}
-
-	serviceNames := make([]string, len(services))
-	for i, s := range services {
-		serviceNames[i] = s.FullName()
+	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
+		return err
 	}
 
 	err := progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
 	}, func(ctx context.Context) error {
-		return e.stopServices(ctx, op, serviceNames)
+		return e.stopServices(ctx, op, getServiceNames(services))
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop services", Op: op})
+	}
+	return nil
+}
+
+// LogsOptions customizes the behaviour of Logs.
+type LogsOptions struct {
+	// Follow follows the log output.
+	Follow bool
+	// Tail is the number of lines to show from the end of the logs.
+	// A value of -1 means show all logs.
+	Tail int
+	// SkipGitPull skips pulling existing git repos to update them.
+	// Missing repos will still be cloned however.
+	SkipGitPull bool
+}
+
+// Logs retrieves the logs from one or more service containers and writes it to w.
+func (e *Engine) Logs(ctx context.Context, services []service.Service, w io.Writer, opts LogsOptions) error {
+	const op = errors.Op("engine.Engine.Logs")
+	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
+		return err
+	}
+	err := e.composeClient.Logs(ctx, getServiceNames(services), w, docker.LogsOptions{
+		Follow: opts.Follow,
+		Tail:   opts.Tail,
+	})
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{Reason: "failed to view logs", Op: op})
+	}
+	return nil
+}
+
+// ExecOptions customizes the behaviour of Exec.
+type ExecOptions struct {
+	// SkipGitPull skips pulling existing git repos to update them.
+	// Missing repos will still be cloned however.
+	SkipGitPull bool
+	// Cmd is the command to execute. It must have at
+	// least one element which is the name of the command.
+	// Any additional elements are args for the command.
+	Cmd    []string
+	Stdin  io.Reader
+	Stdout io.Writer
+	Stderr io.Writer
+}
+
+// Exec executes a command in a service container and returns the exit code.
+// If the exit code cannot be determined, -1 will be returned.
+//
+// The returned error will be non-nil if an error occurred while trying to perform execution
+// of the command. If the command itself exits with a non-zero code, err will be nil.
+func (e *Engine) Exec(ctx context.Context, serviceName string, opts ExecOptions) (int, error) {
+	const op = errors.Op("engine.Engine.Exec")
+	if len(opts.Cmd) == 0 {
+		panic("ExecOptions.Cmd must have at least one element")
+	}
+	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
+		return -1, err
+	}
+
+	s, err := e.services.Get(serviceName)
+	if err != nil {
+		return -1, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
+	}
+	exitCode, err := e.composeClient.Exec(ctx, s.FullName(), docker.ExecOptions{
+		Cmd:    opts.Cmd,
+		Stdin:  opts.Stdin,
+		Stdout: opts.Stdout,
+		Stderr: opts.Stderr,
+	})
+	if err != nil {
+		return -1, errors.Wrap(err, errors.Meta{Reason: "failed to execute command in service", Op: op})
+	}
+	return exitCode, nil
+}
+
+// ListOptions customizes the behaviour of list.
+type ListOptions struct {
+	ListServices        bool
+	ListPlaylists       bool
+	ListCustomPlaylists bool
+	// TreeMode causes playlists to be listed along with all their services.
+	TreeMode bool
+}
+
+type ListResult struct {
+	Services        []string
+	Playlists       []PlaylistSummary
+	CustomPlaylists []PlaylistSummary
+}
+
+// PlaylistSummary provides a summary of a playlist produced by List.
+type PlaylistSummary struct {
+	Name     string
+	Services []string
+}
+
+func (e *Engine) List(opts ListOptions) ListResult {
+	var lr ListResult
+	if opts.ListServices {
+		for it := e.services.Iter(); it.Next(); {
+			lr.Services = append(lr.Services, it.Value().FullName())
+		}
+	}
+	if opts.ListPlaylists {
+		lr.Playlists = e.listPlaylists(e.playlists.Names(), opts.TreeMode)
+	}
+	if opts.ListCustomPlaylists {
+		lr.Playlists = e.listPlaylists(e.playlists.CustomNames(), opts.TreeMode)
+	}
+	return lr
+}
+
+func (e *Engine) listPlaylists(names []string, tree bool) []PlaylistSummary {
+	var summaries []PlaylistSummary
+	for _, n := range names {
+		summary := PlaylistSummary{Name: n}
+		if tree {
+			list, err := e.playlists.ServiceNames(n)
+			if err != nil {
+				// If we get an error here we have a bug since n has to be a valid service name.
+				panic(err)
+			}
+			summary.Services = list
+			summaries = append(summaries, summary)
+		}
+	}
+	return summaries
+}
+
+// NukeOptions customizes the behaviour of Nuke.
+type NukeOptions struct {
+	// RemoveContainers specifies to remove all service containers.
+	RemoveContainers bool
+	// RemoveImages specifies to remove all service images.
+	RemoveImages bool
+	// RemoveNetworks specifies to remove all tb networks.
+	RemoveNetworks bool
+	// RemoveVolumes specifies to remove all service volumes.
+	RemoveVolumes bool
+	// RemoveRepos specifies to remove all service repos.
+	RemoveRepos bool
+	// RemoveDesktopApps specifies to remove all downloaded desktop apps.
+	RemoveDesktopApps bool
+	// RemoveiOSApps specifies to remove all downloaded iOS apps.
+	RemoveiOSApps bool
+	// RemoveRegistries specifies to remove all cloned registries.
+	RemoveRegistries bool
+}
+
+// Nuke cleans up resources based on the given options. Nuke only touches resources
+// created by tb with the exception of images as dangling images will also be removed.
+func (e *Engine) Nuke(ctx context.Context, opts NukeOptions) error {
+	const op = errors.Op("engine.Engine.Nuke")
+	return progress.Run(ctx, progress.RunOptions{
+		Message: "Cleaning up tb data",
+	}, func(ctx context.Context) error {
+		return e.nuke(ctx, opts, op)
+	})
+}
+
+func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error {
+	tracker := progress.TrackerFromContext(ctx)
+
+	// Make sure containers are stopped before removing docker resources
+	// to ensure no weirdness
+	var services []service.Service
+	if opts.RemoveContainers || opts.RemoveImages || opts.RemoveNetworks || opts.RemoveVolumes {
+		// Get all services
+		for it := e.services.Iter(); it.Next(); {
+			services = append(services, it.Value())
+		}
+		tracker.UpdateMessage("Stopping running containers")
+		if err := e.dockerClient.StopContainers(ctx); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to stop docker containers", Op: op})
+		}
+	}
+
+	if opts.RemoveContainers {
+		tracker.UpdateMessage("Removing docker containers")
+		if err := e.dockerClient.RemoveContainers(ctx); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker containers", Op: op})
+		}
+	}
+
+	if opts.RemoveImages {
+		var imageSearches []docker.ImageSearch
+		for _, s := range services {
+			if s.Mode == service.ModeBuild {
+				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.FullName(), LocalBuild: true})
+			} else {
+				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.Remote.Image})
+			}
+		}
+		tracker.UpdateMessage("Removing docker images")
+		if err := e.dockerClient.RemoveImages(ctx, imageSearches); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker images", Op: op})
+		}
+
+		// Also prune images to clean up space for users
+		tracker.UpdateMessage("Pruning docker images")
+		if err := e.dockerClient.PruneImages(ctx); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to prune docker images", Op: op})
+		}
+	}
+
+	if opts.RemoveNetworks {
+		tracker.UpdateMessage("Removing docker networks")
+		if err := e.dockerClient.RemoveNetworks(ctx); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker networks", Op: op})
+		}
+	}
+
+	if opts.RemoveVolumes {
+		tracker.UpdateMessage("Removing docker volumes")
+		if err := e.dockerClient.RemoveVolumes(ctx); err != nil {
+			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker volumes", Op: op})
+		}
+	}
+
+	type directory struct {
+		name string
+		path string
+	}
+	var removeDirs []directory
+	if opts.RemoveRepos {
+		removeDirs = append(removeDirs, directory{
+			name: "cloned repos",
+			path: filepath.Join(e.workdir, reposDir),
+		})
+	}
+	if opts.RemoveDesktopApps {
+		removeDirs = append(removeDirs, directory{
+			name: "desktop apps",
+			path: filepath.Join(e.workdir, desktopDir),
+		})
+	}
+	if opts.RemoveiOSApps {
+		removeDirs = append(removeDirs, directory{
+			name: "iOS apps",
+			path: filepath.Join(e.workdir, iosDir),
+		})
+	}
+	if opts.RemoveRegistries {
+		removeDirs = append(removeDirs, directory{
+			name: "cloned registries",
+			path: filepath.Join(e.workdir, registriesDir),
+		})
+	}
+	for _, dir := range removeDirs {
+		tracker.UpdateMessage(fmt.Sprintf("Removing %s", dir.name))
+		if err := os.RemoveAll(dir.path); err != nil {
+			return errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: fmt.Sprintf("failed to remove %s", dir.path),
+				Op:     op,
+			})
+		}
+	}
+
+	// Check workdir and remove any files/dirs that shouldn't be there.
+	tracker.UpdateMessage("Removing any remaining files")
+	items, err := os.ReadDir(e.workdir)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to read directory %s", e.workdir),
+			Op:     op,
+		})
+	}
+	for _, item := range items {
+		// Filter out ones tb manages so they don't get removed in case those
+		// options weren't specified. If they were specified to be removed
+		// they would have already been removed above.
+		switch item.Name() {
+		case reposDir, iosDir, desktopDir, registriesDir:
+		default:
+			p := filepath.Join(e.workdir, item.Name())
+			if err := os.RemoveAll(p); err != nil {
+				return errors.Wrap(err, errors.Meta{
+					Kind:   errkind.IO,
+					Reason: fmt.Sprintf("failed to remove %s", p),
+					Op:     op,
+				})
+			}
+		}
 	}
 	return nil
 }
@@ -230,6 +525,9 @@ func (e *Engine) Down(ctx context.Context, services []service.Service) error {
 // to ensure that any files referenced in the docker-compose.yml file exist.
 // Repos will be pulled if skipPull is false.
 func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull bool) error {
+	tracker := progress.TrackerFromContext(ctx)
+	tracker.Debug("Preparing Git repos for services")
+
 	// action determins the type of action to take for a repo. If clone is true, it is cloned,
 	// otherwise it is pulled.
 	type action struct {
@@ -252,7 +550,7 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 		}
 		seenRepos[repo] = true
 
-		repoPath := e.resolveRepoPath(repo)
+		repoPath := filepath.Join(e.workdir, reposDir, repo)
 		if !file.Exists(repoPath) {
 			actions = append(actions, action{repo, repoPath, true})
 			continue
@@ -290,7 +588,6 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 		return nil
 	}
 
-	tracker := progress.TrackerFromContext(ctx)
 	err := progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message:     "Cloning/pulling service git repos",
 		Count:       len(actions),
@@ -329,9 +626,6 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 
 // stopServices stops and removes any containers for the given services.
 func (e *Engine) stopServices(ctx context.Context, op errors.Op, serviceNames []string) error {
-	// DISCUSS(@cszatmary): Not sure why we did this but we call compose stop & compose rm
-	// instead of calling compose down. down also removes any networks created which we don't
-	// This is probably why we've seen spooky network stuff before.
 	tracker := progress.TrackerFromContext(ctx)
 	if err := e.composeClient.Stop(ctx, serviceNames); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop running containers", Op: op})
@@ -342,4 +636,12 @@ func (e *Engine) stopServices(ctx context.Context, op errors.Op, serviceNames []
 	}
 	tracker.Debug("Removed service containers")
 	return nil
+}
+
+func getServiceNames(services []service.Service) []string {
+	sn := make([]string, len(services))
+	for i, s := range services {
+		sn[i] = s.FullName()
+	}
+	return sn
 }

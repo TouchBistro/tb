@@ -10,9 +10,9 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/engine"
-	"github.com/TouchBistro/tb/git"
+	"github.com/TouchBistro/tb/integrations/git"
+	"github.com/TouchBistro/tb/integrations/login"
 	"github.com/TouchBistro/tb/integrations/simulator"
-	"github.com/TouchBistro/tb/login"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
@@ -61,7 +61,7 @@ func IOSBuildPath() string {
 
 /* Config Accessors */
 
-func LoginStategies() ([]login.LoginStrategy, error) {
+func LoginStategies() ([]login.Strategy, error) {
 	s, err := login.ParseStrategies(registryResult.LoginStrategies)
 	return s, errors.Wrap(err, "Failed to parse login strategies")
 }

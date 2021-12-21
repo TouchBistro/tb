@@ -220,7 +220,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 		// However, progress.Run provides synchronization so we don't have to worry about
 		// a race condition. Once go 1.18 is out, progress.Run should be changed to a generic
 		// function so we could return appPath.
-		appPath, err = e.downloadApp(ctx, a, app.TypeiOS, op)
+		appPath, err = e.downloadApp(ctx, a, app.TypeDesktop, op)
 		return err
 	})
 	if err != nil {
@@ -295,9 +295,9 @@ func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, o
 	// Decide whether or not to pull down a new version.
 	var localBranchDir string
 	if appType == app.TypeiOS {
-		localBranchDir = filepath.Join(e.resolveiOSAppPath(a.FullName()), a.Branch)
+		localBranchDir = filepath.Join(e.workdir, iosDir, a.FullName(), a.Branch)
 	} else {
-		localBranchDir = filepath.Join(e.resolveDesktopAppPath(a.FullName()), a.Branch)
+		localBranchDir = filepath.Join(e.workdir, desktopDir, a.FullName(), a.Branch)
 	}
 	tracker.Debugf("checking %s to see if we need to download a new version of the app", localBranchDir)
 	globPattern := filepath.Join(localBranchDir, "*.app")

@@ -4,6 +4,7 @@ import (
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
+	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/spf13/cobra"
 )
@@ -32,7 +33,8 @@ func newDownCommand(c *cli.Container) *cobra.Command {
 			}
 
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			if err := c.Engine.Down(ctx, services); err != nil {
+			err = c.Engine.Down(ctx, services, engine.DownOptions{SkipGitPull: downOpts.skipGitPull})
+			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to stop services",
 					Err:     err,

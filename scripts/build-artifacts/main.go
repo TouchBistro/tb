@@ -5,12 +5,13 @@ import (
 	"path/filepath"
 
 	"github.com/TouchBistro/goutils/fatal"
-	"github.com/TouchBistro/tb/cmd"
+	"github.com/TouchBistro/tb/cli"
+	"github.com/TouchBistro/tb/cli/commands"
 	"github.com/spf13/cobra/doc"
 )
 
 func main() {
-	rootCmd := cmd.Root()
+	rootCmd := commands.NewRootCommand(&cli.Container{}, "")
 	dir := "artifacts"
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		fatal.ExitErr(err, "Failed to create dist directory")

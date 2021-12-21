@@ -10,7 +10,6 @@ import (
 	"github.com/TouchBistro/tb/cli"
 	appCommands "github.com/TouchBistro/tb/cli/commands/app"
 	registryCommands "github.com/TouchBistro/tb/cli/commands/registry"
-	"github.com/TouchBistro/tb/cmd"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/integrations/github"
 	"github.com/TouchBistro/tb/util"
@@ -96,10 +95,16 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 	rootCmd.AddCommand(
 		appCommands.NewAppCommand(c),
 		registryCommands.NewRegistryCommand(c),
+		newCloneCommand(c),
+		newDBCommand(c),
 		newDownCommand(c),
+		newExecCommand(c),
+		newImagesCommand(c),
+		newListCommand(c),
+		newLogsCommand(c),
+		newNukeCommand(c),
+		newUpCommand(c),
 	)
-	// Add legacy style commands
-	rootCmd.AddCommand(cmd.Commands()...)
 	return rootCmd
 }
 

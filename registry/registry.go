@@ -11,6 +11,7 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/goutils/text"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
@@ -111,7 +112,7 @@ func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGl
 	// Add vars for each service name
 	for name := range serviceConf.Services {
 		fullName := resource.FullName(r.Name, name)
-		vars["@"+name] = util.DockerName(fullName)
+		vars["@"+name] = docker.NormalizeName(fullName)
 	}
 
 	var errs errors.List
