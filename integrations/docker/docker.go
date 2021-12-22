@@ -27,6 +27,20 @@ func NormalizeName(name string) string {
 	return strings.ToLower(s)
 }
 
+// ParseImageName parses a docker image name into its repo and tag components.
+// For example: fedora/httpd:version1.0 would return (fedora/httpd, version1.0)
+func ParseImageName(name string) (repo, tag string) {
+	// Need to find the last index because image names can have a colon at
+	// the start if there is a domain and port.
+	// Ex: myregistryhost:5000/fedora/httpd:version1.0
+	i := strings.LastIndexByte(name, ':')
+	if i == -1 {
+		// No tag present
+		return name, ""
+	}
+	return name[:i], name[i+1:]
+}
+
 // APIClient is the functionality required to be implemented by
 // a client that communicates with the docker API.
 type APIClient interface {
@@ -130,16 +144,16 @@ func (d *Docker) RemoveContainers(ctx context.Context, serviceNames ...string) e
 
 // ImageSearch is used to find an image for image related operations.
 type ImageSearch struct {
-	// Name is the name of the image without the tag.
+	// Name is the name of the image.
 	Name string
 	// LocalBuild specifies that the image was built locally
 	// and was not pulled from a remote registry.
 	LocalBuild bool
 }
 
-// RemoveImages removes all the specified images. Each element in imageNames is expected to be an
-// image name without the tag. RemoveImages will find all matching images with the same name
-// regardless of tag and remove them. It will also remove all children of each image.
+// RemoveImages removes all the specified images. RemoveImages will find
+// all matching images with the same name regardless of tag and remove them.
+// It will also remove all children of each image.
 func (d *Docker) RemoveImages(ctx context.Context, imageSearches []ImageSearch) error {
 	const op = errors.Op("docker.Docker.RemoveImages")
 	images, err := d.apiClient.ImageList(ctx, types.ImageListOptions{})
@@ -155,7 +169,7 @@ func (d *Docker) RemoveImages(ctx context.Context, imageSearches []ImageSearch) 
 	// so we have to do it ourselves after
 	nameSet := make(map[string]struct{})
 	for _, is := range imageSearches {
-		n := is.Name
+		n, _ := ParseImageName(is.Name)
 		if is.LocalBuild {
 			// If local build we need to get the compose name.
 			n = buildImageName(d.projectName, NormalizeName(n))

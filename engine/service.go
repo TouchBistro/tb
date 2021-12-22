@@ -435,6 +435,9 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.Remote.Image})
 			}
 		}
+		for _, bi := range e.baseImages {
+			imageSearches = append(imageSearches, docker.ImageSearch{Name: bi})
+		}
 		tracker.UpdateMessage("Removing docker images")
 		if err := e.dockerClient.RemoveImages(ctx, imageSearches); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker images", Op: op})
