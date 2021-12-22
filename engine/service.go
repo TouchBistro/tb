@@ -216,15 +216,20 @@ type DownOptions struct {
 
 // Down stops services and removes the containers.
 // If no services are provided, all currently running services will be stopped.
-func (e *Engine) Down(ctx context.Context, services []service.Service, opts DownOptions) error {
+func (e *Engine) Down(ctx context.Context, serviceNames []string, opts DownOptions) error {
 	const op = errors.Op("engine.Engine.Down")
+	services, err := e.ResolveServices(serviceNames)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{Op: op})
+	}
+
 	// TODO(@cszatmary): Figure out if we actually need this. Would be nice to only
 	// have to do this for services being stopped instead of all.
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
 	}
 
-	err := progress.Run(ctx, progress.RunOptions{
+	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
 	}, func(ctx context.Context) error {
 		return e.stopServices(ctx, op, getServiceNames(services))
@@ -248,12 +253,17 @@ type LogsOptions struct {
 }
 
 // Logs retrieves the logs from one or more service containers and writes it to w.
-func (e *Engine) Logs(ctx context.Context, services []service.Service, w io.Writer, opts LogsOptions) error {
+func (e *Engine) Logs(ctx context.Context, serviceNames []string, w io.Writer, opts LogsOptions) error {
 	const op = errors.Op("engine.Engine.Logs")
+	services, err := e.ResolveServices(serviceNames)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{Op: op})
+	}
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
 	}
-	err := e.composeClient.Logs(ctx, getServiceNames(services), w, docker.LogsOptions{
+
+	err = e.composeClient.Logs(ctx, getServiceNames(services), w, docker.LogsOptions{
 		Follow: opts.Follow,
 		Tail:   opts.Tail,
 	})

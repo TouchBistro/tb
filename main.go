@@ -11,6 +11,7 @@ import (
 
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/cli/commands"
+	"github.com/TouchBistro/tb/resource"
 )
 
 // Set by goreleaser when release build is created.
@@ -44,13 +45,19 @@ func main() {
 	// Handle error
 	var exitErr *cli.ExitError
 	switch {
+	case errors.As(err, &exitErr):
+		// Nothing to do, since exitErr is now populated
 	case errors.Is(err, context.Canceled):
 		exitErr = &cli.ExitError{
 			Code:    130,
 			Message: "\nOperation cancelled",
 		}
-	case errors.As(err, &exitErr):
-		// Nothing to do, since exitErr is now populated
+	case
+		errors.Is(err, resource.ErrNotFound):
+		exitErr = &cli.ExitError{
+			Message: "Try running `tb list` to see available services",
+			Err:     err,
+		}
 	default:
 		// TODO(@cszatmary): We can check if errors.Error and use the Kind
 		// to add custom messages to try and help the user.

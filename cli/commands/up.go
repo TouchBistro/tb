@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/TouchBistro/goutils/command"
-	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
-	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/spf13/cobra"
 )
@@ -53,12 +51,7 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 					Message: "Either --playlist or --services must be specified.\ntry tb up --help for some examples.",
 				}
 			}
-			if errors.Is(err, resource.ErrNotFound) {
-				return &cli.ExitError{
-					Message: "Try running `tb list` to see available services and playlists",
-					Err:     err,
-				}
-			} else if err != nil {
+			if err != nil {
 				return err
 			}
 
