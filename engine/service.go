@@ -339,7 +339,7 @@ func (e *Engine) List(opts ListOptions) ListResult {
 		lr.Playlists = e.listPlaylists(e.playlists.Names(), opts.TreeMode)
 	}
 	if opts.ListCustomPlaylists {
-		lr.Playlists = e.listPlaylists(e.playlists.CustomNames(), opts.TreeMode)
+		lr.CustomPlaylists = e.listPlaylists(e.playlists.CustomNames(), opts.TreeMode)
 	}
 	return lr
 }
@@ -355,8 +355,8 @@ func (e *Engine) listPlaylists(names []string, tree bool) []PlaylistSummary {
 				panic(err)
 			}
 			summary.Services = list
-			summaries = append(summaries, summary)
 		}
+		summaries = append(summaries, summary)
 	}
 	return summaries
 }
