@@ -1,116 +1,70 @@
-package config
+package config_test
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
+	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/registry"
-	log "github.com/sirupsen/logrus"
-	"github.com/stretchr/testify/assert"
+	"github.com/matryer/is"
 )
 
-func setup() (string, error) {
-	tbrc = userConfig{}
-	dir, err := ioutil.TempDir("", "tbrc_test")
-	os.Setenv("HOME", dir)
-	return dir, err
-}
-
-func TestLoadTBRC(t *testing.T) {
-	assert := assert.New(t)
-	dir, err := setup()
-	if err != nil {
-		assert.FailNow("Failed to setup tmp dir", err)
-	}
-	defer os.RemoveAll(dir)
-
-	tbrcPath := filepath.Join(dir, tbrcName)
-	err = ioutil.WriteFile(tbrcPath, []byte("debug: true\nexperimental: true"), 0644)
-	if err != nil {
-		assert.FailNow("Failed to create tbrc file", err)
-	}
-
-	err = LoadTBRC()
-
-	assert.NoError(err)
-	assert.True(IsExperimentalEnabled())
-	assert.Equal(log.GetLevel(), log.DebugLevel)
-}
-
-func TestLoadTBRCDefault(t *testing.T) {
-	assert := assert.New(t)
-	dir, err := setup()
-	if err != nil {
-		assert.FailNow("Failed to setup tmp dir", err)
-	}
-	defer os.RemoveAll(dir)
-
-	tbrcPath := filepath.Join(dir, tbrcName)
-
-	err = LoadTBRC()
-
-	assert.NoError(err)
-	assert.False(IsExperimentalEnabled())
-	assert.Equal(log.GetLevel(), log.InfoLevel)
-	assert.FileExists(tbrcPath)
-}
-
-func TestLoadTBRCInvalidYaml(t *testing.T) {
-	assert := assert.New(t)
-	dir, err := setup()
-	if err != nil {
-		assert.FailNow("Failed to setup tmp dir", err)
-	}
-	defer os.RemoveAll(dir)
-
-	tbrcPath := filepath.Join(dir, tbrcName)
-	err = ioutil.WriteFile(tbrcPath, []byte(`debug: true:`), 0644)
-	if err != nil {
-		assert.FailNow("Failed to create tbrc file", err)
-	}
-
-	err = LoadTBRC()
-
-	assert.Error(err)
-}
-
-func TestResolveRegistries(t *testing.T) {
-	assert := assert.New(t)
-	dir, err := setup()
-	if err != nil {
-		assert.FailNow("Failed to setup tmp dir", err)
-	}
-	defer os.RemoveAll(dir)
-
-	tbrcPath := filepath.Join(dir, tbrcName)
-	err = ioutil.WriteFile(tbrcPath, []byte(`registries:
+func TestLoad(t *testing.T) {
+	tests := []struct {
+		name string
+		data string
+		want func(homedir string) config.Config
+	}{
+		{
+			name: "basic tbrc",
+			data: `experimental: true
+registries:
   - name: TouchBistro/tb-registry
   - name: ExampleZone/tb-registry
-    localPath: ~/tools/tb-registry
-`), 0644)
-	if err != nil {
-		assert.FailNow("Failed to create tbrc file", err)
-	}
-
-	expectedRegistries := []registry.Registry{
-		registry.Registry{
-			Name:      "TouchBistro/tb-registry",
-			LocalPath: "",
-			Path:      filepath.Join(RegistriesPath(), "TouchBistro/tb-registry"),
+    localPath: ~/tools/tb-registry`,
+			want: func(homedir string) config.Config {
+				return config.Config{
+					ExperimentalMode: true,
+					Registries: []registry.Registry{
+						{
+							Name:      "TouchBistro/tb-registry",
+							LocalPath: "",
+							Path:      filepath.Join(homedir, "registries", "TouchBistro/tb-registry"),
+						},
+						{
+							Name:      "ExampleZone/tb-registry",
+							LocalPath: "~/tools/tb-registry",
+							Path:      filepath.Join(homedir, "tools/tb-registry"),
+						},
+					},
+				}
+			},
 		},
-		registry.Registry{
-			Name:      "ExampleZone/tb-registry",
-			LocalPath: "~/tools/tb-registry",
-			Path:      filepath.Join(dir, "tools/tb-registry"),
+		{
+			name: "no tbrc",
+			want: func(homedir string) config.Config {
+				return config.Config{}
+			},
 		},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tmpdir := t.TempDir()
+			configPath := filepath.Join(tmpdir, ".tbrc.yml")
+			if tt.data != "" {
+				err := os.WriteFile(configPath, []byte(tt.data), 0o644)
+				if err != nil {
+					t.Fatalf("failed to write file %s: %v", configPath, err)
+				}
+			}
 
-	err = LoadTBRC()
-
-	assert.NoError(err)
-	assert.ElementsMatch(expectedRegistries, Registries())
+			cfg, err := config.Load(tmpdir)
+			is := is.New(t)
+			is.NoErr(err)
+			is.Equal(cfg, tt.want(tmpdir))
+		})
+	}
 }
 
 type addRegistryTest struct {
@@ -255,40 +209,32 @@ playlists:
     services:
       - online-ordering-service
 `,
-		err: ErrRegistryExists,
+		err: config.ErrRegistryExists,
 	},
 }
 
 func TestAddRegistry(t *testing.T) {
 	for _, test := range addRegistryTests {
 		t.Run(test.name, func(t *testing.T) {
-			assert := assert.New(t)
-			dir, err := setup()
+			tmpdir := t.TempDir()
+			tbrcPath := filepath.Join(tmpdir, ".tbrc.yml")
+			err := os.WriteFile(tbrcPath, []byte(test.existingTBRC), 0o644)
 			if err != nil {
-				assert.FailNow("Failed to setup tmp dir", err)
+				t.Fatalf("failed to write file %s: %v", tbrcPath, err)
 			}
-			defer os.RemoveAll(dir)
-
-			tbrcPath := filepath.Join(dir, tbrcName)
-			err = ioutil.WriteFile(tbrcPath, []byte(test.existingTBRC), 0644)
-			if err != nil {
-				assert.FailNow("Failed to create tbrc file", err)
+			if _, err := config.Load(tmpdir); err != nil {
+				t.Fatalf("failed to load tbrc: %v", err)
 			}
 
-			err = LoadTBRC()
+			err = config.AddRegistry(test.registryName, tmpdir)
+			is := is.New(t)
+			is.Equal(err, test.err)
+
+			data, err := os.ReadFile(tbrcPath)
 			if err != nil {
-				assert.FailNow("Failed to load tbrc", err)
+				t.Fatalf("Failed to read tbrc file: %v", err)
 			}
-
-			err = AddRegistry(test.registryName)
-			assert.Equal(test.err, err)
-
-			fileData, err := ioutil.ReadFile(tbrcPath)
-			if err != nil {
-				assert.FailNow("Failed to read tbrc file", err)
-			}
-
-			assert.Equal(test.expectedTBRC, string(fileData))
+			is.Equal(string(data), test.expectedTBRC)
 		})
 	}
 }

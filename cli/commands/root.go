@@ -49,13 +49,15 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				// to a spinner before then.
 				ForceColors: true,
 			})
-			if err := config.LoadTBRC(); err != nil {
+			// Pass empty string to have it find the config
+			cfg, err := config.Load("")
+			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to load tbrc",
 					Err:     err,
 				}
 			}
-			c.Verbose = rootOpts.verbose || config.IsDebugEnabled()
+			c.Verbose = rootOpts.verbose || cfg.DebugEnabled()
 			c.Tracker = &progress.SpinnerTracker{
 				OutputLogger:    cli.OutputLogger{Logger: logrus.StandardLogger()},
 				PersistMessages: c.Verbose,
@@ -80,13 +82,13 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			}
 
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			if err := config.Init(ctx, initOpts); err != nil {
+			c.Engine, err = config.Init(ctx, cfg, initOpts)
+			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to load registries",
 					Err:     err,
 				}
 			}
-			c.Engine = config.Engine()
 			return nil
 		},
 	}

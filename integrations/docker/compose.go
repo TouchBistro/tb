@@ -184,7 +184,13 @@ func normalizeNames(names []string) []string {
 type ComposeConfig struct {
 	Version  string                          `yaml:"version"`
 	Services map[string]ComposeServiceConfig `yaml:"services"`
-	Volumes  map[string]interface{}          `yaml:"volumes,omitempty"`
+
+	// Top level named volumes are an empty field, i.e. `postgres:`
+	// There's no way to create an empty field with go-yaml
+	// so we use interface{} and set it to nil which produces `postgres: null`
+	// docker-compose seems cool with this
+
+	Volumes map[string]interface{} `yaml:"volumes,omitempty"`
 }
 
 type ComposeServiceConfig struct {

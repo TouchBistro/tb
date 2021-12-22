@@ -596,7 +596,7 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 		a := actions[i]
 		if a.clone {
 			tracker.Debugf("Cloning git repo %s", a.repo)
-			err := e.gitClient.Clone(ctx, a.path, a.repo)
+			err := e.gitClient.Clone(ctx, a.repo, a.path)
 			if err != nil {
 				return errors.Wrap(err, errors.Meta{
 					Reason: fmt.Sprintf("failed to clone git repo %s", a.repo),

@@ -5,6 +5,7 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/matryer/is"
@@ -433,4 +434,143 @@ func TestCollectionIter(t *testing.T) {
 		"TouchBistro/tb-registry/postgres",
 		"TouchBistro/tb-registry/venue-core-service",
 	})
+}
+
+func TestComposeConfig(t *testing.T) {
+	services := []service.Service{
+		{
+			EnvVars: map[string]string{
+				"POSTGRES_USER":     "user",
+				"POSTGRES_PASSWORD": "password",
+			},
+			Mode: service.ModeRemote,
+			Ports: []string{
+				"5432:5432",
+			},
+			Remote: service.Remote{
+				Image: "postgres",
+				Tag:   "12",
+				Volumes: []service.Volume{
+					{
+						Value:   "postgres:/var/lib/postgresql/data",
+						IsNamed: true,
+					},
+				},
+			},
+			Name:         "postgres",
+			RegistryName: "ExampleZone/tb-registry",
+		},
+		{
+			EnvVars: map[string]string{
+				"DB_USER":     "core",
+				"DB_PASSWORD": "localdev",
+			},
+			Mode: service.ModeRemote,
+			Ports: []string{
+				"5432:5432",
+			},
+			Remote: service.Remote{
+				Image: "postgres",
+				Tag:   "10.6-alpine",
+				Volumes: []service.Volume{
+					{
+						Value:   "postgres:/var/lib/postgresql/data",
+						IsNamed: true,
+					},
+				},
+			},
+			Name:         "postgres",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+		{
+			Dependencies: []string{
+				"touchbistro-tb-registry-postgres",
+			},
+			EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
+			EnvVars: map[string]string{
+				"HTTP_PORT": "8080",
+				"DB_HOST":   "touchbistro-tb-registry-postgres",
+			},
+			Mode: service.ModeBuild,
+			Ports: []string{
+				"8081:8080",
+			},
+			PreRun: "yarn db:prepare",
+			GitRepo: service.GitRepo{
+				Name: "TouchBistro/venue-core-service",
+			},
+			Build: service.Build{
+				Args: map[string]string{
+					"NODE_ENV":  "development",
+					"NPM_TOKEN": "$NPM_TOKEN",
+				},
+				Command:        "yarn start",
+				DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
+				Target:         "dev",
+				Volumes: []service.Volume{
+					{
+						Value: ".tb/repos/TouchBistro/venue-core-service:/home/node/app:delegated",
+					},
+				},
+			},
+			Name:         "venue-core-service",
+			RegistryName: "TouchBistro/tb-registry",
+		},
+	}
+	var c service.Collection
+	for _, s := range services {
+		if err := c.Set(s); err != nil {
+			t.Fatalf("failed to add service %s to collection: %v", s.FullName(), err)
+		}
+	}
+
+	wantComposeConfig := docker.ComposeConfig{
+		Version: "3.7",
+		Services: map[string]docker.ComposeServiceConfig{
+			"examplezone-tb-registry-postgres": {
+				ContainerName: "examplezone-tb-registry-postgres",
+				Environment: map[string]string{
+					"POSTGRES_PASSWORD": "password",
+					"POSTGRES_USER":     "user",
+				},
+				Image:   "postgres:12",
+				Ports:   []string{"5432:5432"},
+				Volumes: []string{"postgres:/var/lib/postgresql/data"},
+			},
+			"touchbistro-tb-registry-postgres": {
+				ContainerName: "touchbistro-tb-registry-postgres",
+				Environment: map[string]string{
+					"DB_PASSWORD": "localdev",
+					"DB_USER":     "core",
+				},
+				Image:   "postgres:10.6-alpine",
+				Ports:   []string{"5432:5432"},
+				Volumes: []string{"postgres:/var/lib/postgresql/data"},
+			},
+			"touchbistro-tb-registry-venue-core-service": {
+				Build: docker.ComposeBuildConfig{
+					Args: map[string]string{
+						"NODE_ENV":  "development",
+						"NPM_TOKEN": "$NPM_TOKEN",
+					},
+					Context: ".tb/repos/TouchBistro/venue-core-service",
+					Target:  "dev",
+				},
+				Command:       "yarn start",
+				ContainerName: "touchbistro-tb-registry-venue-core-service",
+				DependsOn:     []string{"touchbistro-tb-registry-postgres"},
+				EnvFile:       []string{".tb/repos/TouchBistro/venue-core-service/.env.example"},
+				Environment: map[string]string{
+					"DB_HOST":   "touchbistro-tb-registry-postgres",
+					"HTTP_PORT": "8080",
+				},
+				Ports:   []string{"8081:8080"},
+				Volumes: []string{".tb/repos/TouchBistro/venue-core-service:/home/node/app:delegated"},
+			},
+		},
+		Volumes: map[string]interface{}{"postgres": nil},
+	}
+	composeConfig := service.ComposeConfig(&c)
+	is := is.New(t)
+	is.Equal(composeConfig, wantComposeConfig)
 }

@@ -17,14 +17,15 @@ import (
 
 // Engine provides the API for performing actions on services, playlists, and apps.
 type Engine struct {
-	workdir     string // Path to root dir where data is stored
-	services    *service.Collection
-	playlists   *playlist.Collection
-	iosApps     *app.Collection
-	desktopApps *app.Collection
-	baseImages  []string
-	deviceList  simulator.DeviceList
-	concurrency uint
+	workdir          string // Path to root dir where data is stored
+	experimentalMode bool
+	services         *service.Collection
+	playlists        *playlist.Collection
+	iosApps          *app.Collection
+	desktopApps      *app.Collection
+	baseImages       []string
+	deviceList       simulator.DeviceList
+	concurrency      uint
 
 	gitClient        git.Git
 	dockerClient     *docker.Docker
@@ -37,6 +38,9 @@ type Options struct {
 	// Workdir is the working directory on the OS filesystem where the engine can store data.
 	// Defaults to ~/.tb if omitted.
 	Workdir string
+	// ExperimentalMode controls if experimental mode is enabled, which gives access
+	// to new features that aren't generally available.
+	ExperimentalMode bool
 	// Services is the collection of services that the Engine can manage.
 	// If no value is provided, then there will be no services available to use.
 	Services *service.Collection
@@ -111,6 +115,11 @@ func New(opts Options) (*Engine, error) {
 		composeClient:    docker.NewCompose(opts.Workdir, projectName),
 		storageProviders: make(map[string]storage.Provider),
 	}, nil
+}
+
+// ExperimentalMode returns whether or not experimental mode is enabled.
+func (e *Engine) ExperimentalMode() bool {
+	return e.experimentalMode
 }
 
 // Paths used to store data under workdir.

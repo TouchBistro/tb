@@ -14,7 +14,6 @@ import (
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -69,7 +68,7 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 				fatal.ExitErrf(err, "could not install %s", cliName)
 			}
 
-			log.Infof("starting %s...", cliName)
+			c.Tracker.Infof("starting %s...", cliName)
 
 			err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
 				Exec(cliName, strings.Fields(connArg)...)

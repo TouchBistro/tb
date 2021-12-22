@@ -2,34 +2,186 @@ package config
 
 import (
 	"context"
-	"io/ioutil"
+	_ "embed"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/TouchBistro/goutils/color"
+	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/progress"
-	"github.com/TouchBistro/tb/compose"
 	"github.com/TouchBistro/tb/engine"
+	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/integrations/login"
 	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/registry"
+	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/TouchBistro/tb/util"
-	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 )
 
-// Package state for storing config info
-var tbrc userConfig
-var registryResult registry.ReadAllResult
+// ErrRegistryExists indicates that the registry being added already exists.
+var ErrRegistryExists errors.String = "registry already exists"
 
-// TODO(@cszatmary): I wish this wasn't global state and in the config package but one thing at a time.
-// For now I am concerned about moving the business logic to the engine layer.
-// After that we can clean this up and move to a dependency injection style in commands.
+const (
+	tbrcName      = ".tbrc.yml"
+	rootDir       = ".tb"
+	registriesDir = "registries"
+)
 
-var globalEngine *engine.Engine
+//go:embed template.yml
+var tbrcTemplate []byte
+
+// Some leftover global state.
+// TODO(@cszatmary): figure out a way to clean this up.
+
+var registries []registry.Registry
+var loginStrategies []string
+
+func LoginStategies() ([]login.Strategy, error) {
+	return login.ParseStrategies(loginStrategies)
+}
+
+// Config represents a tbrc config file used to provide custom configuration for a user.
+type Config struct {
+	Debug            *bool                              `yaml:"debug"`
+	ExperimentalMode bool                               `yaml:"experimental"`
+	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
+	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
+	Registries       []registry.Registry                `yaml:"registries"`
+}
+
+// NOTE: This is deprecated and is only here for backwards compatibility.
+func (c Config) DebugEnabled() bool {
+	if c.Debug == nil {
+		return false
+	}
+	return *c.Debug
+}
+
+// Read reads the config file using the given home directory.
+// If a config file does not exist in homedir, one will be created.
+func Load(homedir string) (Config, error) {
+	const op = errors.Op("config.Read")
+	if homedir == "" {
+		var err error
+		homedir, err = os.UserHomeDir()
+		if err != nil {
+			return Config{}, errors.Wrap(err, errors.Meta{
+				Kind:   errkind.Internal,
+				Reason: "unable to find user home directory",
+				Op:     op,
+			})
+		}
+	}
+	configPath := filepath.Join(homedir, tbrcName)
+
+	// Create default tbrc if it doesn't exist
+	if !file.Exists(configPath) {
+		if err := os.WriteFile(configPath, tbrcTemplate, 0o644); err != nil {
+			return Config{}, errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: fmt.Sprintf("couldn't create default tbrc at %s", configPath),
+				Op:     op,
+			})
+		}
+	}
+
+	f, err := os.Open(configPath)
+	if err != nil {
+		return Config{}, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to open file %s", configPath),
+			Op:     op,
+		})
+	}
+	defer f.Close()
+
+	var config Config
+	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
+		return config, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("couldn't read yaml file at %s", configPath),
+			Op:     op,
+		})
+	}
+
+	// Triple state bools suck but we need this so we can tell if the user set it explicitly.
+	// TODO(@cszatmary): Remove this when we do a breaking change.
+	if config.Debug != nil {
+		if *config.Debug {
+			logrus.SetLevel(logrus.DebugLevel)
+			logrus.SetFormatter(&logrus.TextFormatter{
+				DisableTimestamp: true,
+				ForceColors:      true,
+			})
+			fatal.PrintDetailedError(true)
+		}
+		// This prints a warning sign
+		logrus.Warn("\u26A0\uFE0F  Using the 'debug' field in tbrc.yml is deprecated. Use the '--verbose' or '-v' flag instead.")
+	}
+
+	if config.ExperimentalMode {
+		logrus.Info(color.Yellow("🚧 Experimental mode enabled 🚧"))
+		logrus.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
+	}
+
+	// Resolve registry paths
+	for i, r := range config.Registries {
+		isLocal := r.LocalPath != ""
+		// Set true path for usage later
+		if isLocal {
+			// Remind people they are using a local version in case they forgot
+			logrus.Infof("❗ Using a local version of the %s registry ❗", color.Cyan(r.Name))
+
+			// Local paths can be prefixed with ~ for convenience
+			if strings.HasPrefix(r.LocalPath, "~") {
+				r.Path = filepath.Join(homedir, strings.TrimPrefix(r.LocalPath, "~"))
+			} else {
+				path, err := filepath.Abs(r.LocalPath)
+				if err != nil {
+					return config, errors.Wrap(err, errors.Meta{
+						Kind:   errkind.IO,
+						Reason: fmt.Sprintf("failed to resolve absolute path to local registry %s", r.Name),
+						Op:     op,
+					})
+				}
+				r.Path = path
+			}
+		} else {
+			r.Path = filepath.Join(homedir, registriesDir, r.Name)
+		}
+		config.Registries[i] = r
+	}
+	registries = config.Registries
+
+	// Make sure all overrides use the full name of the service
+	for name := range config.Overrides {
+		registryName, _, err := resource.ParseName(name)
+		if err != nil {
+			return config, errors.Wrap(err, errors.Meta{
+				Reason: fmt.Sprintf("invalid service name to override %s", name),
+				Op:     op,
+			})
+		}
+		if registryName == "" {
+			return config, errors.New(
+				errkind.Invalid,
+				fmt.Sprintf("invalid service override %s, overrides must use the full name <registry>/<service>", name),
+				op,
+			)
+		}
+	}
+	return config, nil
+}
 
 type InitOptions struct {
 	LoadServices     bool
@@ -37,86 +189,24 @@ type InitOptions struct {
 	UpdateRegistries bool
 }
 
-/* Paths */
-
-func TBRootPath() string {
-	return filepath.Join(os.Getenv("HOME"), ".tb")
-}
-
-func ReposPath() string {
-	return filepath.Join(TBRootPath(), "repos")
-}
-
-func RegistriesPath() string {
-	return filepath.Join(TBRootPath(), "registries")
-}
-
-func DesktopAppsPath() string {
-	return filepath.Join(TBRootPath(), "desktop")
-}
-
-func IOSBuildPath() string {
-	return filepath.Join(TBRootPath(), "ios")
-}
-
-/* Config Accessors */
-
-func LoginStategies() ([]login.Strategy, error) {
-	s, err := login.ParseStrategies(registryResult.LoginStrategies)
-	return s, errors.Wrap(err, "Failed to parse login strategies")
-}
-
-func BaseImages() []string {
-	return registryResult.BaseImages
-}
-
-func LoadedServices() *service.Collection {
-	return registryResult.Services
-}
-
-func LoadedPlaylists() *playlist.Collection {
-	return registryResult.Playlists
-}
-
-func Engine() *engine.Engine {
-	return globalEngine
-}
-
-/* Private Functions */
-
-func cloneOrPullRegistry(r registry.Registry, shouldUpdate bool) error {
-	if r.LocalPath != "" {
-		return nil
+func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine, error) {
+	const op = errors.Op("config.Init")
+	homedir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.Internal,
+			Reason: "unable to find user home directory",
+			Op:     op,
+		})
 	}
-
-	// Clone if missing
-	if !file.Exists(r.Path) {
-		log.Debugf("Registry %s is missing, cloning...", r.Name)
-		err := git.Clone(r.Name, r.Path)
-		if err != nil {
-			return errors.Wrapf(err, "failed to clone registry to %s", r.Path)
-		}
-		return nil
-	}
-
-	if shouldUpdate {
-		log.Debugf("Updating registry %s...", r.Name)
-		err := git.Pull(r.Name, RegistriesPath())
-		if err != nil {
-			return errors.Wrapf(err, "failed to update registry %s", r.Name)
-		}
-	}
-	return nil
-}
-
-/* Public Functions */
-
-func Init(ctx context.Context, opts InitOptions) error {
-	tbRoot := TBRootPath()
-
+	tbRoot := filepath.Join(homedir, rootDir)
 	// Create ~/.tb directory if it doesn't exist
 	if err := os.MkdirAll(tbRoot, 0o755); err != nil {
-		return errors.Wrapf(err, "failed to create tb root directory at %s", tbRoot)
+		return nil, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to create tb root directory at %s", tbRoot),
+			Op:     op,
+		})
 	}
 
 	// TODO scope if there's a way to pass lazydocker a custom tb specific config
@@ -124,14 +214,16 @@ func Init(ctx context.Context, opts InitOptions) error {
 	// Create lazydocker config
 	var ldDirPath string
 	if util.IsMacOS() {
-		ldDirPath = filepath.Join(os.Getenv("HOME"), "Library/Application Support/jesseduffield/lazydocker")
+		ldDirPath = filepath.Join(homedir, "Library/Application Support/jesseduffield/lazydocker")
 	} else {
-		ldDirPath = filepath.Join(os.Getenv("HOME"), ".config/jesseduffield/lazydocker")
+		ldDirPath = filepath.Join(homedir, ".config/jesseduffield/lazydocker")
 	}
-
-	err := os.MkdirAll(ldDirPath, 0766)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create lazydocker config directory %s", ldDirPath)
+	if err := os.MkdirAll(ldDirPath, 0o755); err != nil {
+		return nil, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to create lazydocker config directory %s", ldDirPath),
+			Op:     op,
+		})
 	}
 
 	const lazydockerConfig = `
@@ -142,108 +234,135 @@ update:
   dockerRefreshInterval: 2000ms`
 
 	ldConfigPath := filepath.Join(ldDirPath, "config.yml")
-	err = ioutil.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0644)
+	err = os.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0o644)
 	if err != nil {
-		return errors.Wrap(err, "failed to create lazydocker config file")
+		return nil, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: "failed to create lazydocker config file",
+			Op:     op,
+		})
 	}
 
-	// THE REGISTRY ZONE
-
-	if len(tbrc.Registries) == 0 {
-		return errors.New("No registries defined in tbrc")
+	// Handle registries
+	if len(config.Registries) == 0 {
+		return nil, errors.New(errkind.Invalid, "no registries defined", op)
 	}
+	err = progress.RunParallel(ctx, progress.RunParallelOptions{
+		Message: "Cloning/updating registries",
+		Count:   len(config.Registries),
+	}, func(ctx context.Context, i int) error {
+		r := config.Registries[i]
+		tracker := progress.TrackerFromContext(ctx)
+		if r.LocalPath != "" {
+			tracker.Debugf("Skipping local registry %s", r.Name)
+			return nil
+		}
 
-	// Clone missing registries and pull existing ones
-	successCh := make(chan string)
-	failedCh := make(chan error)
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s := spinner.New(
-	// 	spinner.WithStartMessage("Cloning/pulling registries"),
-	// 	spinner.WithStopMessage("☑ Finished cloning/pulling registries"),
-	// 	spinner.WithCount(len(tbrc.Registries)),
-	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
-	// )
-	// logger := log.New()
-	// logger.SetFormatter(log.StandardLogger().Formatter)
-	// logger.SetOutput(s)
-	// logger.SetLevel(log.StandardLogger().GetLevel())
-
-	for _, r := range tbrc.Registries {
-		go func(r registry.Registry) {
-			err := cloneOrPullRegistry(r, opts.UpdateRegistries)
-			if err != nil {
-				failedCh <- err
-				return
+		// Clone if missing
+		gitClient := git.New()
+		if !file.Exists(r.Path) {
+			tracker.Debugf("Registry %s is missing, cloning", r.Name)
+			if err := gitClient.Clone(ctx, r.Name, r.Path); err != nil {
+				return errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to clone registry %s", r.Name),
+					Op:     op,
+				})
 			}
-			successCh <- r.Name
-		}(r)
-	}
+			tracker.Debugf("Finished cloning registry %s", r.Name)
+			return nil
+		}
+		if !opts.UpdateRegistries {
+			return nil
+		}
 
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s.Start()
-	// for i := 0; i < len(tbrc.Registries); i++ {
-	// 	select {
-	// 	case name := <-successCh:
-	// 		s.IncWithMessagef("☑ finished cloning/pulling registry %s", name)
-	// 	case err := <-failedCh:
-	// 		return errors.Wrap(err, "failed cloning/pulling registry")
-	// 	case <-time.After(time.Minute * 5):
-	// 		return errors.New("timed out while cloning/pulling registries")
-	// 	}
-	// }
-	// s.Stop()
-	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling registry %s\n", "failed cloning/pulling registry", len(tbrc.Registries))
-
-	registryResult, err = registry.ReadAll(tbrc.Registries, registry.ReadAllOptions{
-		ReadServices: opts.LoadServices,
-		ReadApps:     opts.LoadApps,
-		HomeDir:      os.Getenv("HOME"),
-		RootPath:     TBRootPath(),
-		ReposPath:    ReposPath(),
-		Overrides:    tbrc.Overrides,
-		Logger:       progress.TrackerFromContext(ctx),
+		tracker.Debugf("Updating registry %s", r.Name)
+		path := filepath.Join(tbRoot, registriesDir, r.Name)
+		if err := gitClient.Pull(ctx, path); err != nil {
+			return errors.Wrap(err, errors.Meta{
+				Reason: fmt.Sprintf("failed to update registry %s", r.Name),
+				Op:     op,
+			})
+		}
+		tracker.Debugf("Finished cloning/pulling registry %s", r.Name)
+		return nil
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to read config files from registries")
+		return nil, errors.Wrap(err, errors.Meta{
+			Reason: "failed to clone/update registries",
+			Op:     op,
+		})
+	}
+
+	tracker := progress.TrackerFromContext(ctx)
+	registryResult, err := registry.ReadAll(config.Registries, registry.ReadAllOptions{
+		ReadServices: opts.LoadServices,
+		ReadApps:     opts.LoadApps,
+		HomeDir:      homedir,
+		RootPath:     tbRoot,
+		ReposPath:    filepath.Join(tbRoot, "repos"),
+		Overrides:    config.Overrides,
+		Logger:       tracker,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, errors.Meta{
+			Reason: "failed to read registries",
+			Op:     op,
+		})
 	}
 
 	if opts.LoadServices {
 		// Add custom playlists
-		for n, p := range tbrc.Playlists {
+		for n, p := range config.Playlists {
 			p.Name = n
 			registryResult.Playlists.SetCustom(p)
 		}
 
 		// Create docker-compose.yml
-		log.Debugln("Generating docker-compose.yml file...")
-
-		composePath := filepath.Join(TBRootPath(), "docker-compose.yml")
-		file, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+		tracker.Debug("Generating docker-compose.yml file")
+		composePath := filepath.Join(tbRoot, "docker-compose.yml")
+		f, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		if err != nil {
-			return errors.Wrapf(err, "failed to open file %s", composePath)
+			return nil, errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: fmt.Sprintf("failed to open file %s", composePath),
+				Op:     op,
+			})
 		}
-		defer file.Close()
+		defer f.Close()
 
-		err = compose.CreateComposeFile(registryResult.Services, file)
-		if err != nil {
-			return errors.Wrap(err, "failed to generated docker-compose file")
+		const header = "# THIS IS AN AUTOGENERATED FILE. DO NOT EDIT THIS FILE DIRECTLY\n\n"
+		if _, err := io.WriteString(f, header); err != nil {
+			return nil, errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: "failed to write header comment to docker-compose yaml file",
+				Op:     op,
+			})
 		}
-		log.Debugln("Successfully generated docker-compose.yml")
+
+		composeConfig := service.ComposeConfig(registryResult.Services)
+		if err := yaml.NewEncoder(f).Encode(composeConfig); err != nil {
+			return nil, errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: "failed to encode docker-compose struct to yaml",
+				Op:     op,
+			})
+		}
+		tracker.Debug("Successfully generated docker-compose.yml")
 	}
 	var deviceList simulator.DeviceList
 	if opts.LoadApps {
 		deviceData, err := simulator.ListDevices(ctx)
 		if err != nil {
-			return errors.Wrap(err, "ailed to get list of simulators")
+			return nil, errors.Wrap(err, errors.Meta{Reason: "failed to get list of simulators", Op: op})
 		}
 		deviceList, err = simulator.ParseDevices(deviceData)
 		if err != nil {
-			return errors.Wrap(err, "failed to find available iOS simulators")
+			return nil, errors.Wrap(err, errors.Meta{Reason: "failed to parse available simulators", Op: op})
 		}
 	}
 
-	globalEngine, err = engine.New(engine.Options{
-		Workdir:     TBRootPath(),
+	e, err := engine.New(engine.Options{
+		Workdir:     tbRoot,
 		Services:    registryResult.Services,
 		Playlists:   registryResult.Playlists,
 		IOSApps:     registryResult.IOSApps,
@@ -252,110 +371,160 @@ update:
 		BaseImages:  registryResult.BaseImages,
 	})
 	if err != nil {
-		return errors.Wrap(err, "failed to initialize engine")
+		return nil, errors.Wrap(err, errors.Meta{Reason: "failed to initialize engine", Op: op})
 	}
+	return e, nil
+}
+
+func AddRegistry(registryName, homedir string) error {
+	const op = errors.Op("config.AddRegistry")
+	// Check if registry already added
+	for _, r := range registries {
+		if r.Name == registryName {
+			return ErrRegistryExists
+		}
+	}
+	if homedir == "" {
+		var err error
+		homedir, err = os.UserHomeDir()
+		if err != nil {
+			return errors.Wrap(err, errors.Meta{
+				Kind:   errkind.Internal,
+				Reason: "unable to find user home directory",
+				Op:     op,
+			})
+		}
+	}
+
+	tbrcPath := filepath.Join(homedir, tbrcName)
+	f, err := os.OpenFile(tbrcPath, os.O_RDWR, 0644)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to open file %s", tbrcPath),
+			Op:     op,
+		})
+	}
+	defer f.Close()
+
+	// Decode into a Node so we can manipulate the contents while
+	// preserving comments and formatting
+	tbrcDocumentNode := &yaml.Node{}
+	err = yaml.NewDecoder(f).Decode(tbrcDocumentNode)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("couldn't read yaml file at %s", tbrcPath),
+			Op:     op,
+		})
+	}
+
+	// Create nodes for registry
+	nameKeyNode := &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: "name",
+	}
+	nameValueNode := &yaml.Node{
+		Kind:  yaml.ScalarNode,
+		Tag:   "!!str",
+		Value: registryName,
+	}
+	registryNode := &yaml.Node{
+		Kind:    yaml.MappingNode,
+		Tag:     "!!map",
+		Content: []*yaml.Node{nameKeyNode, nameValueNode},
+	}
+
+	// Find registries section
+	registriesNode := findYamlNode(tbrcDocumentNode, "registries")
+
+	// registries key doesn't exist
+	// need to add it at the end of the document
+	if registriesNode == nil {
+		// Get top level map node
+		contentLen := len(tbrcDocumentNode.Content)
+		if contentLen != 1 {
+			// This shouldn't happen so don't worry about it right now
+			// If this becomes an issue we can better handle this later
+			return errors.New(
+				errkind.Internal,
+				fmt.Sprintf("tbrc document has invalid content length %d", contentLen),
+				op,
+			)
+		}
+
+		registriesKeyNode := &yaml.Node{
+			Kind:  yaml.ScalarNode,
+			Tag:   "!!str",
+			Value: "registries",
+		}
+		registriesNode = &yaml.Node{
+			Kind: yaml.SequenceNode,
+			Tag:  "!!seq",
+		}
+
+		tbrcContentNode := tbrcDocumentNode.Content[0]
+		tbrcContentNode.Content = append(tbrcContentNode.Content, registriesKeyNode, registriesNode)
+	} else if registriesNode.Tag == "!!null" {
+		// !!null means there are no registries defined, i.e. empty key
+		// Update the registries node to be a sequence node
+		// Then we can just append the new registry to it and
+		// treat it the same as if there was already a list of registries
+		registriesNode.Kind = yaml.SequenceNode
+		registriesNode.Tag = "!!seq"
+	}
+
+	// Add new registries at the end of the list
+	registriesNode.Content = append(registriesNode.Content, registryNode)
+
+	// Make sure we overwrite the file instead of appending to it
+	// Need to go back to the start and truncate it
+	if _, err := f.Seek(0, 0); err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to seek start of file %s", tbrcPath),
+			Op:     op,
+		})
+	}
+
+	if err := f.Truncate(0); err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to truncate file %s", tbrcPath),
+			Op:     op,
+		})
+	}
+
+	encoder := yaml.NewEncoder(f)
+	encoder.SetIndent(2)
+	if err := encoder.Encode(tbrcDocumentNode); err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to write %s", tbrcPath),
+			Op:     op,
+		})
+	}
+
 	return nil
 }
 
-func CloneOrPullRepos(shouldPull bool) error {
-	log.Debug("checking ~/.tb directory for missing git repos for docker-compose.")
-	repoSet := make(map[string]bool)
-	it := registryResult.Services.Iter()
-	for it.Next() {
-		s := it.Value()
-		if s.HasGitRepo() {
-			repoSet[s.GitRepo.Name] = true
+func findYamlNode(node *yaml.Node, key string) *yaml.Node {
+	foundKey := false
+	for _, n := range node.Content {
+		if foundKey {
+			return n
 		}
-	}
-
-	// Figure out what actions (if any) are required for each repo
-	// We need to make sure all repos are cloned in order to resolve of all the
-	// references in the compose files to files in the repos.
-	type action struct {
-		repo  string
-		clone bool
-	}
-	var actions []action
-	for repo := range repoSet {
-		log.Debugf("Checking repo %s", repo)
-		repoPath := filepath.Join(ReposPath(), repo)
-		if !file.Exists(repoPath) {
-			actions = append(actions, action{repo, true})
+		if n.Value == key {
+			foundKey = true
 			continue
 		}
-
-		// Hack to make sure repo was cloned properly
-		// Sometimes it doesn't clone properly if the user does control-c during cloning
-		// Figure out a better way to do this
-		dirlen, err := file.DirLen(repoPath)
-		if err != nil {
-			return errors.Wrapf(err, "could not read project directory for %s", repo)
-		}
-		if dirlen <= 2 {
-			// Directory exists but only contains .git subdirectory, rm and clone again below
-			if err := os.RemoveAll(repoPath); err != nil {
-				return errors.Wrapf(err, "could not remove project directory for %s", repo)
+		if len(n.Content) > 0 {
+			foundNode := findYamlNode(n, key)
+			if foundNode != nil {
+				return foundNode
 			}
-			actions = append(actions, action{repo, true})
-			continue
-		}
-		if shouldPull {
-			actions = append(actions, action{repo, false})
 		}
 	}
-
-	// successCh := make(chan action)
-	successCh := make(chan string)
-	failedCh := make(chan error)
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s := spinner.New(
-	// 	spinner.WithStartMessage("Cloning/pulling service git repositories"),
-	// 	spinner.WithStopMessage("☑ Finished cloning/pulling service git repositories"),
-	// 	spinner.WithCount(len(actions)),
-	// 	spinner.WithPersistMessages(log.IsLevelEnabled(log.DebugLevel)),
-	// )
-	// logger := log.New()
-	// logger.SetFormatter(log.StandardLogger().Formatter)
-	// logger.SetOutput(s)
-	// logger.SetLevel(log.StandardLogger().GetLevel())
-
-	for _, a := range actions {
-		go func(a action) {
-			var err error
-			if a.clone {
-				log.Debugf("\t☐ %s is missing. cloning git repo\n", a.repo)
-				err = git.Clone(a.repo, filepath.Join(ReposPath(), a.repo))
-			} else {
-				log.Debugf("\t☐ %s exists. pulling git repo\n", a.repo)
-				err = git.Pull(a.repo, ReposPath())
-			}
-			if err != nil {
-				failedCh <- err
-				return
-			}
-			successCh <- a.repo
-		}(a)
-	}
-
-	// TODO(@cszatmary): For when we switch to the new spinner
-	// s.Start()
-	// for i := 0; i < len(tbrc.Registries); i++ {
-	// 	select {
-	// 	case a := <-successCh:
-	// 		if a.clone {
-	// 			s.IncWithMessagef("☑ finished cloning git repository %s", a.repo)
-	// 		} else {
-	// 			s.IncWithMessagef("☑ finished pulling git repository %s", a.repo)
-	// 		}
-	// 	case err := <-failedCh:
-	// 		return errors.Wrap(err, "failed cloning/pulling git repository")
-	// 	case <-time.After(time.Minute * 10):
-	// 		return errors.New("timed out while cloning/pulling git repositories")
-	// 	}
-	// }
-	// s.Stop()
-	util.SpinnerWait(successCh, failedCh, "\r\t☑ finished cloning/pulling %s\n", "failed cloning/pulling git repo", len(actions))
-
-	log.Info("☑ finished checking git repos")
 	return nil
 }

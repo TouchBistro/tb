@@ -3,9 +3,11 @@ package service
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/resource"
 )
 
@@ -228,4 +230,60 @@ func (c *Collection) Iter() *Iterator {
 // Value will panic if iteration has finished.
 func (it *Iterator) Value() Service {
 	return it.Iterator.Value().(Service)
+}
+
+// DISCUSS(@cszatmary): Does this make sense here? I honestly struggled with where to put this the most.
+// I considerered the following:
+// config: Does not seem like config's business though as config deals with the higher level glue code.
+// docker: It would make the most sense in docker, but integrations shouldn't import from resources.
+// services: This logic has a lot to do with services so we can justify that services supports mapping to
+// other formats.
+
+// ComposeConfig maps the Collection to a docker compose config.
+func ComposeConfig(c *Collection) docker.ComposeConfig {
+	composeConfig := docker.ComposeConfig{
+		Version:  "3.7",
+		Services: make(map[string]docker.ComposeServiceConfig),
+		Volumes:  make(map[string]interface{}),
+	}
+	for it := c.Iter(); it.Next(); {
+		s := it.Value()
+		dockerName := docker.NormalizeName(s.FullName())
+		cs := docker.ComposeServiceConfig{
+			ContainerName: dockerName,
+			DependsOn:     s.Dependencies,
+			Entrypoint:    s.Entrypoint,
+			EnvFile:       []string{},
+			Environment:   s.EnvVars,
+			Ports:         s.Ports,
+		}
+		if s.EnvFile != "" {
+			cs.EnvFile = append(cs.EnvFile, s.EnvFile)
+		}
+
+		var volumes []Volume
+		if s.Mode == ModeRemote {
+			cs.Command = s.Remote.Command
+			cs.Image = s.ImageURI()
+			volumes = s.Remote.Volumes
+		} else {
+			cs.Build = docker.ComposeBuildConfig{
+				Args:    s.Build.Args,
+				Context: s.Build.DockerfilePath,
+				Target:  s.Build.Target,
+			}
+			cs.Command = s.Build.Command
+			volumes = s.Build.Volumes
+		}
+
+		for _, v := range volumes {
+			cs.Volumes = append(cs.Volumes, v.Value)
+			if v.IsNamed {
+				namedVolume := strings.Split(v.Value, ":")[0]
+				composeConfig.Volumes[namedVolume] = nil
+			}
+		}
+		composeConfig.Services[dockerName] = cs
+	}
+	return composeConfig
 }

@@ -75,6 +75,9 @@ func (c *Collection) SetCustom(p Playlist) {
 	if c.customPlaylists == nil {
 		c.customPlaylists = make(map[string]Playlist)
 	}
+	if p.Name == "" {
+		panic("custom playlist has no name")
+	}
 	c.customPlaylists[p.Name] = p
 }
 

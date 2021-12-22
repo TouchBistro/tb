@@ -21,7 +21,7 @@ func newAddCommand(c *cli.Container) *cobra.Command {
 	  tb registry add TouchBistro/tb-registry-example`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			registryName := args[0]
-			err := config.AddRegistry(registryName)
+			err := config.AddRegistry(registryName, "")
 			if err == config.ErrRegistryExists {
 				c.Tracker.Infof(color.Green("☑ registry %s has already been added"), registryName)
 				return nil
