@@ -14,8 +14,6 @@ import (
 	"github.com/TouchBistro/tb/errkind"
 )
 
-const filename = "docker-compose.yml"
-
 type LogsOptions struct {
 	Follow bool
 	Tail   int
@@ -34,8 +32,6 @@ type ExecOptions struct {
 // Compose represents functionality provided by docker-compose.
 type Compose interface {
 	Build(ctx context.Context, services []string) error
-	Stop(ctx context.Context, services []string) error
-	Rm(ctx context.Context, services []string) error
 	Run(ctx context.Context, service, cmd string) error
 	Up(ctx context.Context, services []string) error
 	Logs(ctx context.Context, services []string, w io.Writer, opts LogsOptions) error
@@ -46,16 +42,11 @@ type Compose interface {
 // projectDir is expected to contain a docker-compose.yml file.
 // projectName is used for labeling resources created by Compose.
 func NewCompose(projectDir, projectName string) Compose {
-	// Determine what compose command to use.
-	// v2 appears to be barfing for ridiculous reasons.
-	// It's complaining about invalid syntax in .env files
-	// https://github.com/docker/compose/issues/8763
-	// Use v1 until they figure it out.
-	cmd := "docker-compose"
-	if _, err := exec.LookPath("docker-compose-v1"); err == nil {
-		cmd = "docker-compose-v1"
+	return &compose{
+		composeFile: filepath.Join(projectDir, "docker-compose.yml"),
+		cmd:         "docker-compose",
+		projectName: projectName,
 	}
-	return &compose{filepath.Join(projectDir, filename), cmd, projectName}
 }
 
 // compose is an implementation of Compose that uses the docker-compose command.
@@ -69,16 +60,6 @@ type compose struct {
 func (c *compose) Build(ctx context.Context, services []string) error {
 	args := append([]string{"build", "--parallel"}, normalizeNames(services)...)
 	return c.exec(ctx, "docker.Compose.Build", nil, args...)
-}
-
-func (c *compose) Stop(ctx context.Context, services []string) error {
-	args := append([]string{"stop", "-t", "2"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Stop", nil, args...)
-}
-
-func (c *compose) Rm(ctx context.Context, services []string) error {
-	args := append([]string{"rm", "-f"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Rm", nil, args...)
 }
 
 func (c *compose) Run(ctx context.Context, service, cmd string) error {

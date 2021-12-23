@@ -222,13 +222,6 @@ func (e *Engine) Down(ctx context.Context, serviceNames []string, opts DownOptio
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Op: op})
 	}
-
-	// TODO(@cszatmary): Figure out if we actually need this. Would be nice to only
-	// have to do this for services being stopped instead of all.
-	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
-		return err
-	}
-
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
 	}, func(ctx context.Context) error {
@@ -640,11 +633,11 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 // stopServices stops and removes any containers for the given services.
 func (e *Engine) stopServices(ctx context.Context, op errors.Op, serviceNames []string) error {
 	tracker := progress.TrackerFromContext(ctx)
-	if err := e.composeClient.Stop(ctx, serviceNames); err != nil {
+	if err := e.dockerClient.StopContainers(ctx, serviceNames...); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop running containers", Op: op})
 	}
 	tracker.Debug("Stopped service containers")
-	if err := e.composeClient.Rm(ctx, serviceNames); err != nil {
+	if err := e.dockerClient.RemoveContainers(ctx, serviceNames...); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to remove stopped containers", Op: op})
 	}
 	tracker.Debug("Removed service containers")
