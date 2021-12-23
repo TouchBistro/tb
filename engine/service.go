@@ -85,8 +85,9 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	// Pull base images
 	if !opts.SkipDockerPull && len(e.baseImages) > 0 {
 		err := progress.RunParallel(ctx, progress.RunParallelOptions{
-			Message: "Pulling docker base images",
-			Count:   len(e.baseImages),
+			Message:     "Pulling docker base images",
+			Count:       len(e.baseImages),
+			Concurrency: e.concurrency,
 		}, func(ctx context.Context, i int) error {
 			img := e.baseImages[i]
 			if err := e.dockerClient.PullImage(ctx, img); err != nil {
@@ -111,8 +112,9 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 		}
 		if len(images) > 0 {
 			err := progress.RunParallel(ctx, progress.RunParallelOptions{
-				Message: "Pulling docker service images",
-				Count:   len(images),
+				Message:     "Pulling docker service images",
+				Count:       len(images),
+				Concurrency: e.concurrency,
 			}, func(ctx context.Context, i int) error {
 				img := images[i]
 				if err := e.dockerClient.PullImage(ctx, img); err != nil {

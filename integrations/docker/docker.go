@@ -41,9 +41,9 @@ func ParseImageName(name string) (repo, tag string) {
 	return name[:i], name[i+1:]
 }
 
-// APIClient is the functionality required to be implemented by
+// apiClient is the functionality required to be implemented by
 // a client that communicates with the docker API.
-type APIClient interface {
+type apiClient interface {
 	client.ContainerAPIClient
 	client.ImageAPIClient
 	client.NetworkAPIClient
@@ -52,7 +52,7 @@ type APIClient interface {
 
 // Docker provides functionality for interacting with the docker API.
 type Docker struct {
-	apiClient   APIClient
+	apiClient   apiClient
 	projectName string
 }
 

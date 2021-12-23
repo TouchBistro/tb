@@ -62,6 +62,15 @@ type Options struct {
 	// Concurrency controls how many goroutines can run concurrently.
 	// Defaults to runtime.NumCPU if omitted.
 	Concurrency uint
+	// GitClient is the client to use for git operations.
+	// This allows for overriding the default git client if provided.
+	GitClient git.Git
+	// DockerClient is the client to use for docker operations.
+	// This allows for overriding the default docker client if provided.
+	DockerClient *docker.Docker
+	// ComposeClient is the client to use for docker-compose operations.
+	// This allows for overriding the default docker-compose client if provided.
+	ComposeClient docker.Compose
 }
 
 // New creates a new Engine instance.
@@ -94,11 +103,19 @@ func New(opts Options) (*Engine, error) {
 		opts.DesktopApps = &app.Collection{}
 	}
 
-	// TODO(@cszatmary): We need to change this to allow dependency injection for tests.
 	// Initialize clients
-	dockerClient, err := docker.New(projectName)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.Meta{Op: op})
+	if opts.GitClient == nil {
+		opts.GitClient = git.New()
+	}
+	if opts.DockerClient == nil {
+		dockerClient, err := docker.New(projectName)
+		if err != nil {
+			return nil, errors.Wrap(err, errors.Meta{Op: op})
+		}
+		opts.DockerClient = dockerClient
+	}
+	if opts.ComposeClient == nil {
+		opts.ComposeClient = docker.NewCompose(opts.Workdir, projectName)
 	}
 
 	return &Engine{
@@ -110,9 +127,9 @@ func New(opts Options) (*Engine, error) {
 		baseImages:       opts.BaseImages,
 		deviceList:       opts.DeviceList,
 		concurrency:      opts.Concurrency,
-		gitClient:        git.New(),
-		dockerClient:     dockerClient,
-		composeClient:    docker.NewCompose(opts.Workdir, projectName),
+		gitClient:        opts.GitClient,
+		dockerClient:     opts.DockerClient,
+		composeClient:    opts.ComposeClient,
 		storageProviders: make(map[string]storage.Provider),
 	}, nil
 }
