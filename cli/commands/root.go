@@ -18,11 +18,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type rootOptions struct {
+	noRegistryPull bool
+	verbose        bool
+}
+
 func NewRootCommand(c *cli.Container, version string) *cobra.Command {
-	var rootOpts struct {
-		noRegistryPull bool
-		verbose        bool
-	}
+	var opts rootOptions
 	rootCmd := &cobra.Command{
 		Use:     "tb",
 		Version: version,
@@ -38,7 +40,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			// Initialize logging
-			if rootOpts.verbose {
+			if opts.verbose {
 				logrus.SetLevel(logrus.DebugLevel)
 				fatal.PrintDetailedError(true)
 			}
@@ -57,7 +59,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 					Err:     err,
 				}
 			}
-			c.Verbose = rootOpts.verbose || cfg.DebugEnabled()
+			c.Verbose = opts.verbose || cfg.DebugEnabled()
 			c.Tracker = &progress.SpinnerTracker{
 				OutputLogger:    cli.OutputLogger{Logger: logrus.StandardLogger()},
 				PersistMessages: c.Verbose,
@@ -65,7 +67,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			checkVersion(cmd.Context(), version, c.Tracker)
 
 			// Determine how to proceed based on the type of command
-			initOpts := config.InitOptions{UpdateRegistries: !rootOpts.noRegistryPull}
+			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull}
 			switch cmd.Parent().Name() {
 			case "registry":
 				// No further action required for registry commands
@@ -92,8 +94,10 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			return nil
 		},
 	}
-	rootCmd.PersistentFlags().BoolVar(&rootOpts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
-	rootCmd.PersistentFlags().BoolVarP(&rootOpts.verbose, "verbose", "v", false, "Enable verbose logging")
+
+	persistentFlags := rootCmd.PersistentFlags()
+	persistentFlags.BoolVar(&opts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
+	persistentFlags.BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.AddCommand(
 		appCommands.NewAppCommand(c),
 		registryCommands.NewRegistryCommand(c),

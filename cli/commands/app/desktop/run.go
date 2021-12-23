@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type runOptions struct {
+	branch string
+}
+
 func newRunCommand(c *cli.Container) *cobra.Command {
-	var runOpts struct {
-		branch string
-	}
+	var opts runOptions
 	runCmd := &cobra.Command{
 		Use: "run",
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -37,10 +39,12 @@ func newRunCommand(c *cli.Container) *cobra.Command {
 			appName := args[0]
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			return c.Engine.AppDesktopRun(ctx, appName, engine.AppDesktopRunOptions{
-				Branch: runOpts.branch,
+				Branch: opts.branch,
 			})
 		},
 	}
-	runCmd.Flags().StringVarP(&runOpts.branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
+
+	flags := runCmd.Flags()
+	flags.StringVarP(&opts.branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
 	return runCmd
 }

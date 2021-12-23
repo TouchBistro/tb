@@ -29,32 +29,12 @@ func (e *Engine) ResolveService(serviceName string) (service.Service, error) {
 	return s, nil
 }
 
-// ResolveServices resolves a list of services from the given names.
-func (e *Engine) ResolveServices(serviceNames []string) ([]service.Service, error) {
-	const op = errors.Op("engine.Engine.ResolveServices")
-	services := make([]service.Service, len(serviceNames))
-	for i, name := range serviceNames {
-		s, err := e.services.Get(name)
-		if err != nil {
-			return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
-		}
-		services[i] = s
-	}
-	return services, nil
-}
-
-// ResolvePlaylist resolves a list of services from the given playlist name.
-func (e *Engine) ResolvePlaylist(playlistName string) ([]service.Service, error) {
-	const op = errors.Op("engine.Engine.ResolvePlaylist")
-	serviceNames, err := e.playlists.ServiceNames(playlistName)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve playlist", Op: op})
-	}
-	return e.ResolveServices(serviceNames)
-}
-
 // UpOptions customizes the behaviour of Up.
 type UpOptions struct {
+	// ServiceNames is a list of services names to start.
+	ServiceNames []string
+	// PlaylistName is the name of a playlist to start.
+	PlaylistName string
 	// SkipPreRun skips running the pre-run step for services.
 	SkipPreRun bool
 	// SkipDockerPull skips pulling both base images and service images if they already exist.
@@ -76,10 +56,14 @@ type UpOptions struct {
 // - Build any services with mode build.
 //
 // - Run pre-run steps for services.
-func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOptions) error {
+//
+// Exactly one of opts.ServiceNames or opts.PlaylistName must be provided to determine
+// which services to start.
+func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	const op = errors.Op("engine.Engine.Up")
-	if len(services) == 0 {
-		return errors.New(errkind.Invalid, "no services provided to run", op)
+	services, err := e.resolveServices(op, opts.ServiceNames, opts.PlaylistName, true)
+	if err != nil {
+		return err
 	}
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
@@ -87,7 +71,7 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 	serviceNames := getServiceNames(services)
 
 	// Cleanup previous docker state
-	err := progress.Run(ctx, progress.RunOptions{
+	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Cleaning up previous docker state",
 	}, func(ctx context.Context) error {
 		return e.stopServices(ctx, op, serviceNames)
@@ -97,8 +81,6 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 	}
 	tracker := progress.TrackerFromContext(ctx)
 	tracker.Info("✔ Cleaned up previous docker state")
-
-	// MISSING(@cszatmary): Implement checking disk usage & cleanup
 
 	// Pull base images
 	if !opts.SkipDockerPull && len(e.baseImages) > 0 {
@@ -209,18 +191,17 @@ func (e *Engine) Up(ctx context.Context, services []service.Service, opts UpOpti
 
 // DownOptions customizes the behaviour of Down.
 type DownOptions struct {
-	// SkipGitPull skips pulling existing git repos to update them.
-	// Missing repos will still be cloned however.
-	SkipGitPull bool
+	// ServiceNames is a list of services names to stop.
+	// If empty, all currently running services will be stopped.
+	ServiceNames []string
 }
 
 // Down stops services and removes the containers.
-// If no services are provided, all currently running services will be stopped.
-func (e *Engine) Down(ctx context.Context, serviceNames []string, opts DownOptions) error {
+func (e *Engine) Down(ctx context.Context, opts DownOptions) error {
 	const op = errors.Op("engine.Engine.Down")
-	services, err := e.ResolveServices(serviceNames)
+	services, err := e.resolveServices(op, opts.ServiceNames, "", false)
 	if err != nil {
-		return errors.Wrap(err, errors.Meta{Op: op})
+		return err
 	}
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
@@ -235,6 +216,9 @@ func (e *Engine) Down(ctx context.Context, serviceNames []string, opts DownOptio
 
 // LogsOptions customizes the behaviour of Logs.
 type LogsOptions struct {
+	// ServiceNames is a list of services names for which to retrieve logs.
+	// If empty, logs will be listed for all services.
+	ServiceNames []string
 	// Follow follows the log output.
 	Follow bool
 	// Tail is the number of lines to show from the end of the logs.
@@ -246,16 +230,15 @@ type LogsOptions struct {
 }
 
 // Logs retrieves the logs from one or more service containers and writes it to w.
-func (e *Engine) Logs(ctx context.Context, serviceNames []string, w io.Writer, opts LogsOptions) error {
+func (e *Engine) Logs(ctx context.Context, w io.Writer, opts LogsOptions) error {
 	const op = errors.Op("engine.Engine.Logs")
-	services, err := e.ResolveServices(serviceNames)
+	services, err := e.resolveServices(op, opts.ServiceNames, "", false)
 	if err != nil {
-		return errors.Wrap(err, errors.Meta{Op: op})
+		return err
 	}
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
 	}
-
 	err = e.composeClient.Logs(ctx, getServiceNames(services), w, docker.LogsOptions{
 		Follow: opts.Follow,
 		Tail:   opts.Tail,
@@ -525,6 +508,39 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		}
 	}
 	return nil
+}
+
+// resolveServices resolves a list of services from either a list of service names or a playlist name.
+// If both serivceNames and playlistName are provided, an error will be returned.
+// If atLeastOne is true and neither serviceNames nor playlistName are provided, and error will be returned.
+func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, atLeastOne bool) ([]service.Service, error) {
+	if len(serviceNames) > 0 && playlistName != "" {
+		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
+	}
+	if len(serviceNames) > 0 {
+		services := make([]service.Service, len(serviceNames))
+		for i, name := range serviceNames {
+			s, err := e.services.Get(name)
+			if err != nil {
+				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
+			}
+			services[i] = s
+		}
+		return services, nil
+	}
+	if playlistName != "" {
+		serviceNames, err := e.playlists.ServiceNames(playlistName)
+		if err != nil {
+			return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve playlist", Op: op})
+		}
+		// Can just run resolveServices again with the service names to get the actual services.
+		return e.resolveServices(op, serviceNames, "", true)
+	}
+	if atLeastOne {
+		return nil, errors.New(errkind.Invalid, "neither service names nor playlist name was provided", op)
+	}
+	// nil will be treated as an empty slice, which is fine since the caller said that no services is ok.
+	return nil, nil
 }
 
 // prepareGitRepos prepares the git repos for all services. Missing repos will always be cloned

@@ -10,11 +10,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type imagesOptions struct {
+	max            int
+	dockerRegistry string
+}
+
 func newImagesCommand(c *cli.Container) *cobra.Command {
-	var imagesOpts struct {
-		max            int
-		dockerRegistry string
-	}
+	var opts imagesOptions
 	imagesCmd := &cobra.Command{
 		Use:        "images",
 		Deprecated: "it will be removed soon",
@@ -43,13 +45,13 @@ func newImagesCommand(c *cli.Container) *cobra.Command {
 				}
 			}
 
-			dockerRegistry, err := dockerregistry.Get(imagesOpts.dockerRegistry)
+			dockerRegistry, err := dockerregistry.Get(opts.dockerRegistry)
 			if err != nil {
 				return err
 			}
 
 			c.Tracker.Start(fmt.Sprintf("Fetching images for %s", service.FullName()), 0)
-			imgs, err := dockerRegistry.FetchRepoImages(cmd.Context(), service.Remote.Image, imagesOpts.max)
+			imgs, err := dockerRegistry.FetchRepoImages(cmd.Context(), service.Remote.Image, opts.max)
 			c.Tracker.Stop()
 			if err != nil {
 				return &cli.ExitError{
@@ -63,7 +65,9 @@ func newImagesCommand(c *cli.Container) *cobra.Command {
 			return nil
 		},
 	}
-	imagesCmd.Flags().IntVarP(&imagesOpts.max, "max", "m", 10, "maximum results to display")
-	imagesCmd.Flags().StringVarP(&imagesOpts.dockerRegistry, "docker-registry", "r", "ecr", "type of docker registry, valid values: ecr")
+
+	flags := imagesCmd.Flags()
+	flags.IntVarP(&opts.max, "max", "m", 10, "maximum results to display")
+	flags.StringVarP(&opts.dockerRegistry, "docker-registry", "r", "ecr", "type of docker registry, valid values: ecr")
 	return imagesCmd
 }

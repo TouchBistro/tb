@@ -9,13 +9,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type listOptions struct {
+	listServices        bool
+	listPlaylists       bool
+	listCustomPlaylists bool
+	treeMode            bool
+}
+
 func newListCommand(c *cli.Container) *cobra.Command {
-	var listOpts struct {
-		listServices        bool
-		listPlaylists       bool
-		listCustomPlaylists bool
-		treeMode            bool
-	}
+	var opts listOptions
 	listCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -23,39 +25,41 @@ func newListCommand(c *cli.Container) *cobra.Command {
 		Short:   "Lists all available services",
 		Run: func(cmd *cobra.Command, args []string) {
 			// If no flags provided show everything
-			if !listOpts.listServices && !listOpts.listPlaylists && !listOpts.listCustomPlaylists {
-				listOpts.listServices = true
-				listOpts.listPlaylists = true
-				listOpts.listCustomPlaylists = true
+			if !opts.listServices && !opts.listPlaylists && !opts.listCustomPlaylists {
+				opts.listServices = true
+				opts.listPlaylists = true
+				opts.listCustomPlaylists = true
 			}
 			listResult := c.Engine.List(engine.ListOptions{
-				ListServices:        listOpts.listServices,
-				ListPlaylists:       listOpts.listPlaylists,
-				ListCustomPlaylists: listOpts.listCustomPlaylists,
-				TreeMode:            listOpts.treeMode,
+				ListServices:        opts.listServices,
+				ListPlaylists:       opts.listPlaylists,
+				ListCustomPlaylists: opts.listCustomPlaylists,
+				TreeMode:            opts.treeMode,
 			})
 
-			if listOpts.listServices {
+			if opts.listServices {
 				fmt.Println("Services:")
 				sort.Strings(listResult.Services)
 				for _, n := range listResult.Services {
 					fmt.Printf("  - %s\n", n)
 				}
 			}
-			if listOpts.listPlaylists {
+			if opts.listPlaylists {
 				fmt.Println("Playlists:")
-				printPlaylists(listResult.Playlists, listOpts.treeMode)
+				printPlaylists(listResult.Playlists, opts.treeMode)
 			}
-			if listOpts.listCustomPlaylists {
+			if opts.listCustomPlaylists {
 				fmt.Println("Custom Playlists:")
-				printPlaylists(listResult.CustomPlaylists, listOpts.treeMode)
+				printPlaylists(listResult.CustomPlaylists, opts.treeMode)
 			}
 		},
 	}
-	listCmd.Flags().BoolVarP(&listOpts.listServices, "services", "s", false, "list services")
-	listCmd.Flags().BoolVarP(&listOpts.listPlaylists, "playlists", "p", false, "list playlists")
-	listCmd.Flags().BoolVarP(&listOpts.listCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
-	listCmd.Flags().BoolVarP(&listOpts.treeMode, "tree", "t", false, "tree mode, show playlist services")
+
+	flags := listCmd.Flags()
+	flags.BoolVarP(&opts.listServices, "services", "s", false, "list services")
+	flags.BoolVarP(&opts.listPlaylists, "playlists", "p", false, "list playlists")
+	flags.BoolVarP(&opts.listCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
+	flags.BoolVarP(&opts.treeMode, "tree", "t", false, "tree mode, show playlist services")
 	return listCmd
 }
 

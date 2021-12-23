@@ -9,13 +9,15 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type runOptions struct {
+	iosVersion string
+	deviceName string
+	dataPath   string
+	branch     string
+}
+
 func newRunCommand(c *cli.Container) *cobra.Command {
-	var runOpts struct {
-		iosVersion string
-		deviceName string
-		dataPath   string
-		branch     string
-	}
+	var opts runOptions
 	runCmd := &cobra.Command{
 		Use: "run",
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -40,16 +42,18 @@ func newRunCommand(c *cli.Container) *cobra.Command {
 			appName := args[0]
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			return c.Engine.AppiOSRun(ctx, appName, engine.AppiOSRunOptions{
-				IOSVersion: runOpts.iosVersion,
-				DeviceName: runOpts.deviceName,
-				DataPath:   runOpts.dataPath,
-				Branch:     runOpts.branch,
+				IOSVersion: opts.iosVersion,
+				DeviceName: opts.deviceName,
+				DataPath:   opts.dataPath,
+				Branch:     opts.branch,
 			})
 		},
 	}
-	runCmd.Flags().StringVarP(&runOpts.iosVersion, "ios-version", "i", "", "The iOS version to use")
-	runCmd.Flags().StringVarP(&runOpts.deviceName, "device", "d", "", "The name of the device to use")
-	runCmd.Flags().StringVarP(&runOpts.branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
-	runCmd.Flags().StringVarP(&runOpts.dataPath, "data-path", "D", "", "The path to a data directory to inject into the simulator")
+
+	flags := runCmd.Flags()
+	flags.StringVarP(&opts.iosVersion, "ios-version", "i", "", "The iOS version to use")
+	flags.StringVarP(&opts.deviceName, "device", "d", "", "The name of the device to use")
+	flags.StringVarP(&opts.branch, "branch", "b", "", "The name of the git branch associated build to pull down and run")
+	flags.StringVarP(&opts.dataPath, "data-path", "D", "", "The path to a data directory to inject into the simulator")
 	return runCmd
 }

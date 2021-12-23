@@ -9,11 +9,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type listOptions struct {
+	listIOSApps     bool
+	listDesktopApps bool
+}
+
 func newListCommand(c *cli.Container) *cobra.Command {
-	var listOpts struct {
-		listIOSApps     bool
-		listDesktopApps bool
-	}
+	var opts listOptions
 	listCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
@@ -26,23 +28,22 @@ func newListCommand(c *cli.Container) *cobra.Command {
 	  tb apps list --ios`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// If no flags provided show everything
-			if !listOpts.listIOSApps &&
-				!listOpts.listDesktopApps {
-				listOpts.listIOSApps = true
-				listOpts.listDesktopApps = true
+			if !opts.listIOSApps && !opts.listDesktopApps {
+				opts.listIOSApps = true
+				opts.listDesktopApps = true
 			}
 			res := c.Engine.AppList(engine.AppListOptions{
-				ListiOSApps:     listOpts.listIOSApps,
-				ListDesktopApps: listOpts.listDesktopApps,
+				ListiOSApps:     opts.listIOSApps,
+				ListDesktopApps: opts.listDesktopApps,
 			})
-			if listOpts.listIOSApps {
+			if opts.listIOSApps {
 				fmt.Println("iOS Apps:")
 				sort.Strings(res.IOSApps)
 				for _, n := range res.IOSApps {
 					fmt.Printf("  - %s\n", n)
 				}
 			}
-			if listOpts.listDesktopApps {
+			if opts.listDesktopApps {
 				fmt.Println("Desktop Apps:")
 				sort.Strings(res.DesktopApps)
 				for _, n := range res.DesktopApps {
@@ -51,7 +52,9 @@ func newListCommand(c *cli.Container) *cobra.Command {
 			}
 		},
 	}
-	listCmd.Flags().BoolVar(&listOpts.listIOSApps, "ios", false, "list iOS apps")
-	listCmd.Flags().BoolVar(&listOpts.listDesktopApps, "desktop", false, "list desktop apps")
+
+	flags := listCmd.Flags()
+	flags.BoolVar(&opts.listIOSApps, "ios", false, "list iOS apps")
+	flags.BoolVar(&opts.listDesktopApps, "desktop", false, "list desktop apps")
 	return listCmd
 }

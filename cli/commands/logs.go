@@ -9,23 +9,29 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type logsOptions struct {
+	skipGitPull bool
+}
+
 func newLogsCommand(c *cli.Container) *cobra.Command {
-	var logsOpts struct {
-		skipGitPull bool
-	}
+	var opts logsOptions
 	logsCmd := &cobra.Command{
 		Use:   "logs [services...]",
 		Short: "View logs from containers",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			return c.Engine.Logs(ctx, args, os.Stdout, engine.LogsOptions{
+			return c.Engine.Logs(ctx, os.Stdout, engine.LogsOptions{
+				ServiceNames: args,
 				// TODO(@cszatmary): Make these configurable through flags.
 				// This would be a breaking change though.
-				Follow: true,
-				Tail:   -1,
+				Follow:      true,
+				Tail:        -1,
+				SkipGitPull: opts.skipGitPull,
 			})
 		},
 	}
-	logsCmd.Flags().BoolVar(&logsOpts.skipGitPull, "no-git-pull", false, "dont update git repositories")
+
+	flags := logsCmd.Flags()
+	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "dont update git repositories")
 	return logsCmd
 }

@@ -127,7 +127,7 @@ func getDbConf(ctx context.Context, c *cli.Container, serviceName string) (dbCon
 		}
 	}
 	if len(notFound) != 0 {
-		return dbConfig{}, fmt.Errorf("The following required env vars were not defined: [%s]", strings.Join(notFound, ", "))
+		return dbConfig{}, fmt.Errorf("the following required env vars were not defined: [%s]", strings.Join(notFound, ", "))
 	}
 
 	conf := dbConfig{

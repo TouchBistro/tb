@@ -10,12 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type logsOptions struct {
+	iosVersion    string
+	deviceName    string
+	numberOfLines string
+}
+
 func newLogsCommand(c *cli.Container) *cobra.Command {
-	var logOpts struct {
-		iosVersion    string
-		deviceName    string
-		numberOfLines string
-	}
+	var opts logsOptions
 	logsCmd := &cobra.Command{
 		Use:   "logs",
 		Short: "Displays logs from the given simulator",
@@ -30,14 +32,14 @@ Examples:
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			logsPath, err := c.Engine.AppiOSLogsPath(ctx, engine.AppiOSLogsPathOptions{
-				IOSVersion: logOpts.iosVersion,
-				DeviceName: logOpts.deviceName,
+				IOSVersion: opts.iosVersion,
+				DeviceName: opts.deviceName,
 			})
 			if err != nil {
 				return err
 			}
 			c.Tracker.Info("Attaching to simulator logs")
-			tail := exec.CommandContext(ctx, "tail", "-f", "-n", logOpts.numberOfLines, logsPath)
+			tail := exec.CommandContext(ctx, "tail", "-f", "-n", opts.numberOfLines, logsPath)
 			tail.Stdout = os.Stdout
 			tail.Stderr = os.Stderr
 			if err := tail.Run(); err != nil {
@@ -50,8 +52,10 @@ Examples:
 			return nil
 		},
 	}
-	logsCmd.Flags().StringVarP(&logOpts.iosVersion, "ios-version", "i", "", "The iOS version to use")
-	logsCmd.Flags().StringVarP(&logOpts.deviceName, "device", "d", "", "The name of the device to use")
-	logsCmd.Flags().StringVarP(&logOpts.numberOfLines, "number", "n", "10", "The number of lines to display")
+
+	flags := logsCmd.Flags()
+	flags.StringVarP(&opts.iosVersion, "ios-version", "i", "", "The iOS version to use")
+	flags.StringVarP(&opts.deviceName, "device", "d", "", "The name of the device to use")
+	flags.StringVarP(&opts.numberOfLines, "number", "n", "10", "The number of lines to display")
 	return logsCmd
 }

@@ -9,19 +9,20 @@ import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
-	"github.com/TouchBistro/tb/resource/service"
 	"github.com/spf13/cobra"
 )
 
+type upOptions struct {
+	skipServicePreRun bool
+	skipGitPull       bool
+	skipDockerPull    bool
+	skipLazydocker    bool
+	playlistName      string
+	serviceNames      []string
+}
+
 func newUpCommand(c *cli.Container) *cobra.Command {
-	var upOpts struct {
-		skipServicePreRun bool
-		skipGitPull       bool
-		skipDockerPull    bool
-		skipLazydocker    bool
-		playlistName      string
-		serviceNames      []string
-	}
+	var opts upOptions
 	upCmd := &cobra.Command{
 		Use:   "up",
 		Short: "Starts services from a playlist name or as a comma separated list of services",
@@ -35,26 +36,6 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 		tb up --services postgres,localstack`,
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var services []service.Service
-			var err error
-			switch {
-			case len(upOpts.serviceNames) > 0 && upOpts.playlistName != "":
-				return &cli.ExitError{
-					Message: "Only one of --playlist or --services can be specified.\nTry tb up --help for some examples.",
-				}
-			case len(upOpts.serviceNames) > 0:
-				services, err = c.Engine.ResolveServices(upOpts.serviceNames)
-			case upOpts.playlistName != "":
-				services, err = c.Engine.ResolvePlaylist(upOpts.playlistName)
-			default:
-				return &cli.ExitError{
-					Message: "Either --playlist or --services must be specified.\ntry tb up --help for some examples.",
-				}
-			}
-			if err != nil {
-				return err
-			}
-
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			if err := deps.Resolve(ctx, deps.Brew, deps.Lazydocker); err != nil {
 				return err
@@ -86,20 +67,22 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 				c.Tracker.Debug("Finished logging into services")
 			}
 
-			err = c.Engine.Up(ctx, services, engine.UpOptions{
-				SkipPreRun:     upOpts.skipServicePreRun,
-				SkipDockerPull: upOpts.skipDockerPull,
-				SkipGitPull:    upOpts.skipGitPull,
+			err = c.Engine.Up(ctx, engine.UpOptions{
+				ServiceNames:   opts.serviceNames,
+				PlaylistName:   opts.playlistName,
+				SkipPreRun:     opts.skipServicePreRun,
+				SkipDockerPull: opts.skipDockerPull,
+				SkipGitPull:    opts.skipGitPull,
 			})
 			if err != nil {
 				return &cli.ExitError{
-					Message: "Failed to stop services",
+					Message: "Failed to start services",
 					Err:     err,
 				}
 			}
 			c.Tracker.Info("✔ Started services")
 
-			if !upOpts.skipLazydocker {
+			if !opts.skipLazydocker {
 				c.Tracker.Debug("Running lazydocker")
 				w := progress.LogWriter(c.Tracker, c.Tracker.WithFields(progress.Fields{"id": "lazydocker"}).Debug)
 				defer w.Close()
@@ -115,11 +98,13 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			return nil
 		},
 	}
-	upCmd.Flags().BoolVar(&upOpts.skipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
-	upCmd.Flags().BoolVar(&upOpts.skipGitPull, "no-git-pull", false, "dont update git repositories")
-	upCmd.Flags().BoolVar(&upOpts.skipDockerPull, "no-remote-pull", false, "dont get new remote images")
-	upCmd.Flags().BoolVar(&upOpts.skipLazydocker, "no-lazydocker", false, "dont start lazydocker")
-	upCmd.Flags().StringVarP(&upOpts.playlistName, "playlist", "p", "", "the name of a service playlist")
-	upCmd.Flags().StringSliceVarP(&upOpts.serviceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
+
+	flags := upCmd.Flags()
+	flags.BoolVar(&opts.skipServicePreRun, "no-service-prerun", false, "dont run preRun command for services")
+	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "dont update git repositories")
+	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "dont get new remote images")
+	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "dont start lazydocker")
+	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "the name of a service playlist")
+	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "comma separated list of services to start. eg --services postgres,localstack.")
 	return upCmd
 }

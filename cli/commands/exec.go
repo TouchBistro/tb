@@ -9,10 +9,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type execOptions struct {
+	skipGitPull bool
+}
+
 func newExecCommand(c *cli.Container) *cobra.Command {
-	var execOpts struct {
-		skipGitPull bool
-	}
+	var opts execOptions
 	execCmd := &cobra.Command{
 		Use:   "exec <service-name> <command> [additional-commands...]",
 		Short: "executes a command in a service container",
@@ -28,7 +30,7 @@ func newExecCommand(c *cli.Container) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			exitCode, err := c.Engine.Exec(ctx, args[0], engine.ExecOptions{
-				SkipGitPull: execOpts.skipGitPull,
+				SkipGitPull: opts.skipGitPull,
 				Cmd:         args[1:],
 				Stdin:       os.Stdin,
 				Stdout:      os.Stdout,
@@ -42,6 +44,8 @@ func newExecCommand(c *cli.Container) *cobra.Command {
 			return nil
 		},
 	}
-	execCmd.Flags().BoolVar(&execOpts.skipGitPull, "no-git-pull", false, "dont update git repositories")
+
+	flags := execCmd.Flags()
+	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "dont update git repositories")
 	return execCmd
 }
