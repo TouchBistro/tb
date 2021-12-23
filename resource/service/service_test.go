@@ -2,6 +2,8 @@ package service_test
 
 import (
 	"errors"
+	"log"
+	"reflect"
 	"sort"
 	"testing"
 
@@ -572,5 +574,8 @@ func TestComposeConfig(t *testing.T) {
 	}
 	composeConfig := service.ComposeConfig(&c)
 	is := is.New(t)
+	log.Println(reflect.DeepEqual(composeConfig, wantComposeConfig))
+	log.Printf("%#v", composeConfig)
+	log.Printf("%#v", wantComposeConfig)
 	is.Equal(composeConfig, wantComposeConfig)
 }

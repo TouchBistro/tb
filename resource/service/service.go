@@ -253,7 +253,6 @@ func ComposeConfig(c *Collection) docker.ComposeConfig {
 			ContainerName: dockerName,
 			DependsOn:     s.Dependencies,
 			Entrypoint:    s.Entrypoint,
-			EnvFile:       []string{},
 			Environment:   s.EnvVars,
 			Ports:         s.Ports,
 		}
