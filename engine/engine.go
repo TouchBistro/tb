@@ -65,9 +65,9 @@ type Options struct {
 	// GitClient is the client to use for git operations.
 	// This allows for overriding the default git client if provided.
 	GitClient git.Git
-	// DockerClient is the client to use for docker operations.
+	// DockerAPIClient is the client to use for docker operations.
 	// This allows for overriding the default docker client if provided.
-	DockerClient *docker.Docker
+	DockerAPIClient docker.APIClient
 	// ComposeClient is the client to use for docker-compose operations.
 	// This allows for overriding the default docker-compose client if provided.
 	ComposeClient docker.Compose
@@ -107,12 +107,12 @@ func New(opts Options) (*Engine, error) {
 	if opts.GitClient == nil {
 		opts.GitClient = git.New()
 	}
-	if opts.DockerClient == nil {
-		dockerClient, err := docker.New(projectName)
+	if opts.DockerAPIClient == nil {
+		apiClient, err := docker.NewAPIClient()
 		if err != nil {
 			return nil, errors.Wrap(err, errors.Meta{Op: op})
 		}
-		opts.DockerClient = dockerClient
+		opts.DockerAPIClient = apiClient
 	}
 	if opts.ComposeClient == nil {
 		opts.ComposeClient = docker.NewCompose(opts.Workdir, projectName)
@@ -128,7 +128,7 @@ func New(opts Options) (*Engine, error) {
 		deviceList:       opts.DeviceList,
 		concurrency:      opts.Concurrency,
 		gitClient:        opts.GitClient,
-		dockerClient:     opts.DockerClient,
+		dockerClient:     docker.New(opts.DockerAPIClient, projectName),
 		composeClient:    opts.ComposeClient,
 		storageProviders: make(map[string]storage.Provider),
 	}, nil

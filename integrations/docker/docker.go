@@ -41,25 +41,23 @@ func ParseImageName(name string) (repo, tag string) {
 	return name[:i], name[i+1:]
 }
 
-// apiClient is the functionality required to be implemented by
+// NOTE: The docs for the Go SDK aren't great. If you are working on this and want to
+// better understand how the docker APIs work check out the actual engine API docs
+// which have the OpenAPI schema.
+// https://docs.docker.com/engine/api/latest
+
+// APIClient is the functionality required to be implemented by
 // a client that communicates with the docker API.
-type apiClient interface {
+type APIClient interface {
 	client.ContainerAPIClient
 	client.ImageAPIClient
 	client.NetworkAPIClient
 	client.VolumeAPIClient
 }
 
-// Docker provides functionality for interacting with the docker API.
-type Docker struct {
-	apiClient   apiClient
-	projectName string
-}
-
-// New returns a new Docker instance. projectName is a compose project name.
-// Only docker resources belonging to this project will be modified.
-func New(projectName string) (*Docker, error) {
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+// NewAPIClient returns a new APIClient for communicating with the docker API.
+func NewAPIClient() (APIClient, error) {
+	apiClient, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{
 			Kind:   errkind.Docker,
@@ -67,7 +65,20 @@ func New(projectName string) (*Docker, error) {
 			Op:     "docker.New",
 		})
 	}
-	return &Docker{cli, projectName}, nil
+	return apiClient, nil
+}
+
+// Docker provides functionality for working with docker resources.
+type Docker struct {
+	apiClient   APIClient
+	projectName string
+}
+
+// New returns a new Docker instance that uses the given apiClient to communicate
+// with the docker API. projectName is a compose project name.
+// Only docker resources belonging to this project will be modified.
+func New(apiClient APIClient, projectName string) *Docker {
+	return &Docker{apiClient, projectName}
 }
 
 func (d *Docker) PullImage(ctx context.Context, imageURI string) error {
@@ -312,12 +323,24 @@ func buildImageName(projectName string, serviceName string) string {
 	return projectName + "_" + serviceName
 }
 
+// These are the states we care about.
+// There are others but they are not used by tb.
+const (
+	// ContainerStateCreated indicates the container has been created but was not started.
+	ContainerStateCreated = "Created"
+	// ContainerStateRunning indicates the container is currently running.
+	ContainerStateRunning = "Running"
+	// ContainerStateExited indicates the container exited and is not running.
+	ContainerStateExited = "Exited"
+)
+
 // Docker labels for use in lookups
 const (
-	projectLabel = "com.docker.compose.project"
+	// ProjectLabel is a docker label that specifies the compose project.
+	ProjectLabel = "com.docker.compose.project"
 )
 
 // projectFilter returns a docker filter for the projectName.
 func projectFilter(projectName string) filters.KeyValuePair {
-	return filters.Arg("label", projectLabel+"="+projectName)
+	return filters.Arg("label", ProjectLabel+"="+projectName)
 }
