@@ -52,10 +52,6 @@ func (l Logger) WithFields(fields progress.Fields) progress.Logger {
 	return Logger{l.FieldLogger.WithFields(logrus.Fields(fields))}
 }
 
-func (l Logger) Output() io.Writer {
-	return l.FieldLogger.(*logrus.Logger).Out
-}
-
 func Prompt(msg string) bool {
 	// check for yes and assume no on any other input to avoid annoyance
 	fmt.Print(msg)
