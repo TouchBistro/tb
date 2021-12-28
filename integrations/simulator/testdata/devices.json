@@ -2,7 +2,26 @@
   "devices": {
     "com.apple.CoreSimulator.SimRuntime.tvOS-13-2": [],
     "com.apple.CoreSimulator.SimRuntime.watchOS-6-0": [],
-    "com.apple.CoreSimulator.SimRuntime.iOS-13-2": [],
+    "com.apple.CoreSimulator.SimRuntime.iOS-13-2": [
+      {
+        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/311454FF-25BF-4FB5-9B34-4C09C7CAFB59/data",
+        "logPath": "/Users/admin/Library/Logs/CoreSimulator/311454FF-25BF-4FB5-9B34-4C09C7CAFB59",
+        "udid": "311454FF-25BF-4FB5-9B34-4C09C7CAFB59",
+        "isAvailable": true,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11-Pro",
+        "state": "Shutdown",
+        "name": "iPhone 11 Pro"
+      },
+      {
+        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/1A665218-9993-49B7-ACCE-FB44D3B29CA4/data",
+        "logPath": "/Users/admin/Library/Logs/CoreSimulator/1A665218-9993-49B7-ACCE-FB44D3B29CA4",
+        "udid": "1A665218-9993-49B7-ACCE-FB44D3B29CA4",
+        "isAvailable": true,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11-Pro-Max",
+        "state": "Shutdown",
+        "name": "iPhone 11 Pro Max"
+      }
+    ],
     "com.apple.CoreSimulator.SimRuntime.tvOS-13-3": [],
     "com.apple.CoreSimulator.SimRuntime.iOS-13-3": [],
     "com.apple.CoreSimulator.SimRuntime.tvOS-12-4": [],
@@ -36,6 +55,28 @@
       }
     ],
     "com.apple.CoreSimulator.SimRuntime.watchOS-6-1": [],
+    "com.apple.CoreSimulator.SimRuntime.iOS-15-0": [
+      {
+        "availabilityError": "runtime profile not found",
+        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/669DE54F-64BA-4CCA-BB49-160A502EAF95/data",
+        "logPath": "/Users/admin/Library/Logs/CoreSimulator/669DE54F-64BA-4CCA-BB49-160A502EAF95",
+        "udid": "669DE54F-64BA-4CCA-BB49-160A502EAF95",
+        "isAvailable": false,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--9-7-inch-",
+        "state": "Shutdown",
+        "name": "iPad Pro (9.7-inch)"
+      },
+      {
+        "availabilityError": "runtime profile not found",
+        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/197B403C-ED26-4605-9054-2C117F6B3CD1/data",
+        "logPath": "/Users/admin/Library/Logs/CoreSimulator/197B403C-ED26-4605-9054-2C117F6B3CD1",
+        "udid": "197B403C-ED26-4605-9054-2C117F6B3CD1",
+        "isAvailable": false,
+        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air--4th-generation-",
+        "state": "Shutdown",
+        "name": "iPad Air (4th generation)"
+      }
+    ],
     "com.apple.CoreSimulator.SimRuntime.iOS-13-5": [
       {
         "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/67D79B13-7D22-4CE4-A15C-0472EE48360D/data",

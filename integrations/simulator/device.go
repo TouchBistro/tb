@@ -66,13 +66,20 @@ func ParseDevices(data []byte) (DeviceList, error) {
 	// Perform any normalizations and transformations on the simulator data to make it easier to work with.
 	const osPrefix = "com.apple.CoreSimulator.SimRuntime."
 	deviceList := DeviceList{deviceMap: make(map[string][]Device)}
+OSLoop:
 	for osName, devices := range rawDeviceList.Devices {
 		// Only care about iOS simulators, remove rest (i.e watchOS, tvOS).
 		if !strings.HasPrefix(osName, osPrefix+"iOS") {
 			continue
 		}
+
 		parsedDevices := make([]Device, len(devices))
 		for i, d := range devices {
+			// Make sure the device is actually available to use, otherwise skip.
+			if !d.IsAvailable {
+				continue OSLoop
+			}
+
 			// Determine device type
 			switch {
 			case strings.Contains(d.Name, "iPad"):
@@ -94,6 +101,11 @@ func ParseDevices(data []byte) (DeviceList, error) {
 			}
 			parsedDevices[i] = d
 		}
+		// Skip iOS version if it doesn't have any available devices to use.
+		if len(parsedDevices) == 0 {
+			continue
+		}
+
 		name := strings.TrimPrefix(osName, osPrefix)
 		deviceList.deviceMap[name] = parsedDevices
 	}
