@@ -14,6 +14,7 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/docker"
+	"github.com/TouchBistro/tb/integrations/login"
 	"github.com/TouchBistro/tb/resource/service"
 )
 
@@ -68,9 +69,37 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
 	}
-	serviceNames := getServiceNames(services)
+
+	tracker := progress.TrackerFromContext(ctx)
+	loginStrategies, err := login.ParseStrategies(e.loginStrategies)
+	if err != nil {
+		return err
+	}
+	if len(loginStrategies) > 0 {
+		err := progress.RunParallel(ctx, progress.RunParallelOptions{
+			Message: "Logging into services",
+			Count:   len(loginStrategies),
+			// Bail if one fails since there's no point on waiting on the others
+			// since we can't proceed anyway.
+			CancelOnError: true,
+		}, func(ctx context.Context, i int) error {
+			ls := loginStrategies[i]
+			tracker := progress.TrackerFromContext(ctx)
+			tracker.Debugf("Logging into %s", ls.Name())
+			if err := ls.Login(ctx); err != nil {
+				return err
+			}
+			tracker.Debugf("Logged into %s", ls.Name())
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+		tracker.Debug("Finished logging into services")
+	}
 
 	// Cleanup previous docker state
+	serviceNames := getServiceNames(services)
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Cleaning up previous docker state",
 	}, func(ctx context.Context) error {
@@ -79,7 +108,6 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to clean up previous docker state", Op: op})
 	}
-	tracker := progress.TrackerFromContext(ctx)
 	tracker.Info("✔ Cleaned up previous docker state")
 
 	// Pull base images

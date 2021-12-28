@@ -24,6 +24,7 @@ type Engine struct {
 	iosApps          *app.Collection
 	desktopApps      *app.Collection
 	baseImages       []string
+	loginStrategies  []string
 	deviceList       simulator.DeviceList
 	concurrency      uint
 
@@ -56,6 +57,9 @@ type Options struct {
 	// BaseImages is a list of docker base images that will be pulled before building images.
 	// If no value is provided, no base images will be pulled.
 	BaseImages []string
+	// LoginStrategies is a list of third party services to log into before running servies.
+	// If omitted, no logins will be performed.
+	LoginStrategies []string
 	// DeviceList is the list of iOS devices to use for running iOS apps.
 	// If no value is provided, no devices will be available to use.
 	DeviceList simulator.DeviceList
@@ -125,6 +129,7 @@ func New(opts Options) (*Engine, error) {
 		iosApps:          opts.IOSApps,
 		desktopApps:      opts.DesktopApps,
 		baseImages:       opts.BaseImages,
+		loginStrategies:  opts.LoginStrategies,
 		deviceList:       opts.DeviceList,
 		concurrency:      opts.Concurrency,
 		gitClient:        opts.GitClient,

@@ -1,12 +1,9 @@
 package commands
 
 import (
-	"context"
-
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
-	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -40,34 +37,7 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			if err := deps.Resolve(ctx, deps.Brew, deps.Lazydocker); err != nil {
 				return err
 			}
-			loginStrategies, err := config.LoginStategies()
-			if err != nil {
-				return err
-			}
-			if len(loginStrategies) > 0 {
-				err := progress.RunParallel(ctx, progress.RunParallelOptions{
-					Message: "Logging into services",
-					Count:   len(loginStrategies),
-					// Bail if one fails since there's no point on waiting on the others
-					// since we can't proceed anyway.
-					CancelOnError: true,
-				}, func(ctx context.Context, i int) error {
-					ls := loginStrategies[i]
-					tracker := progress.TrackerFromContext(ctx)
-					tracker.Debugf("Logging into %s", ls.Name())
-					if err := ls.Login(ctx); err != nil {
-						return err
-					}
-					tracker.Debugf("Logged into %s", ls.Name())
-					return nil
-				})
-				if err != nil {
-					return err
-				}
-				c.Tracker.Debug("Finished logging into services")
-			}
-
-			err = c.Engine.Up(ctx, engine.UpOptions{
+			err := c.Engine.Up(ctx, engine.UpOptions{
 				ServiceNames:   opts.serviceNames,
 				PlaylistName:   opts.playlistName,
 				SkipPreRun:     opts.skipServicePreRun,

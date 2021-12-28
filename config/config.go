@@ -17,7 +17,6 @@ import (
 	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/git"
-	"github.com/TouchBistro/tb/integrations/login"
 	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource"
@@ -44,11 +43,6 @@ var tbrcTemplate []byte
 // TODO(@cszatmary): figure out a way to clean this up.
 
 var registries []registry.Registry
-var loginStrategies []string
-
-func LoginStategies() ([]login.Strategy, error) {
-	return login.ParseStrategies(loginStrategies)
-}
 
 // Config represents a tbrc config file used to provide custom configuration for a user.
 type Config struct {
@@ -362,13 +356,14 @@ update:
 	}
 
 	e, err := engine.New(engine.Options{
-		Workdir:     tbRoot,
-		Services:    registryResult.Services,
-		Playlists:   registryResult.Playlists,
-		IOSApps:     registryResult.IOSApps,
-		DesktopApps: registryResult.DesktopApps,
-		DeviceList:  deviceList,
-		BaseImages:  registryResult.BaseImages,
+		Workdir:         tbRoot,
+		Services:        registryResult.Services,
+		Playlists:       registryResult.Playlists,
+		IOSApps:         registryResult.IOSApps,
+		DesktopApps:     registryResult.DesktopApps,
+		BaseImages:      registryResult.BaseImages,
+		LoginStrategies: registryResult.LoginStrategies,
+		DeviceList:      deviceList,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Reason: "failed to initialize engine", Op: op})

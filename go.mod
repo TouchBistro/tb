@@ -8,7 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.11.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.11.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.21.0
-	github.com/blang/semver v3.5.1+incompatible
+	github.com/blang/semver/v4 v4.0.0
 	github.com/docker/docker v20.10.12+incompatible
 	github.com/matryer/is v1.4.0
 	github.com/sirupsen/logrus v1.8.1

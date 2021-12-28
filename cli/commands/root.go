@@ -13,7 +13,7 @@ import (
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/integrations/github"
 	"github.com/TouchBistro/tb/util"
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
