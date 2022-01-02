@@ -423,6 +423,7 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		if err := e.dockerClient.StopContainers(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to stop docker containers", Op: op})
 		}
+		tracker.Info("✔ Stopped running containers")
 	}
 
 	if opts.RemoveContainers {
@@ -430,15 +431,19 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		if err := e.dockerClient.RemoveContainers(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker containers", Op: op})
 		}
+		tracker.Info("✔ Removed docker containers")
 	}
 
 	if opts.RemoveImages {
 		var imageSearches []docker.ImageSearch
 		for _, s := range services {
-			if s.Mode == service.ModeBuild {
-				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.FullName(), LocalBuild: true})
-			} else {
+			// Search for both remote and locally built images since the user might have switched
+			// between build and remote mode in their tbrc.
+			if s.Remote.Image != "" {
 				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.Remote.Image})
+			}
+			if s.CanBuild() {
+				imageSearches = append(imageSearches, docker.ImageSearch{Name: s.FullName(), LocalBuild: true})
 			}
 		}
 		for _, bi := range e.baseImages {
@@ -448,12 +453,14 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		if err := e.dockerClient.RemoveImages(ctx, imageSearches); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker images", Op: op})
 		}
+		tracker.Info("✔ Removed docker images")
 
 		// Also prune images to clean up space for users
 		tracker.UpdateMessage("Pruning docker images")
 		if err := e.dockerClient.PruneImages(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to prune docker images", Op: op})
 		}
+		tracker.Info("✔ Pruned unused docker images")
 	}
 
 	if opts.RemoveNetworks {
@@ -461,6 +468,7 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		if err := e.dockerClient.RemoveNetworks(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker networks", Op: op})
 		}
+		tracker.Info("✔ Removed docker networks")
 	}
 
 	if opts.RemoveVolumes {
@@ -468,6 +476,7 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		if err := e.dockerClient.RemoveVolumes(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker volumes", Op: op})
 		}
+		tracker.Info("✔ Removed docker volumes")
 	}
 
 	type directory struct {
@@ -508,6 +517,7 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 				Op:     op,
 			})
 		}
+		tracker.Infof("✔ Removed %s", dir.name)
 	}
 
 	// Check workdir and remove any files/dirs that shouldn't be there.
