@@ -268,7 +268,9 @@ func TestReadRegistries(t *testing.T) {
 
 func TestValidate(t *testing.T) {
 	is := is.New(t)
-	result := registry.Validate("testdata/registry-2", true, nil)
+	result := registry.Validate("testdata/registry-2", registry.ValidateOptions{
+		Strict: true,
+	})
 	is.NoErr(result.AppsErr)
 	is.NoErr(result.PlaylistsErr)
 	is.NoErr(result.ServicesErr)
@@ -276,7 +278,9 @@ func TestValidate(t *testing.T) {
 
 func TestValidateErrors(t *testing.T) {
 	is := is.New(t)
-	result := registry.Validate("testdata/invalid-registry-1", true, nil)
+	result := registry.Validate("testdata/invalid-registry-1", registry.ValidateOptions{
+		Strict: true,
+	})
 
 	var errs errors.List
 	var validationErr *resource.ValidationError

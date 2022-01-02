@@ -1,3 +1,5 @@
+// Package app contains functionality for working with App resources.
+// An app is an iOS or desktop application that can be run by tb.
 package app
 
 import (
@@ -51,13 +53,15 @@ func (a App) FullName() string {
 
 // DeviceType returns the device type that the app runs on if it is an iOS app.
 func (a App) DeviceType() simulator.DeviceType {
-	runsOn := strings.ToLower(a.RunsOn)
-	switch runsOn {
+	// Make RunsOn case insensitive so users can do things like "ipad" or "iPad".
+	switch strings.ToLower(a.RunsOn) {
 	case "ipad":
 		return simulator.DeviceTypeiPad
 	case "iphone":
 		return simulator.DeviceTypeiPhone
 	default:
+		// Don't error here and just assume unspecified.
+		// Validate handle's verifying that it is a valid value.
 		return simulator.DeviceTypeUnspecified
 	}
 }
@@ -116,8 +120,7 @@ func (c *Collection) Set(a App) error {
 // Names returns a list of the full names of all apps in the collection.
 func (c *Collection) Names() []string {
 	names := make([]string, 0, c.collection.Len())
-	it := c.collection.Iter()
-	for it.Next() {
+	for it := c.collection.Iter(); it.Next(); {
 		names = append(names, it.Value().FullName())
 	}
 	return names

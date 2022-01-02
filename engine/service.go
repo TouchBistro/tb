@@ -71,11 +71,16 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	}
 
 	tracker := progress.TrackerFromContext(ctx)
-	loginStrategies, err := login.ParseStrategies(e.loginStrategies)
-	if err != nil {
-		return err
-	}
-	if len(loginStrategies) > 0 {
+	if len(e.loginStrategies) > 0 {
+		loginStrategies := make([]login.Strategy, len(e.loginStrategies))
+		for i, name := range e.loginStrategies {
+			s, err := login.ParseStrategy(name)
+			if err != nil {
+				return errors.Wrap(err, errors.Meta{Op: op})
+			}
+			loginStrategies[i] = s
+		}
+
 		err := progress.RunParallel(ctx, progress.RunParallelOptions{
 			Message: "Logging into services",
 			Count:   len(loginStrategies),

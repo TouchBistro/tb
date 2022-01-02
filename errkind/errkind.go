@@ -1,3 +1,6 @@
+// Package errkind provides various error kinds that conform to the
+// github/TouchBistro/goutils/errors.Kind interface.
+// These values can be used to specify the category of errors that occur in tb.
 package errkind
 
 // Kind implements the errors.Kind interface and

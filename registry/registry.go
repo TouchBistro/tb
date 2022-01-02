@@ -1,3 +1,10 @@
+// Package registry provides support for working with tb registries.
+// A registry is a Git repo which contains the configuration for services, playlists,
+// and apps that can be run by tb.
+//
+// The ReadAll function can be used to read one or more registries and return all the
+// resources from them. The Validate function can be used to validate a single registry
+// to make sure all the configuration within it is correct.
 package registry
 
 import (
@@ -22,10 +29,10 @@ import (
 
 // File names in registry
 const (
-	AppsFileName      = "apps.yml"
-	PlaylistsFileName = "playlists.yml"
-	ServicesFileName  = "services.yml"
-	staticDirName     = "static"
+	AppsFileName      = "apps.yml"      // Name of the app config file.
+	PlaylistsFileName = "playlists.yml" // Name of the playlists config file.
+	ServicesFileName  = "services.yml"  // Name of the services config file.
+	staticDirName     = "static"        // Directory where additional static assets can be stored.
 )
 
 // Registry configures a registry. A registry is a Git repo
@@ -40,9 +47,243 @@ type Registry struct {
 	LocalPath string `yaml:"localPath,omitempty"`
 
 	// Path is the path to the local clone of the registry.
+	// Path is not part of the config but is determined dynamically
+	// at run time.
 	Path string `yaml:"-"`
 }
 
+// ReadAllOptions allows for customizing the behaviour of ReadAll.
+type ReadAllOptions struct {
+	// ReadServices specifies if services and playlists should be read.
+	ReadServices bool
+	// ReadApps specifies if apps should be read.
+	ReadApps bool
+	// HomeDir specifies the home directory that should be used for expanding paths.
+	HomeDir string
+	// RootPath is the root path where tb stores files.
+	// It is required if ReadServices is true.
+	RootPath string
+	// ReposPath is the path where cloned repos are stored.
+	// It is required if ReadServices is true.
+	ReposPath string
+	// Overrides are any overrides that should be applied to services.
+	Overrides map[string]service.ServiceOverride
+	// Logger can be provided to log debug details while reading registries.
+	// If it is nil, logging is off.
+	Logger progress.Logger
+}
+
+// ReadAllResult contains the result of reading a list of registries.
+type ReadAllResult struct {
+	// Services is a collection of all services read.
+	// If ReadAllOptions.ReadServices was false, it will be nil.
+	Services *service.Collection
+	// Playlists is a collection of all playlists read.
+	// If ReadAllOptions.ReadServices was false, it will be nil.
+	Playlists *playlist.Collection
+	// IOSApps is a collection of all iOS apps read.
+	// If ReadAllOptions.ReadApps was false, it will be nil.
+	IOSApps *app.Collection
+	// DesktopApps is a collection of all desktop apps read.
+	// If ReadAllOptions.ReadApps was false, it will be nil.
+	DesktopApps *app.Collection
+	// BaseImages is a list of all base images read.
+	// If ReadAllOptions.ReadServices was false, it will be empty.
+	BaseImages []string
+	// BaseImages is a list of all login strategies read.
+	// If ReadAllOptions.ReadServices was false, it will be empty.
+	LoginStrategies []string
+}
+
+// ReadAll reads all the given registries and returns the combined result.
+// All registry files are optional. As a result, ReadAll will not treat a
+// missing registry file as an error but will instead consider it identical
+// to an empty config with no resources.
+func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) {
+	const op = errors.Op("registry.ReadAll")
+	var result ReadAllResult
+	if opts.ReadServices {
+		result.Services = &service.Collection{}
+		result.Playlists = &playlist.Collection{}
+	}
+	if opts.ReadApps {
+		result.IOSApps = &app.Collection{}
+		result.DesktopApps = &app.Collection{}
+	}
+	if opts.Logger == nil {
+		opts.Logger = progress.NoopTracker{}
+	}
+
+	for _, r := range registries {
+		if opts.ReadServices {
+			opts.Logger.Debugf("Reading services from registry %s", r.Name)
+			globalConf, err := readServices(op, r, readServicesOptions{
+				collection: result.Services,
+				homeDir:    opts.HomeDir,
+				rootPath:   opts.RootPath,
+				reposPath:  opts.ReposPath,
+				overrides:  opts.Overrides,
+			})
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, ServicesFileName)
+			} else if err != nil {
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read services from registry %s", r.Name),
+					Op:     op,
+				})
+			}
+
+			opts.Logger.Debugf("Reading playlists from registry %s", r.Name)
+			err = readPlaylists(op, r, result.Playlists)
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, PlaylistsFileName)
+			} else if err != nil {
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read playlists from registry %s", r.Name),
+					Op:     op,
+				})
+			}
+
+			result.BaseImages = append(result.BaseImages, globalConf.baseImages...)
+			result.LoginStrategies = append(result.LoginStrategies, globalConf.loginStrategies...)
+		}
+		if opts.ReadApps {
+			opts.Logger.Debugf("Reading apps from registry %s", r.Name)
+			err := readApps(op, r, readAppsOptions{
+				iosCollection:     result.IOSApps,
+				desktopCollection: result.DesktopApps,
+			})
+			if errors.Is(err, fs.ErrNotExist) {
+				// No file, do nothing
+				opts.Logger.Debugf("registry %s has no %s", r.Name, AppsFileName)
+			} else if err != nil {
+				return result, errors.Wrap(err, errors.Meta{
+					Reason: fmt.Sprintf("failed to read apps from registry %s", r.Name),
+					Op:     op,
+				})
+			}
+		}
+	}
+	result.BaseImages = util.UniqueStrings(result.BaseImages)
+	result.LoginStrategies = util.UniqueStrings(result.LoginStrategies)
+	return result, nil
+}
+
+// ValidateOptions allows for customizing the behaviour of Validate.
+// All fields are optional.
+type ValidateOptions struct {
+	// Strict enables strict mode which adds additional validations.
+	//
+	// The following additional validations are enabled:
+	//
+	// - Unknown variables will be considered errors.
+	Strict bool
+	// Logger can be provided to log debug details while reading registries.
+	// If it is nil, logging is off.
+	Logger progress.Logger
+}
+
+// ValidateResult is the result returned by Validate.
+// See each field for more details.
+type ValidateResult struct {
+	// AppsErr is an error containing details on why the apps config
+	// in the registry failed validation.
+	// If the apps config was valid, AppsErr is nil.
+	// If no apps config file was found, AppsErr will be fs.ErrNotExist.
+	AppsErr error
+	// PlaylistsErr is an error containing details on why the playlists config
+	// in the registry failed validation.
+	// If the playlists config was valid, PlaylistsErr is nil.
+	// If no apps config file was found, PlaylistsErr will be fs.ErrNotExist.
+	PlaylistsErr error
+	// ServicesErr is an error containing details on why the services config
+	// in the registry failed validation.
+	// If the serivces config was valid, ServicesErr is nil.
+	// If no apps config file was found, ServicesErr will be fs.ErrNotExist.
+	ServicesErr error
+}
+
+// Validate checks to see if the registry located at path is valid. It will read and validate
+// each configuration file in the registry. path is expected to be a valid file path
+// on the local OS filesystem.
+//
+// opts can be used to customize the behaviour of validate, see each field for more details.
+//
+// Validate returns a ValidateResult struct that contains errors encountered for each resource.
+// See each field for more details.
+func Validate(path string, opts ValidateOptions) ValidateResult {
+	const op = errors.Op("registry.Validate")
+	r := Registry{
+		// Name needs to be a proper registry name so just say the org is local
+		Name: "local/" + filepath.Base(path),
+		Path: path,
+	}
+	var result ValidateResult
+	if opts.Logger == nil {
+		opts.Logger = progress.NoopTracker{}
+	}
+
+	// Validate apps.yml
+	opts.Logger.Debug("Validating apps")
+	err := readApps(op, r, readAppsOptions{
+		iosCollection:     &app.Collection{},
+		desktopCollection: &app.Collection{},
+	})
+	if err != nil {
+		result.AppsErr = err
+	}
+	// Validate playlists.yml
+	opts.Logger.Debug("Validating playlists")
+	if err := readPlaylists(op, r, &playlist.Collection{}); err != nil {
+		result.PlaylistsErr = err
+	}
+
+	// Validate services.yml
+	opts.Logger.Debug("Validating services")
+	var services service.Collection
+	_, err = readServices(op, r, readServicesOptions{
+		collection: &services,
+		strict:     opts.Strict,
+	})
+	if err != nil {
+		result.ServicesErr = err
+	} else {
+		// Perform additional validations
+		// Keep track of ports to check for conflicting ports
+		usedPorts := make(map[string]string)
+		var errs errors.List
+		for it := services.Iter(); it.Next(); {
+			s := it.Value()
+			// Check for port conflict. Port conflicts shouldn't be allowed in the same registry
+			// since this just causes confusion and a poor user experience.
+			for _, p := range s.Ports {
+				// ports are of the form EXTERNAL:INTERNAL
+				// get external part
+				exposedPort := strings.Split(p, ":")[0]
+				conflict, ok := usedPorts[exposedPort]
+				if !ok {
+					usedPorts[exposedPort] = s.Name
+					continue
+				}
+
+				// Handle port conflict
+				msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
+				errs = append(errs, &resource.ValidationError{
+					Resource: s,
+					Messages: []string{msg},
+				})
+			}
+		}
+		if len(errs) > 0 {
+			result.ServicesErr = errs
+		}
+	}
+	return result
+}
+
+// registryServiceConfig represents a services.yml file in a registry.
 type registryServiceConfig struct {
 	Global struct {
 		BaseImages      []string          `yaml:"baseImages"`
@@ -50,32 +291,6 @@ type registryServiceConfig struct {
 		Variables       map[string]string `yaml:"variables"`
 	} `yaml:"global"`
 	Services map[string]service.Service `yaml:"services"`
-}
-
-type registryAppConfig struct {
-	IOSApps     map[string]app.App `yaml:"iosApps"`
-	DesktopApps map[string]app.App `yaml:"desktopApps"`
-}
-
-func readRegistryFile(op errors.Op, filename string, r Registry, v interface{}) error {
-	fp := filepath.Join(r.Path, filename)
-	f, err := os.Open(fp)
-	if err != nil {
-		return errors.Wrap(err, errors.Meta{
-			Kind:   errkind.IO,
-			Reason: fmt.Sprintf("failed to open file %s in registry %s", filename, r.Name),
-			Op:     op,
-		})
-	}
-	defer f.Close()
-	if err := yaml.NewDecoder(f).Decode(v); err != nil {
-		return errors.Wrap(err, errors.Meta{
-			Kind:   errkind.IO,
-			Reason: fmt.Sprintf("failed to decode %s in registry %s", filename, r.Name),
-			Op:     op,
-		})
-	}
-	return nil
 }
 
 type readServicesOptions struct {
@@ -272,13 +487,18 @@ func readPlaylists(op errors.Op, r Registry, collection *playlist.Collection) er
 	return nil
 }
 
+// registryAppConfig represents an apps.yml file in a registry.
+type registryAppConfig struct {
+	IOSApps     map[string]app.App `yaml:"iosApps"`
+	DesktopApps map[string]app.App `yaml:"desktopApps"`
+}
+
 type readAppsOptions struct {
 	iosCollection     *app.Collection
 	desktopCollection *app.Collection
 }
 
 // readPlaylists reads the app config from the registry r.
-// If the given collection is nil, apps are only validated.
 func readApps(op errors.Op, r Registry, opts readAppsOptions) error {
 	var appConf registryAppConfig
 	err := readRegistryFile(op, AppsFileName, r, &appConf)
@@ -316,204 +536,26 @@ func readApps(op errors.Op, r Registry, opts readAppsOptions) error {
 	return nil
 }
 
-// ReadAllOptions allows for customizing the behaviour of ReadAll.
-type ReadAllOptions struct {
-	// ReadServices specifies if services and playlists should be read.
-	ReadServices bool
-	// ReadApps specifies if apps should be read.
-	ReadApps bool
-	// HomeDir specifies the home directory that should be used for expanding paths.
-	HomeDir string
-	// RootPath is the root path where tb stores files.
-	// It is required if ReadServices is true.
-	RootPath string
-	// ReposPath is the path where cloned repos are stored.
-	// It is required if ReadServices is true.
-	ReposPath string
-	// Overrides are any overrides that should be applied to services.
-	Overrides map[string]service.ServiceOverride
-	// Logger can be provided to log debug details while reading registries.
-	// If it is nil, logging is off.
-	Logger progress.Logger
-}
-
-// ReadAllResult contains the result of reading a list of registries.
-type ReadAllResult struct {
-	// Services is a collection of all services read.
-	// If ReadAllOptions.ReadServices was false, it will be nil.
-	Services *service.Collection
-	// Playlists is a collection of all playlists read.
-	// If ReadAllOptions.ReadServices was false, it will be nil.
-	Playlists *playlist.Collection
-	// IOSApps is a collection of all iOS apps read.
-	// If ReadAllOptions.ReadApps was false, it will be nil.
-	IOSApps *app.Collection
-	// DesktopApps is a collection of all desktop apps read.
-	// If ReadAllOptions.ReadApps was false, it will be nil.
-	DesktopApps *app.Collection
-	// BaseImages is a list of all base images read.
-	// If ReadAllOptions.ReadServices was false, it will be empty.
-	BaseImages []string
-	// BaseImages is a list of all login strategies read.
-	// If ReadAllOptions.ReadServices was false, it will be empty.
-	LoginStrategies []string
-}
-
-// ReadAll reads all the given registries and returns the combined result.
-func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) {
-	const op = errors.Op("registry.ReadAll")
-	var result ReadAllResult
-	if opts.ReadServices {
-		result.Services = &service.Collection{}
-		result.Playlists = &playlist.Collection{}
-	}
-	if opts.ReadApps {
-		result.IOSApps = &app.Collection{}
-		result.DesktopApps = &app.Collection{}
-	}
-	if opts.Logger == nil {
-		opts.Logger = progress.NoopTracker{}
-	}
-
-	for _, r := range registries {
-		if opts.ReadServices {
-			opts.Logger.Debugf("Reading services from registry %s", r.Name)
-			globalConf, err := readServices(op, r, readServicesOptions{
-				collection: result.Services,
-				homeDir:    opts.HomeDir,
-				rootPath:   opts.RootPath,
-				reposPath:  opts.ReposPath,
-				overrides:  opts.Overrides,
-			})
-			if errors.Is(err, fs.ErrNotExist) {
-				// No file, do nothing
-				opts.Logger.Debugf("registry %s has no %s", r.Name, ServicesFileName)
-			} else if err != nil {
-				return result, errors.Wrap(err, errors.Meta{
-					Reason: fmt.Sprintf("failed to read services from registry %s", r.Name),
-					Op:     op,
-				})
-			}
-
-			opts.Logger.Debugf("Reading playlists from registry %s", r.Name)
-			err = readPlaylists(op, r, result.Playlists)
-			if errors.Is(err, fs.ErrNotExist) {
-				// No file, do nothing
-				opts.Logger.Debugf("registry %s has no %s", r.Name, PlaylistsFileName)
-			} else if err != nil {
-				return result, errors.Wrap(err, errors.Meta{
-					Reason: fmt.Sprintf("failed to read playlists from registry %s", r.Name),
-					Op:     op,
-				})
-			}
-
-			result.BaseImages = append(result.BaseImages, globalConf.baseImages...)
-			result.LoginStrategies = append(result.LoginStrategies, globalConf.loginStrategies...)
-		}
-		if opts.ReadApps {
-			opts.Logger.Debugf("Reading apps from registry %s", r.Name)
-			err := readApps(op, r, readAppsOptions{
-				iosCollection:     result.IOSApps,
-				desktopCollection: result.DesktopApps,
-			})
-			if errors.Is(err, fs.ErrNotExist) {
-				// No file, do nothing
-				opts.Logger.Debugf("registry %s has no %s", r.Name, AppsFileName)
-			} else if err != nil {
-				return result, errors.Wrap(err, errors.Meta{
-					Reason: fmt.Sprintf("failed to read apps from registry %s", r.Name),
-					Op:     op,
-				})
-			}
-		}
-	}
-	result.BaseImages = util.UniqueStrings(result.BaseImages)
-	result.LoginStrategies = util.UniqueStrings(result.LoginStrategies)
-	return result, nil
-}
-
-type ValidateResult struct {
-	AppsErr      error
-	PlaylistsErr error
-	ServicesErr  error
-}
-
-// Validate checks to see if the registry located at path is valid. It will read and validate
-// each configuration file in the registry. If strict is true unknown variables will be considered errors.
-//
-// Validate returns a ValidateResult struct that contains errors encountered for each resource.
-// If a configuration file is valid, then the corresponding error value will be nil. Otherwise,
-// the error will be a non-nil value containing the details of why validation failed.
-// If a configuration file does not exist, then the corresponding error will be fs.ErrNotExist.
-//
-// logger can be provided to allow debug logging of actions while validating.
-// If logger is nil, logging is off.
-func Validate(path string, strict bool, logger progress.Logger) ValidateResult {
-	const op = errors.Op("registry.Validate")
-	r := Registry{
-		// Name needs to be a proper registry name so just say the org is local
-		Name: "local/" + filepath.Base(path),
-		Path: path,
-	}
-	var result ValidateResult
-	if logger == nil {
-		logger = progress.NoopTracker{}
-	}
-
-	// Validate apps.yml
-	logger.Debug("Validating apps")
-	err := readApps(op, r, readAppsOptions{
-		iosCollection:     &app.Collection{},
-		desktopCollection: &app.Collection{},
-	})
+// readRegistryFile is a small helper to read a registry file and unmarshal it.
+// If the file does not exist, fs.ErrNotExist will be returned which can be checked
+// with errors.Is.
+func readRegistryFile(op errors.Op, filename string, r Registry, v interface{}) error {
+	fp := filepath.Join(r.Path, filename)
+	f, err := os.Open(fp)
 	if err != nil {
-		result.AppsErr = err
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to open file %s in registry %s", filename, r.Name),
+			Op:     op,
+		})
 	}
-	// Validate playlists.yml
-	logger.Debug("Validating playlists")
-	if err := readPlaylists(op, r, &playlist.Collection{}); err != nil {
-		result.PlaylistsErr = err
+	defer f.Close()
+	if err := yaml.NewDecoder(f).Decode(v); err != nil {
+		return errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: fmt.Sprintf("failed to decode %s in registry %s", filename, r.Name),
+			Op:     op,
+		})
 	}
-
-	// Validate services.yml
-	logger.Debug("Validating services")
-	var services service.Collection
-	_, err = readServices(op, r, readServicesOptions{
-		collection: &services,
-		strict:     strict,
-	})
-	if err != nil {
-		result.ServicesErr = err
-	} else {
-		// Perform additional validations
-		// Keep track of ports to check for conflicting ports
-		usedPorts := make(map[string]string)
-		var errs errors.List
-		it := services.Iter()
-		for it.Next() {
-			s := it.Value()
-			// Check for port conflict
-			for _, p := range s.Ports {
-				// ports are of the form EXTERNAL:INTERNAL
-				// get external part
-				exposedPort := strings.Split(p, ":")[0]
-				conflict, ok := usedPorts[exposedPort]
-				if !ok {
-					usedPorts[exposedPort] = s.Name
-					continue
-				}
-
-				// Handle port conflict
-				msg := fmt.Sprintf("conflicting port %s with service %s", exposedPort, conflict)
-				errs = append(errs, &resource.ValidationError{
-					Resource: s,
-					Messages: []string{msg},
-				})
-			}
-		}
-		if len(errs) > 0 {
-			result.ServicesErr = errs
-		}
-	}
-	return result
+	return nil
 }

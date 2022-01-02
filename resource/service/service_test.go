@@ -425,8 +425,7 @@ func TestCollectionIter(t *testing.T) {
 	is := is.New(t)
 	c := newCollection(t)
 	names := make([]string, 0, c.Len())
-	it := c.Iter()
-	for it.Next() {
+	for it := c.Iter(); it.Next(); {
 		names = append(names, it.Value().FullName())
 	}
 	sort.Strings(names)

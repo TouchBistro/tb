@@ -30,7 +30,10 @@ func newValidateCommand(c *cli.Container) *cobra.Command {
 			c.Tracker.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)
 
 			valid := true
-			result := registry.Validate(registryPath, opts.strict, c.Tracker)
+			result := registry.Validate(registryPath, registry.ValidateOptions{
+				Strict: opts.strict,
+				Logger: c.Tracker,
+			})
 			if errors.Is(result.AppsErr, fs.ErrNotExist) {
 				c.Tracker.Infof(color.Yellow("No %s file"), registry.AppsFileName)
 			} else if result.AppsErr == nil {

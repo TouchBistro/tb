@@ -1,3 +1,4 @@
+// Package docker provides functionality for working with docker in the context of tb.
 package docker
 
 import (

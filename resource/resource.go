@@ -1,6 +1,8 @@
 // Package resource provides support for working with resources managed by tb.
 //
-// Resources are services, playlists, and apps.
+// The resource package contains general purpose functionality that is common to all resources.
+// Resources are services, playlists, and apps. Specific functionality for each of these resource
+// is provided by the subpackages. See each subpackage for more details.
 package resource
 
 import (
@@ -43,8 +45,7 @@ func (t Type) String() string {
 }
 
 // ValidationError represents a resource having failed validation.
-// It contains the resource type and a list of validation
-// failure messages.
+// It contains the resource that failed validation and a list of validation failure messages.
 type ValidationError struct {
 	Resource Resource
 	Messages []string
@@ -95,6 +96,7 @@ func FullName(registryName, resourceName string) string {
 // TODO(@cszatmary): Change Collection and Iterator to be generic once go 1.18 is released.
 // This is a perfect candidate for generics since we are dealing with general purpose
 // data structures that are used for each type of resource.
+// I already tried this out on a separate branch with the go 1.18 beta and it worked great.
 
 // Collection stores a collection of resources.
 // Collection allows for efficiently looking up a resource by its
@@ -192,6 +194,13 @@ func (c *Collection) Set(r Resource) error {
 //
 // The iteration order over a Collection is not specified and is not guaranteed to be the same
 // from one iteration to the next.
+//
+// The API can easily be used with a while-style for loop:
+//
+//  for it := c.Iter(); it.Next(); {
+//      r := it.Value()
+//      // Do something with r...
+//  }
 type Iterator struct {
 	c *Collection
 	i int
@@ -199,6 +208,8 @@ type Iterator struct {
 
 // Iter creates a new Iterator that can be used to iterate over the resources in a Collection.
 func (c *Collection) Iter() *Iterator {
+	// Start at -1 since Next is required to be called before accessing the first element
+	// so when we increment we get to 0 the first element.
 	return &Iterator{c: c, i: -1}
 }
 
@@ -215,6 +226,10 @@ func (it *Iterator) Next() bool {
 // Value returns the current element in the iterator.
 // Value will panic if iteration has finished.
 func (it *Iterator) Value() Resource {
+	// Do an explicit length check so that we can panic with a custom message to make it clearer.
+	// We could just let accessing the underlying slice panic but the message would be confusing
+	// and would leak implementation details. Callers shouldn't know or care about the underlying
+	// resources slice.
 	if it.i >= len(it.c.resources) {
 		panic("resource.Iterator: out of bounds access")
 	}

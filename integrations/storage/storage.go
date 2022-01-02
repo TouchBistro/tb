@@ -12,7 +12,12 @@ import (
 
 // Provider represents all functionality provided by a blob storage provider.
 type Provider interface {
+	// GetObject retrieves a single object from the storage provider.
+	// It is the caller's responsibility to close the returned io.ReadCloser
+	// once they are done reading from it.
 	GetObject(ctx context.Context, bucket string, key string) (io.ReadCloser, error)
+	// ListObjectKeysByPrefix returns a list of keys for all objects in the given bucket
+	// that start with the give prefix.
 	ListObjectKeysByPrefix(ctx context.Context, bucket string, prefix string) ([]string, error)
 }
 

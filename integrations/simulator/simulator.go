@@ -1,3 +1,5 @@
+// Package simulator provides functionality for working with iOS simulators.
+// This package only works on macOS.
 package simulator
 
 import (

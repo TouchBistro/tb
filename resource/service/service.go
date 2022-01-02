@@ -1,4 +1,5 @@
-// Package service contains the types for defining services.
+// Package service contains functionality for working with Service resources.
+// A service is an application that can be run in a docker container.
 package service
 
 import (

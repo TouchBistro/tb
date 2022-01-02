@@ -1,4 +1,5 @@
-// Package playlist defines types for working with playlists.
+// Package playlist contains functionality for working with Playlist resources.
+// A playlist is a collection of services that can be run together.
 package playlist
 
 import (
@@ -114,8 +115,7 @@ func (c *Collection) resolveServiceNames(op errors.Op, name string, deps map[str
 // Name returns a list of the full names of all playlists in the collection.
 func (c *Collection) Names() []string {
 	names := make([]string, 0, c.collection.Len())
-	it := c.collection.Iter()
-	for it.Next() {
+	for it := c.collection.Iter(); it.Next(); {
 		names = append(names, it.Value().FullName())
 	}
 	return names
