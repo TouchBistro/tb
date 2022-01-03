@@ -4,7 +4,6 @@ import (
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
-	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
 )
@@ -34,9 +33,6 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			if err := deps.Resolve(ctx, deps.Brew, deps.Lazydocker); err != nil {
-				return err
-			}
 			err := c.Engine.Up(ctx, engine.UpOptions{
 				ServiceNames:   opts.serviceNames,
 				PlaylistName:   opts.playlistName,
@@ -52,11 +48,13 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			}
 			c.Tracker.Info("✔ Started services")
 
-			if !opts.skipLazydocker {
+			// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
+			const lazydocker = "lazydocker"
+			if !opts.skipLazydocker && command.IsAvailable(lazydocker) {
 				c.Tracker.Debug("Running lazydocker")
 				w := progress.LogWriter(c.Tracker, c.Tracker.WithFields(progress.Fields{"id": "lazydocker"}).Debug)
 				defer w.Close()
-				err := command.New(command.WithStdout(w), command.WithStderr(w)).Exec("lazydocker")
+				err := command.New(command.WithStdout(w), command.WithStderr(w)).Exec(lazydocker)
 				if err != nil {
 					return &cli.ExitError{
 						Message: "Failed running lazydocker",

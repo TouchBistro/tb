@@ -26,7 +26,7 @@ func main() {
 		}
 	}
 
-	// Listen oforSIGINT to do a graceful abort
+	// Listen for SIGINT to do a graceful abort
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	abort := make(chan os.Signal, 1)

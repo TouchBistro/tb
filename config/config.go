@@ -22,7 +22,6 @@ import (
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	"github.com/TouchBistro/tb/util"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -130,9 +129,8 @@ func Load(homedir string) (Config, error) {
 
 	// Resolve registry paths
 	for i, r := range config.Registries {
-		isLocal := r.LocalPath != ""
 		// Set true path for usage later
-		if isLocal {
+		if r.LocalPath != "" {
 			// Remind people they are using a local version in case they forgot
 			logrus.Infof("❗ Using a local version of the %s registry ❗", color.Cyan(r.Name))
 
@@ -199,40 +197,6 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		return nil, errors.Wrap(err, errors.Meta{
 			Kind:   errkind.IO,
 			Reason: fmt.Sprintf("failed to create tb root directory at %s", tbRoot),
-			Op:     op,
-		})
-	}
-
-	// TODO scope if there's a way to pass lazydocker a custom tb specific config
-	// Also consider creating a lazydocker package to abstract this logic so it doesn't seem so ad hoc
-	// Create lazydocker config
-	var ldDirPath string
-	if util.IsMacOS() {
-		ldDirPath = filepath.Join(homedir, "Library/Application Support/jesseduffield/lazydocker")
-	} else {
-		ldDirPath = filepath.Join(homedir, ".config/jesseduffield/lazydocker")
-	}
-	if err := os.MkdirAll(ldDirPath, 0o755); err != nil {
-		return nil, errors.Wrap(err, errors.Meta{
-			Kind:   errkind.IO,
-			Reason: fmt.Sprintf("failed to create lazydocker config directory %s", ldDirPath),
-			Op:     op,
-		})
-	}
-
-	const lazydockerConfig = `
-reporting: "off"
-gui:
-  wrapMainPanel: true
-update:
-  dockerRefreshInterval: 2000ms`
-
-	ldConfigPath := filepath.Join(ldDirPath, "config.yml")
-	err = os.WriteFile(ldConfigPath, []byte(lazydockerConfig), 0o644)
-	if err != nil {
-		return nil, errors.Wrap(err, errors.Meta{
-			Kind:   errkind.IO,
-			Reason: "failed to create lazydocker config file",
 			Op:     op,
 		})
 	}

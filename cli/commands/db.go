@@ -12,7 +12,6 @@ import (
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
-	"github.com/TouchBistro/tb/deps"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
 )
@@ -43,13 +42,13 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 
 			switch dbConf.dbType {
 			case "postgresql":
-				cliName = deps.Pgcli
+				cliName = "pgcli"
 				connArg = fmt.Sprintf("%s://%s:%s@localhost:%s/%s", dbConf.dbType, dbConf.user, dbConf.password, dbConf.port, dbConf.name)
 			case "mysql":
-				cliName = deps.Mycli
+				cliName = "mycli"
 				connArg = fmt.Sprintf("%s://%s:%s@localhost:%s/%s", dbConf.dbType, dbConf.user, dbConf.password, dbConf.port, dbConf.name)
 			case "mssql":
-				cliName = deps.Mssqlcli
+				cliName = "mssql-cli"
 				connArg = fmt.Sprintf("-U %s -P %s -S localhost -d %s", dbConf.user, dbConf.password, dbConf.name)
 				fmt.Println(connArg)
 			default:
@@ -57,15 +56,7 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			}
 
 			if !command.IsAvailable(cliName) {
-				shouldInstallCli := cli.Prompt(fmt.Sprintf("This command requires %s. Would you like tb to install it for you? y/n\n> ", cliName))
-				if !shouldInstallCli {
-					fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Consider installing it yourself or letting tb install it for you.", cliName, serviceName, dbConf.dbType)
-				}
-			}
-
-			err = deps.Resolve(ctx, cliName)
-			if err != nil {
-				fatal.ExitErrf(err, "could not install %s", cliName)
+				fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Please install it then run tb db.", cliName, serviceName, dbConf.dbType)
 			}
 
 			c.Tracker.Infof("starting %s...", cliName)
