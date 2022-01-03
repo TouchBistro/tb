@@ -3,7 +3,7 @@ project_name: tb
 before:
   hooks:
     - go mod tidy
-    - go run scripts/build-artifacts/main.go
+    - make artifacts
 
 builds:
   - env:
@@ -28,7 +28,6 @@ archives:
       - README.md
       - artifacts/tb.bash
       - artifacts/_tb
-      - artifacts/man1/*
 
 checksum:
   name_template: 'checksums.txt'
@@ -60,7 +59,6 @@ brews:
       bin.install "tb"
       bash_completion.install "artifacts/tb.bash"
       zsh_completion.install "artifacts/_tb"
-      man1.install Dir["artifacts/man1/*.1"]
 
 release:
   github:

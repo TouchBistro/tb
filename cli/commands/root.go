@@ -102,6 +102,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 		appCommands.NewAppCommand(c),
 		registryCommands.NewRegistryCommand(c),
 		newCloneCommand(c),
+		newCompletionsCommand(),
 		newDBCommand(c),
 		newDownCommand(c),
 		newExecCommand(c),

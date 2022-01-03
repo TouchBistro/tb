@@ -1,4 +1,5 @@
 .DEFAULT_GOAL = build
+TB = go run main.go
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:
@@ -17,6 +18,12 @@ endif
 build: ## Build tb
 	go build
 .PHONY: build
+
+artifacts: ## Generate artifacts for distribution
+	@mkdir -p artifacts
+	@$(TB) completions bash > artifacts/tb.bash
+	@$(TB) completions zsh > artifacts/_tb
+.PHONY: artifacts
 
 clean: ## Clean all build artifacts
 	rm -rf artifacts
