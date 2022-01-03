@@ -18,13 +18,15 @@ func newValidateCommand(c *cli.Container) *cobra.Command {
 	var opts validateOptions
 	validateCmd := &cobra.Command{
 		Use:   "validate <path>",
-		Args:  cobra.ExactArgs(1),
-		Short: "Validates the config files of a registry at the given path.",
-		Long: `Validates the config files of a registry at the given path.
+		Args:  cli.ExpectSingleArg("registry path"),
+		Short: "Validate the config files in a registry",
+		Long: `Validates the config files in a registry at the given path.
 
-	Example:
-	- validates the config files in the current directory
-	  tb registry validate .`,
+Examples:
+
+Validate the config files in the current directory:
+
+	tb registry validate .`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			registryPath := args[0]
 			c.Tracker.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)

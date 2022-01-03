@@ -120,6 +120,7 @@ func New(opts Options) (*Engine, error) {
 
 	return &Engine{
 		workdir:          opts.Workdir,
+		experimentalMode: opts.ExperimentalMode,
 		services:         opts.Services,
 		playlists:        opts.Playlists,
 		iosApps:          opts.IOSApps,
@@ -133,6 +134,11 @@ func New(opts Options) (*Engine, error) {
 		composeClient:    opts.ComposeClient,
 		storageProviders: make(map[string]storage.Provider),
 	}, nil
+}
+
+// Workdir returns the path to the directory where tb stores data.
+func (e *Engine) Workdir() string {
+	return e.workdir
 }
 
 // ExperimentalMode returns whether or not experimental mode is enabled.

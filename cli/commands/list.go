@@ -22,7 +22,23 @@ func newListCommand(c *cli.Container) *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
-		Short:   "Lists all available services",
+		Short:   "List available services and playlists",
+		Long: `Lists available services, playlists, and custom playlists.
+Custom playlists are playlists that are defined in a user's .tbrc.yml.
+
+Examples:
+
+List all services, playlists, and custom playlists:
+
+	tb list
+
+List only services:
+
+	tb list --services
+
+List only custom playlists along with the services in each playlist (tree mode):
+
+	tb list --custom-playlists --tree`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// If no flags provided show everything
 			if !opts.listServices && !opts.listPlaylists && !opts.listCustomPlaylists {
@@ -56,10 +72,10 @@ func newListCommand(c *cli.Container) *cobra.Command {
 	}
 
 	flags := listCmd.Flags()
-	flags.BoolVarP(&opts.listServices, "services", "s", false, "list services")
-	flags.BoolVarP(&opts.listPlaylists, "playlists", "p", false, "list playlists")
-	flags.BoolVarP(&opts.listCustomPlaylists, "custom-playlists", "c", false, "list custom playlists")
-	flags.BoolVarP(&opts.treeMode, "tree", "t", false, "tree mode, show playlist services")
+	flags.BoolVarP(&opts.listServices, "services", "s", false, "List services")
+	flags.BoolVarP(&opts.listPlaylists, "playlists", "p", false, "List playlists")
+	flags.BoolVarP(&opts.listCustomPlaylists, "custom-playlists", "c", false, "List custom playlists")
+	flags.BoolVarP(&opts.treeMode, "tree", "t", false, "Tree mode, show each playlist's services")
 	return listCmd
 }
 

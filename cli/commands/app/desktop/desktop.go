@@ -8,7 +8,8 @@ import (
 func NewDesktopCommand(c *cli.Container) *cobra.Command {
 	desktopCmd := &cobra.Command{
 		Use:   "desktop",
-		Short: "tb app desktop allows running and managing desktop applications",
+		Short: "Running and manage desktop apps",
+		Long:  `tb app desktop allows running and managing desktop apps.`,
 	}
 	desktopCmd.AddCommand(newRunCommand(c))
 	return desktopCmd

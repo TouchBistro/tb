@@ -17,7 +17,20 @@ func newLogsCommand(c *cli.Container) *cobra.Command {
 	var opts logsOptions
 	logsCmd := &cobra.Command{
 		Use:   "logs [services...]",
+		Args:  cobra.ArbitraryArgs,
 		Short: "View logs from containers",
+		Long: `View logs from service containers. By default logs from all running service containers are shown.
+Service names can be provided as args to filter logs to only containers for those services.
+
+Examples:
+
+Show logs from all service containers:
+
+	tb logs
+
+Show logs only from the postgres and redis containers:
+
+	tb logs postgres redis`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			return c.Engine.Logs(ctx, os.Stdout, engine.LogsOptions{
@@ -32,6 +45,6 @@ func newLogsCommand(c *cli.Container) *cobra.Command {
 	}
 
 	flags := logsCmd.Flags()
-	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "dont update git repositories")
+	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
 	return logsCmd
 }

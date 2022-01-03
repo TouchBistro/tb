@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/TouchBistro/goutils/progress"
@@ -16,17 +17,25 @@ type execOptions struct {
 func newExecCommand(c *cli.Container) *cobra.Command {
 	var opts execOptions
 	execCmd := &cobra.Command{
-		Use:   "exec <service-name> <command> [additional-commands...]",
-		Short: "executes a command in a service container",
+		Use: "exec <service> <command> [args...]",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 2 {
+				return fmt.Errorf("expected at least 2 args for service name and command to run")
+			}
+			return nil
+		},
+		Short: "Execute a command in a service container",
 		Long: `Executes a command in a service container.
 
-	Examples:
-	- run yarn db:prepare:test in the core-database container.
-		tb exec core-database yarn db:prepare:test
+Examples:
 
-	- start an interactive shell in the core-database container.
-		tb exec core-database bash`,
-		Args: cobra.MinimumNArgs(2),
+Run yarn db:prepare:test in the core-database container:
+
+	tb exec core-database yarn db:prepare:test
+
+Start an interactive bash shell in the core-database container:
+
+	tb exec core-database bash`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			exitCode, err := c.Engine.Exec(ctx, args[0], engine.ExecOptions{
@@ -46,6 +55,6 @@ func newExecCommand(c *cli.Container) *cobra.Command {
 	}
 
 	flags := execCmd.Flags()
-	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "dont update git repositories")
+	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
 	return execCmd
 }

@@ -20,12 +20,18 @@ func newListCommand(c *cli.Container) *cobra.Command {
 		Use:     "list",
 		Aliases: []string{"ls"},
 		Args:    cobra.NoArgs,
-		Short:   "Lists all available apps",
+		Short:   "List available apps",
 		Long: `Lists all available apps. Flags can be used to list only specific types of apps.
 
-	Examples:
-	- List only iOS apps
-	  tb apps list --ios`,
+Examples:
+
+List all apps of every kind:
+
+	tb app list
+
+List all iOS apps:
+
+	tb app list --ios`,
 		Run: func(cmd *cobra.Command, args []string) {
 			// If no flags provided show everything
 			if !opts.listIOSApps && !opts.listDesktopApps {
@@ -54,7 +60,7 @@ func newListCommand(c *cli.Container) *cobra.Command {
 	}
 
 	flags := listCmd.Flags()
-	flags.BoolVar(&opts.listIOSApps, "ios", false, "list iOS apps")
-	flags.BoolVar(&opts.listDesktopApps, "desktop", false, "list desktop apps")
+	flags.BoolVar(&opts.listIOSApps, "ios", false, "List iOS apps")
+	flags.BoolVar(&opts.listDesktopApps, "desktop", false, "List desktop apps")
 	return listCmd
 }

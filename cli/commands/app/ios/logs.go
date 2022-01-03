@@ -20,14 +20,18 @@ func newLogsCommand(c *cli.Container) *cobra.Command {
 	var opts logsOptions
 	logsCmd := &cobra.Command{
 		Use:   "logs",
-		Short: "Displays logs from the given simulator",
+		Args:  cobra.NoArgs,
+		Short: "Display logs from a simulator",
 		Long: `Displays logs from the given simulator.
 
 Examples:
-- displays the last 10 logs in the default iOS simulator
+
+Displays the last 10 logs in the default iOS simulator:
+
 	tb app logs
 
-- displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator
+Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
+
 	tb app logs --number 20 --ios-version 12.4 --device iPad Air 2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)

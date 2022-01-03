@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/TouchBistro/goutils/color"
@@ -12,17 +13,19 @@ import (
 func newAddCommand(c *cli.Container) *cobra.Command {
 	return &cobra.Command{
 		Use:   "add <registry-name>",
-		Args:  cobra.ExactArgs(1),
-		Short: "Adds a registry to tb",
-		Long: `Adds a registry to tb.
+		Args:  cli.ExpectSingleArg("registry name"),
+		Short: "Add a registry",
+		Long: `Adds a registry to tb. If the registry has already been added, the command will no-op.
 
-	Example:
-	- adds the registry named TouchBistro/tb-registry-example
-	  tb registry add TouchBistro/tb-registry-example`,
+Examples:
+
+Add the registry named TouchBistro/tb-registry-example:
+
+	tb registry add TouchBistro/tb-registry-example`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			registryName := args[0]
 			err := config.AddRegistry(registryName, "")
-			if err == config.ErrRegistryExists {
+			if errors.Is(err, config.ErrRegistryExists) {
 				c.Tracker.Infof(color.Green("☑ registry %s has already been added"), registryName)
 				return nil
 			} else if err != nil {

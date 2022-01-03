@@ -10,7 +10,21 @@ import (
 func newDownCommand(c *cli.Container) *cobra.Command {
 	downCmd := &cobra.Command{
 		Use:   "down [services...]",
+		Args:  cobra.ArbitraryArgs,
 		Short: "Stop and remove containers",
+		Long: `Stops and removes running service containers.
+By default all running service containers are stopped and removed.
+Args can be provided to only stop and remove specific containers.
+
+Examples:
+
+Stop and remove all service containers:
+
+	tb down
+
+Stop and remove on the postgres and redis containers:
+
+	tb down postgres redis`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			err := c.Engine.Down(ctx, engine.DownOptions{ServiceNames: args})

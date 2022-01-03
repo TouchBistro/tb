@@ -10,7 +10,10 @@ import (
 func NewAppCommand(c *cli.Container) *cobra.Command {
 	appCmd := &cobra.Command{
 		Use:   "app",
-		Short: "tb app allows running and managing different kinds of applications",
+		Short: "Run and manage apps",
+		Long: `tb app provides functionality for working with different kinds of applications.
+
+For working with iOS apps see 'tb app ios'. For working with desktop apps see 'tb app destkop'.`,
 	}
 	appCmd.AddCommand(desktop.NewDesktopCommand(c), ios.NewiOSCommand(c), newListCommand(c))
 	return appCmd

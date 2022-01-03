@@ -9,6 +9,7 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 // Container stores all the dependencies that can be used by commands.
@@ -52,6 +53,7 @@ func (l Logger) WithFields(fields progress.Fields) progress.Logger {
 	return Logger{l.FieldLogger.WithFields(logrus.Fields(fields))}
 }
 
+// Prompt prompts the user for the answer to a yes/no question.
 func Prompt(msg string) bool {
 	// check for yes and assume no on any other input to avoid annoyance
 	fmt.Print(msg)
@@ -64,4 +66,17 @@ func Prompt(msg string) bool {
 		return true
 	}
 	return false
+}
+
+// ExpectSingleArg returns a function that validates the command only receives a single arg.
+// name is the name of the arg and is used in the error message.
+func ExpectSingleArg(name string) cobra.PositionalArgs {
+	return func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			return fmt.Errorf("expected 1 arg for %s", name)
+		} else if len(args) > 1 {
+			return fmt.Errorf("expected 1 arg for %s, received %d args", name, len(args))
+		}
+		return nil
+	}
 }
