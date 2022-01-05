@@ -2,24 +2,43 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
-	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/progress"
-	"github.com/TouchBistro/tb/errkind"
 )
 
-type LogsOptions struct {
-	Follow bool
-	Tail   int
+// This file should be kept as general purpose as possible.
+// Hopefully in the future if a docker compose library is released
+// we can switch to that instead and remove this.
+
+const ComposeFilename = "docker-compose.yml"
+
+// ComposeAPIClient represents the functionality provided by docker-compose.
+type ComposeAPIClient interface {
+	ComposeBuild(ctx context.Context, project ComposeProject, services []string) error
+	ComposeUp(ctx context.Context, project ComposeProject, services []string) error
+	ComposeRun(ctx context.Context, project ComposeProject, opts ComposeRunOptions) error
+	ComposeExec(ctx context.Context, project ComposeProject, opts ComposeRunOptions) (int, error)
+	ComposeLogs(ctx context.Context, project ComposeProject, opts ComposeLogsOptions) error
 }
 
-type ExecOptions struct {
+// ComposeProject encapsulates information on a docker-compose project.
+type ComposeProject struct {
+	// Name is the name of the project. It is used for labels on docker resources.
+	Name string
+	// Workdir is the directory where the project is located.
+	// This directory is expected to contain a docker-compose.yml file.
+	Workdir string
+}
+
+type ComposeRunOptions struct {
+	// Service is the service to run the command on. It must not be empty.
+	Service string
 	// Cmd is the command to execute. It must have at
 	// least one element which is the name of the command.
 	// Any additional elements are args for the command.
@@ -29,89 +48,45 @@ type ExecOptions struct {
 	Stderr io.Writer
 }
 
-// Compose represents functionality provided by docker-compose.
-type Compose interface {
-	Build(ctx context.Context, services []string) error
-	Run(ctx context.Context, service, cmd string) error
-	Up(ctx context.Context, services []string) error
-	Logs(ctx context.Context, services []string, w io.Writer, opts LogsOptions) error
-	Exec(ctx context.Context, service string, opts ExecOptions) (int, error)
+type ComposeLogsOptions struct {
+	Services []string
+	Out      io.Writer
+	Follow   bool
+	Tail     string
 }
 
-// NewCompose returns a new Compose instance.
-// projectDir is expected to contain a docker-compose.yml file.
-// projectName is used for labeling resources created by Compose.
-func NewCompose(projectDir, projectName string) Compose {
-	return &compose{
-		composeFile: filepath.Join(projectDir, "docker-compose.yml"),
-		cmd:         "docker-compose",
-		projectName: projectName,
-	}
+func (c *apiClient) ComposeBuild(ctx context.Context, project ComposeProject, services []string) error {
+	return c.exec(ctx, execOptions{
+		project: project,
+		args:    append([]string{"build", "--parallel"}, services...),
+	})
 }
 
-// compose is an implementation of Compose that uses the docker-compose command.
-type compose struct {
-	// composeFile is the path to the docker-compose.yml file.
-	composeFile string
-	cmd         string // the command to run
-	projectName string
+func (c *apiClient) ComposeUp(ctx context.Context, project ComposeProject, services []string) error {
+	return c.exec(ctx, execOptions{
+		project: project,
+		args:    append([]string{"up", "-d"}, services...),
+	})
 }
 
-func (c *compose) Build(ctx context.Context, services []string) error {
-	args := append([]string{"build", "--parallel"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Build", nil, args...)
+func (c *apiClient) ComposeRun(ctx context.Context, project ComposeProject, opts ComposeRunOptions) error {
+	return c.exec(ctx, execOptions{
+		project: project,
+		args:    append([]string{"run", "--rm", opts.Service}, opts.Cmd...),
+		stdin:   opts.Stdin,
+		stdout:  opts.Stdout,
+		stderr:  opts.Stderr,
+	})
 }
 
-func (c *compose) Run(ctx context.Context, service, cmd string) error {
-	args := append([]string{"run", "--rm", NormalizeName(service)}, strings.Fields(cmd)...)
-	return c.exec(ctx, "docker.Compose.Run", nil, args...)
-}
-
-func (c *compose) Up(ctx context.Context, services []string) error {
-	args := append([]string{"up", "-d"}, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Up", nil, args...)
-}
-
-func (c *compose) Logs(ctx context.Context, services []string, w io.Writer, opts LogsOptions) error {
-	tail := "all"
-	if opts.Tail >= 0 {
-		tail = strconv.Itoa(opts.Tail)
-	}
-	args := []string{"logs", "--tail", tail}
-	if opts.Follow {
-		args = append(args, "--follow")
-	}
-	args = append(args, normalizeNames(services)...)
-	return c.exec(ctx, "docker.Compose.Up", w, args...)
-}
-
-func (c *compose) Exec(ctx context.Context, service string, opts ExecOptions) (int, error) {
-	const op = errors.Op("docker.Compose.Exec")
-	if len(opts.Cmd) == 0 {
-		panic("ExecOptions.Cmd must have at least one element")
-	}
-
-	// Exec is special so we won't use c.exec but do it manually
-
-	if opts.Stdout == nil || opts.Stderr == nil {
-		tracker := progress.TrackerFromContext(ctx)
-		w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
-		defer w.Close()
-		if opts.Stdout == nil {
-			opts.Stdout = w
-		}
-		if opts.Stderr == nil {
-			opts.Stderr = w
-		}
-	}
-
-	args := []string{c.cmd, "--project-name", c.projectName, "--file", c.composeFile, "exec", NormalizeName(service)}
-	args = append(args, opts.Cmd...)
-	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
-	cmd.Stdin = opts.Stdin
-	cmd.Stdout = opts.Stdout
-	cmd.Stderr = opts.Stderr
-	err := cmd.Run()
+func (c *apiClient) ComposeExec(ctx context.Context, project ComposeProject, opts ComposeRunOptions) (int, error) {
+	err := c.exec(ctx, execOptions{
+		project: project,
+		args:    append([]string{"exec", opts.Service}, opts.Cmd...),
+		stdin:   opts.Stdin,
+		stdout:  opts.Stdout,
+		stderr:  opts.Stderr,
+	})
 
 	var exitErr *exec.ExitError
 	if errors.As(err, &exitErr) {
@@ -120,44 +95,61 @@ func (c *compose) Exec(ctx context.Context, service string, opts ExecOptions) (i
 		return exitErr.ExitCode(), nil
 	}
 	if err != nil {
-		return -1, errors.Wrap(err, errors.Meta{
-			Kind:   errkind.DockerCompose,
-			Reason: fmt.Sprintf("failed to run %q", strings.Join(args, " ")),
-			Op:     op,
-		})
+		return -1, err
 	}
 	return 0, nil
 }
 
-func (c *compose) exec(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
-	tracker := progress.TrackerFromContext(ctx)
-	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
-	defer w.Close()
-	if stdout == nil {
-		stdout = w
+func (c *apiClient) ComposeLogs(ctx context.Context, project ComposeProject, opts ComposeLogsOptions) error {
+	if opts.Tail != "" {
+		opts.Tail = "all"
 	}
-
-	finalArgs := append([]string{c.cmd, "--project-name", c.projectName, "--file", c.composeFile}, args...)
-	cmd := exec.CommandContext(ctx, finalArgs[0], finalArgs[1:]...)
-	cmd.Stdout = stdout
-	cmd.Stderr = w
-	if err := cmd.Run(); err != nil {
-		return errors.Wrap(err, errors.Meta{
-			Kind:   errkind.DockerCompose,
-			Reason: fmt.Sprintf("failed to run %q", strings.Join(finalArgs, " ")),
-			Op:     op,
-		})
+	args := []string{"logs", "--tail", opts.Tail}
+	if opts.Follow {
+		args = append(args, "--follow")
 	}
-	return nil
+	return c.exec(ctx, execOptions{
+		project: project,
+		args:    append(args, opts.Services...),
+		stdout:  opts.Out,
+	})
 }
 
-// normalizeNames calls normalizeName on each name.
-func normalizeNames(names []string) []string {
-	nn := make([]string, len(names))
-	for i, n := range names {
-		nn[i] = NormalizeName(n)
+type execOptions struct {
+	project ComposeProject
+	args    []string
+	stdin   io.Reader
+	stdout  io.Writer
+	stderr  io.Writer
+}
+
+func (c *apiClient) exec(ctx context.Context, opts execOptions) error {
+	const cmdName = "docker-compose"
+	var w io.Writer
+	if opts.stdout == nil || opts.stderr == nil {
+		tracker := progress.TrackerFromContext(ctx)
+		op := fmt.Sprintf("%s-%s", cmdName, opts.args[0])
+		wc := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+		defer wc.Close()
+		w = wc
 	}
-	return nn
+	if opts.stdout == nil {
+		opts.stdout = w
+	}
+	if opts.stderr == nil {
+		opts.stderr = w
+	}
+
+	fp := filepath.Join(opts.project.Workdir, ComposeFilename)
+	args := append([]string{cmdName, "--project-name", opts.project.Name, "--file", fp}, opts.args...)
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd.Stdin = opts.stdin
+	cmd.Stdout = opts.stdout
+	cmd.Stderr = opts.stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to run %q: %w", strings.Join(args, " "), err)
+	}
+	return nil
 }
 
 // ComposeConfig represents the configuration for docker compose

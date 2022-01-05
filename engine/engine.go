@@ -30,7 +30,6 @@ type Engine struct {
 
 	gitClient        git.Git
 	dockerClient     *docker.Docker
-	composeClient    docker.Compose
 	storageProviders map[string]storage.Provider // cached providers for reuse
 }
 
@@ -69,9 +68,6 @@ type Options struct {
 	// GitClient is the client to use for git operations.
 	// This allows for overriding the default git client if provided.
 	GitClient git.Git
-	// ComposeClient is the client to use for docker-compose operations.
-	// This allows for overriding the default docker-compose client if provided.
-	ComposeClient docker.Compose
 	// DockerOptions is used to customize docker operations.
 	DockerOptions docker.Options
 }
@@ -110,10 +106,7 @@ func New(opts Options) (*Engine, error) {
 	if opts.GitClient == nil {
 		opts.GitClient = git.New()
 	}
-	if opts.ComposeClient == nil {
-		opts.ComposeClient = docker.NewCompose(opts.Workdir, projectName)
-	}
-	dockerClient, err := docker.New(projectName, opts.DockerOptions)
+	dockerClient, err := docker.New(projectName, opts.Workdir, opts.DockerOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Op: op})
 	}
@@ -131,7 +124,6 @@ func New(opts Options) (*Engine, error) {
 		concurrency:      opts.Concurrency,
 		gitClient:        opts.GitClient,
 		dockerClient:     dockerClient,
-		composeClient:    opts.ComposeClient,
 		storageProviders: make(map[string]storage.Provider),
 	}, nil
 }

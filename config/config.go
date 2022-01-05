@@ -16,6 +16,7 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/registry"
@@ -277,7 +278,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 
 		// Create docker-compose.yml
 		tracker.Debug("Generating docker-compose.yml file")
-		composePath := filepath.Join(tbRoot, "docker-compose.yml")
+		composePath := filepath.Join(tbRoot, docker.ComposeFilename)
 		f, err := os.OpenFile(composePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 		if err != nil {
 			return nil, errors.Wrap(err, errors.Meta{

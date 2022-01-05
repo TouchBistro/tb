@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"context"
+	"sort"
 	"testing"
 
 	"github.com/TouchBistro/tb/engine"
@@ -122,6 +123,9 @@ func TestDown(t *testing.T) {
 			// Check to make sure those containers were removed
 			remaining, err := dockerAPIClient.ContainerList(ctx, dockertypes.ContainerListOptions{All: true})
 			is.NoErr(err)
+			sort.Slice(remaining, func(i, j int) bool {
+				return remaining[i].ID < remaining[j].ID
+			})
 			is.Equal(remaining, tt.remainingContainers)
 		})
 	}
@@ -503,9 +507,6 @@ func newEngine(t *testing.T, opts engine.Options) *engine.Engine {
 	}
 	if opts.GitClient == nil {
 		opts.GitClient = git.NewMock()
-	}
-	if opts.ComposeClient == nil {
-		opts.ComposeClient = docker.NewMockCompose()
 	}
 	if opts.DockerOptions.APIClient == nil {
 		opts.DockerOptions.APIClient = docker.NewMockAPIClient(docker.MockAPIClientOptions{})

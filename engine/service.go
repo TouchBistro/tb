@@ -104,11 +104,10 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	}
 
 	// Cleanup previous docker state
-	serviceNames := getServiceNames(services)
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Cleaning up previous docker state",
 	}, func(ctx context.Context) error {
-		return e.stopServices(ctx, op, serviceNames)
+		return e.stopServices(ctx, op, services)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to clean up previous docker state", Op: op})
@@ -174,7 +173,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 		err := progress.Run(ctx, progress.RunOptions{
 			Message: "Building docker images for services",
 		}, func(ctx context.Context) error {
-			return e.composeClient.Build(ctx, serviceNames)
+			return e.dockerClient.BuildServices(ctx, buildServices)
 		})
 		if err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to build docker images for services", Op: op})
@@ -196,7 +195,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 				}
 
 				tracker.Debugf("Running pre-run for %s", s.FullName())
-				if err := e.composeClient.Run(ctx, s.FullName(), s.PreRun); err != nil {
+				if err := e.dockerClient.RunService(ctx, s.FullName(), s.PreRun); err != nil {
 					return errors.Wrap(err, errors.Meta{
 						Reason: fmt.Sprintf("failed to run pre-run command for %s", s.FullName()),
 						Op:     op,
@@ -216,7 +215,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Starting services in the background",
 	}, func(ctx context.Context) error {
-		return e.composeClient.Up(ctx, serviceNames)
+		return e.dockerClient.UpServices(ctx, getServiceNames(services))
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to start services", Op: op})
@@ -241,7 +240,7 @@ func (e *Engine) Down(ctx context.Context, opts DownOptions) error {
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
 	}, func(ctx context.Context) error {
-		return e.stopServices(ctx, op, getServiceNames(services))
+		return e.stopServices(ctx, op, services)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop services", Op: op})
@@ -254,7 +253,7 @@ type LogsOptions struct {
 	// ServiceNames is a list of services names for which to retrieve logs.
 	// If empty, logs will be listed for all services.
 	ServiceNames []string
-	// Follow follows the log output.
+	// Follow follows the log output. It shows new logs in real time.
 	Follow bool
 	// Tail is the number of lines to show from the end of the logs.
 	// A value of -1 means show all logs.
@@ -274,9 +273,11 @@ func (e *Engine) Logs(ctx context.Context, w io.Writer, opts LogsOptions) error 
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
 		return err
 	}
-	err = e.composeClient.Logs(ctx, getServiceNames(services), w, docker.LogsOptions{
-		Follow: opts.Follow,
-		Tail:   opts.Tail,
+	err = e.dockerClient.LogsFromServices(ctx, docker.LogsFromServicesOptions{
+		ServiceNames: getServiceNames(services),
+		Out:          w,
+		Follow:       opts.Follow,
+		Tail:         opts.Tail,
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to view logs", Op: op})
@@ -316,7 +317,7 @@ func (e *Engine) Exec(ctx context.Context, serviceName string, opts ExecOptions)
 	if err != nil {
 		return -1, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
 	}
-	exitCode, err := e.composeClient.Exec(ctx, s.FullName(), docker.ExecOptions{
+	exitCode, err := e.dockerClient.ExecInService(ctx, s.FullName(), docker.ExecInServiceOptions{
 		Cmd:    opts.Cmd,
 		Stdin:  opts.Stdin,
 		Stdout: opts.Stdout,
@@ -692,11 +693,12 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 }
 
 // stopServices stops and removes any containers for the given services.
-func (e *Engine) stopServices(ctx context.Context, op errors.Op, serviceNames []string) error {
-	tracker := progress.TrackerFromContext(ctx)
+func (e *Engine) stopServices(ctx context.Context, op errors.Op, services []service.Service) error {
+	serviceNames := getServiceNames(services)
 	if err := e.dockerClient.StopContainers(ctx, serviceNames...); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to stop running containers", Op: op})
 	}
+	tracker := progress.TrackerFromContext(ctx)
 	tracker.Debug("Stopped service containers")
 	if err := e.dockerClient.RemoveContainers(ctx, serviceNames...); err != nil {
 		return errors.Wrap(err, errors.Meta{Reason: "failed to remove stopped containers", Op: op})
