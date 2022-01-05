@@ -183,14 +183,18 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 
 	// Perform service pre-run
 	if !opts.SkipPreRun {
-		err := progress.Run(ctx, progress.RunOptions{
-			Message: "Performing pre-run step for services (this may take a long time)",
-		}, func(ctx context.Context) error {
-			// Do this serially since we had issues before when trying to do it in parallel.
-			// TODO(@cszatmary): Should scope what the deal was and see if we do these in parallel.
+		// Do this serially since we had issues before when trying to do it in parallel.
+		// TODO(@cszatmary): Should scope what the deal was and see if we do these in parallel.
+		// We might need to rethink the whole way pre-run works.
+		err := progress.Run(ctx, progress.RunOptions{}, func(ctx context.Context) error {
+			// Manually start the spinner so we can keep track of progress.
+			// This will override the one created by this Run call.
+			tracker.Start("Performing pre-run step for services (this may take a long time)", len(services))
+
 			for _, s := range services {
 				if s.PreRun == "" {
 					tracker.Debugf("No pre-run for %s, skipping", s.FullName())
+					tracker.Inc()
 					continue
 				}
 
@@ -202,6 +206,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 					})
 				}
 				tracker.Debugf("Ran pre-run for %s", s.FullName())
+				tracker.Inc()
 			}
 			return nil
 		})
