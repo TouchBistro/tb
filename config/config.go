@@ -39,6 +39,8 @@ var tbrcTemplate []byte
 
 // Config represents a tbrc config file used to provide custom configuration for a user.
 type Config struct {
+	// Triple state bools suck but we need this so we can tell if the user set it explicitly.
+	// TODO(@cszatmary): Remove this when we do a breaking change.
 	Debug            *bool                              `yaml:"debug"`
 	ExperimentalMode bool                               `yaml:"experimental"`
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`

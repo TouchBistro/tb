@@ -60,8 +60,6 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			}
 
 			// Any special messages based on user config
-			// Triple state bools suck but we need this so we can tell if the user set it explicitly.
-			// TODO(@cszatmary): Remove this when we do a breaking change.
 			if cfg.Debug != nil {
 				// This prints a warning sign
 				c.Tracker.Warn("\u26A0\uFE0F  Using the 'debug' field in tbrc.yml is deprecated. Use the '--verbose' or '-v' flag instead.")

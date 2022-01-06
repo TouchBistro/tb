@@ -365,10 +365,20 @@ func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, o
 			Op:     op,
 		})
 	}
+
+	// Get the path to the extracted app.
+	// NOTE(@cszatmary): We are assuming the app within the tar file will have the same
+	// name as the tar file minus the extension. We should either make this an explicit requirement
+	// in the docs, or come up with a better way to find the app path, such as reading reading the directory.
 	appPath := filepath.Join(localBranchDir, remoteBuildFilename)
-	// TODO(@cszatmary): This is very brittle because it only supports .tgz but would break
-	// other valid extensions like .tar or .tar.gz. This should be fixed to support those.
-	return strings.TrimSuffix(appPath, ".tgz"), nil
+	// There are multiple extensions that can be used with a tar file, try each.
+	for _, ext := range []string{".tar", ".tar.gz", ".tgz"} {
+		if strings.HasSuffix(appPath, ext) {
+			appPath = strings.TrimSuffix(appPath, ext)
+			break
+		}
+	}
+	return appPath, nil
 }
 
 // AppDesktopRunOptions customizes the behaviour of AppList.
