@@ -8,6 +8,7 @@ import (
 	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/integrations/git"
+	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	dockertypes "github.com/docker/docker/api/types"
@@ -426,7 +427,7 @@ func TestNuke(t *testing.T) {
 	}
 }
 
-func newServiceCollection(t *testing.T, services []service.Service) *service.Collection {
+func newServiceCollection(t *testing.T, services []service.Service) *resource.Collection[service.Service] {
 	t.Helper()
 
 	// Create default services if none provided
@@ -487,7 +488,7 @@ func newServiceCollection(t *testing.T, services []service.Service) *service.Col
 		}
 	}
 
-	var sc service.Collection
+	var sc resource.Collection[service.Service]
 	for _, s := range services {
 		if err := sc.Set(s); err != nil {
 			t.Fatalf("failed to add service %s to collection: %v", s.FullName(), err)

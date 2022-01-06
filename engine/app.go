@@ -438,10 +438,16 @@ type AppListResult struct {
 func (e *Engine) AppList(opts AppListOptions) AppListResult {
 	var res AppListResult
 	if opts.ListiOSApps {
-		res.IOSApps = e.iosApps.Names()
+		res.IOSApps = make([]string, 0, e.iosApps.Len())
+		for it := e.iosApps.Iter(); it.Next(); {
+			res.IOSApps = append(res.IOSApps, it.Value().FullName())
+		}
 	}
 	if opts.ListDesktopApps {
-		res.DesktopApps = e.desktopApps.Names()
+		res.DesktopApps = make([]string, 0, e.desktopApps.Len())
+		for it := e.desktopApps.Iter(); it.Next(); {
+			res.DesktopApps = append(res.DesktopApps, it.Value().FullName())
+		}
 	}
 	return res
 }

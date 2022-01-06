@@ -4,7 +4,6 @@ import (
 	"errors"
 	"log"
 	"reflect"
-	"sort"
 	"testing"
 
 	"github.com/TouchBistro/tb/integrations/docker"
@@ -12,70 +11,6 @@ import (
 	"github.com/TouchBistro/tb/resource/service"
 	"github.com/matryer/is"
 )
-
-func newCollection(t *testing.T) *service.Collection {
-	// Creates two services with the same name but different registries
-	// and one service that's a unique name
-	svcs := []service.Service{
-		{
-			EnvVars: map[string]string{
-				"POSTGRES_USER":     "user",
-				"POSTGRES_PASSWORD": "password",
-			},
-			Mode: service.ModeRemote,
-			Remote: service.Remote{
-				Image: "postgres",
-				Tag:   "12",
-			},
-			Name:         "postgres",
-			RegistryName: "ExampleZone/tb-registry",
-		},
-		{
-			EnvVars: map[string]string{
-				"POSTGRES_USER":     "core",
-				"POSTGRES_PASSWORD": "localdev",
-			},
-			Mode: service.ModeRemote,
-			Remote: service.Remote{
-				Image: "postgres",
-				Tag:   "12-alpine",
-			},
-			Name:         "postgres",
-			RegistryName: "TouchBistro/tb-registry",
-		},
-		{
-			EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
-			EnvVars: map[string]string{
-				"HTTP_PORT": "8080",
-			},
-			Mode: service.ModeBuild,
-			Ports: []string{
-				"8081:8080",
-			},
-			PreRun: "yarn db:prepare:dev",
-			GitRepo: service.GitRepo{
-				Name: "TouchBistro/venue-core-service",
-			},
-			Build: service.Build{
-				Args: map[string]string{
-					"NODE_ENV": "development",
-				},
-				Command:        "yarn start",
-				DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
-				Target:         "release",
-			},
-			Name:         "venue-core-service",
-			RegistryName: "TouchBistro/tb-registry",
-		},
-	}
-	var c service.Collection
-	for _, s := range svcs {
-		if err := c.Set(s); err != nil {
-			t.Fatalf("failed to add service %s to collection: %v", s.FullName(), err)
-		}
-	}
-	return &c
-}
 
 func TestServiceMethods(t *testing.T) {
 	is := is.New(t)
@@ -330,113 +265,6 @@ func TestOverrideError(t *testing.T) {
 	}
 }
 
-func TestCollectionGet(t *testing.T) {
-	c := newCollection(t)
-	tests := []struct {
-		name        string
-		lookupName  string
-		wantService service.Service
-		wantErr     error
-	}{
-		{
-			name:       "full name",
-			lookupName: "TouchBistro/tb-registry/postgres",
-			wantService: service.Service{
-				EnvVars: map[string]string{
-					"POSTGRES_USER":     "core",
-					"POSTGRES_PASSWORD": "localdev",
-				},
-				Mode: service.ModeRemote,
-				Remote: service.Remote{
-					Image: "postgres",
-					Tag:   "12-alpine",
-				},
-				Name:         "postgres",
-				RegistryName: "TouchBistro/tb-registry",
-			},
-		},
-		{
-			name:       "short name",
-			lookupName: "venue-core-service",
-			wantService: service.Service{
-				EnvFile: ".tb/repos/TouchBistro/venue-core-service/.env.example",
-				EnvVars: map[string]string{
-					"HTTP_PORT": "8080",
-				},
-				Mode: service.ModeBuild,
-				Ports: []string{
-					"8081:8080",
-				},
-				PreRun: "yarn db:prepare:dev",
-				GitRepo: service.GitRepo{
-					Name: "TouchBistro/venue-core-service",
-				},
-				Build: service.Build{
-					Args: map[string]string{
-						"NODE_ENV": "development",
-					},
-					Command:        "yarn start",
-					DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
-					Target:         "release",
-				},
-				Name:         "venue-core-service",
-				RegistryName: "TouchBistro/tb-registry",
-			},
-		},
-		// Error cases
-		{
-			name:       "short name, multiple services",
-			lookupName: "postgres",
-			wantErr:    resource.ErrMultipleResources,
-		},
-		{
-			name:       "not found",
-			lookupName: "TouchBistro/tb-registry/not-a-service",
-			wantErr:    resource.ErrNotFound,
-		},
-		{
-			name:       "no registry",
-			lookupName: "ExampleZone/tb-registry/venue-core-service",
-			wantErr:    resource.ErrNotFound,
-		},
-		{
-			name:       "invalid name",
-			lookupName: "Invalid/bad-name",
-			wantErr:    resource.ErrInvalidName,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			is := is.New(t)
-			s, err := c.Get(tt.lookupName)
-			is.Equal(s, tt.wantService)
-			is.True(errors.Is(err, tt.wantErr))
-		})
-	}
-}
-
-func TestCollectionLen(t *testing.T) {
-	is := is.New(t)
-	c := newCollection(t)
-	is.Equal(c.Len(), 3)
-}
-
-func TestCollectionIter(t *testing.T) {
-	is := is.New(t)
-	c := newCollection(t)
-	names := make([]string, 0, c.Len())
-	for it := c.Iter(); it.Next(); {
-		names = append(names, it.Value().FullName())
-	}
-	sort.Strings(names)
-
-	is.Equal(names, []string{
-		"ExampleZone/tb-registry/postgres",
-		"TouchBistro/tb-registry/postgres",
-		"TouchBistro/tb-registry/venue-core-service",
-	})
-}
-
 func TestComposeConfig(t *testing.T) {
 	services := []service.Service{
 		{
@@ -518,7 +346,7 @@ func TestComposeConfig(t *testing.T) {
 			RegistryName: "TouchBistro/tb-registry",
 		},
 	}
-	var c service.Collection
+	var c resource.Collection[service.Service]
 	for _, s := range services {
 		if err := c.Set(s); err != nil {
 			t.Fatalf("failed to add service %s to collection: %v", s.FullName(), err)

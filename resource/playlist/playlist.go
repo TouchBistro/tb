@@ -40,7 +40,7 @@ func (p Playlist) FullName() string {
 //
 // A zero value Collection is a valid collection ready for use.
 type Collection struct {
-	collection      resource.Collection
+	collection      resource.Collection[Playlist]
 	customPlaylists map[string]Playlist
 }
 
@@ -62,20 +62,13 @@ func (c *Collection) Get(name string) (Playlist, error) {
 	if p, ok := c.customPlaylists[name]; ok {
 		return p, nil
 	}
-	r, err := c.collection.Get(name)
-	if err != nil {
-		return Playlist{}, errors.Wrap(err, errors.Meta{Op: "playlist.Collection.Get"})
-	}
-	return r.(Playlist), nil
+	return c.collection.Get(name)
 }
 
 // Set adds or replaces the playlist in the Collection.
 // p.FullName() must return a valid full name or an error will be returned.
 func (c *Collection) Set(p Playlist) error {
-	if err := c.collection.Set(p); err != nil {
-		return errors.Wrap(err, errors.Meta{Op: "playlist.Collection.Set"})
-	}
-	return nil
+	return c.collection.Set(p)
 }
 
 // SetCustom sets a custom playlist. Custom playlists exist outside of registries,
