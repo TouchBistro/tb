@@ -40,8 +40,11 @@ func main() {
 	rootCmd := commands.NewRootCommand(&c, version)
 	err := rootCmd.ExecuteContext(ctx)
 
-	// Close log file and remove it if there was no error
-	c.Logger.Cleanup(err == nil)
+	// Close log file and remove it if there was no error.
+	// Ignore the error since there is nothing we can do about it.
+	// Also, temp files are automatically cleaned up on reboots
+	// so it's not a big deal.
+	_ = c.Logger.Cleanup(err == nil)
 	if err == nil {
 		return
 	}
