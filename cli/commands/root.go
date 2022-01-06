@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/TouchBistro/goutils/color"
-	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	appCommands "github.com/TouchBistro/tb/cli/commands/app"
@@ -49,7 +48,6 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			c.Verbose = opts.verbose || cfg.DebugEnabled()
 
 			// Initialize logging
-			fatal.PrintDetailedError(c.Verbose)
 			c.Logger, err = cli.NewLogger(c.Verbose)
 			if err != nil {
 				return err

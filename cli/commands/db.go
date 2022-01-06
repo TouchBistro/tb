@@ -9,7 +9,6 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/errors"
-	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
@@ -34,7 +33,10 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			dbConf, err := getDbConf(ctx, c, serviceName)
 			if err != nil {
-				fatal.ExitErr(err, "Could not retrieve database config for this service.")
+				return &cli.ExitError{
+					Message: "Could not retrieve database config for this service.",
+					Err:     err,
+				}
 			}
 
 			var cliName string
@@ -52,11 +54,15 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 				connArg = fmt.Sprintf("-U %s -P %s -S localhost -d %s", dbConf.user, dbConf.password, dbConf.name)
 				fmt.Println(connArg)
 			default:
-				fatal.Exitf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType)
+				return &cli.ExitError{
+					Message: fmt.Sprintf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType),
+				}
 			}
 
 			if !command.IsAvailable(cliName) {
-				fatal.Exitf("This command requires %s for %s, which uses a %s database.\n Please install it then run tb db.", cliName, serviceName, dbConf.dbType)
+				return &cli.ExitError{
+					Message: fmt.Sprintf("This command requires %s for %s, which uses a %s database.\n Please install it then run tb db.", cliName, serviceName, dbConf.dbType),
+				}
 			}
 
 			c.Tracker.Infof("starting %s...", cliName)
@@ -64,7 +70,10 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
 				Exec(cliName, strings.Fields(connArg)...)
 			if err != nil {
-				fatal.ExitErrf(err, "could not start database client %s", cliName)
+				return &cli.ExitError{
+					Message: fmt.Sprintf("could not start database client %s", cliName),
+					Err:     err,
+				}
 			}
 			return nil
 		},

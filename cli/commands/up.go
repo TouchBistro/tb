@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"os/exec"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/progress"
@@ -81,18 +82,21 @@ Run the postgres and localstack services directly:
 			}
 			c.Tracker.Info("✔ Started services")
 
-			// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
-			const lazydocker = "lazydocker"
-			if !opts.skipLazydocker && command.IsAvailable(lazydocker) {
-				c.Tracker.Debug("Running lazydocker")
-				w := progress.LogWriter(c.Tracker, c.Tracker.WithFields(progress.Fields{"id": "lazydocker"}).Debug)
-				defer w.Close()
-				err := command.New(command.WithStdout(w), command.WithStderr(w)).Exec(lazydocker)
-				if err != nil {
-					return &cli.ExitError{
-						Message: "Failed running lazydocker",
-						Err:     err,
+			if !opts.skipLazydocker {
+				// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
+				const lazydocker = "lazydocker"
+				if command.IsAvailable(lazydocker) {
+					c.Tracker.Debug("Running lazydocker")
+					// Lazydocker doesn't write to stdout or stderr since everything is displaed in the terminal GUI
+					if err := exec.Command(lazydocker).Run(); err != nil {
+						return &cli.ExitError{
+							Message: "Failed running lazydocker",
+							Err:     err,
+						}
 					}
+				} else {
+					// Skip, but inform users about installing it
+					c.Tracker.Warnf("lazydocker is not insalled. Consider installing it: https://github.com/jesseduffield/lazydocker#installation")
 				}
 			}
 			c.Tracker.Info("🔈 the containers are running in the background. If you want to terminate them, run tb down")
@@ -107,7 +111,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
-	err := flags.MarkDeprecated("services", "it is a no-op and will be removed")
+	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")
 	if err != nil {
 		// MarkDeprecated only errors if the flag name is wrong or the message isn't set
 		// which is a programming error, so we wanna blow up

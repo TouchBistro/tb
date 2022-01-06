@@ -153,7 +153,7 @@ func (l *Logger) Cleanup(remove bool) error {
 	return nil
 }
 
-// Logger is a simple wrapper for a logrus.FieldLogger that makes
+// progressLogger is a simple wrapper for a logrus.FieldLogger that makes
 // it implement progress.Logger.
 type progressLogger struct {
 	logrus.FieldLogger
