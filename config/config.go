@@ -37,11 +37,6 @@ const (
 //go:embed template.yml
 var tbrcTemplate []byte
 
-// Some leftover global state.
-// TODO(@cszatmary): figure out a way to clean this up.
-
-var registries []registry.Registry
-
 // Config represents a tbrc config file used to provide custom configuration for a user.
 type Config struct {
 	Debug            *bool                              `yaml:"debug"`
@@ -106,20 +101,30 @@ func Read(homedir string) (Config, error) {
 			Op:     op,
 		})
 	}
-
-	// Required until we can figure out a better way to handle AddRegistry.
-	registries = config.Registries
 	return config, nil
 }
 
 type InitOptions struct {
-	LoadServices     bool
-	LoadApps         bool
+	// If true, Init will load services and playlists from registries.
+	// If false, no services or playlists will be available in the returned Engine instance.
+	LoadServices bool
+	// If true, Init will load apps from registries.
+	// If false, no apps will be available in the returned Engine instance.
+	LoadApps bool
+	// If true, registries will be updated before being read, otherwise the existing version
+	// will be read. Missing registries will always be cloned regardless of the value of this field.
 	UpdateRegistries bool
 }
 
+// Init takes a config and initializes an engine.Engine for performing tb operations.
+// opts can be used to customize how this Engine instance is constructed.
+//
+// Init will read all registries specified in config and use that to produce a list of
+// services, playlists, and apps for the Engine to manage.
 func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine, error) {
 	const op = errors.Op("config.Init")
+
+	// Retrieve the user's home directory since it will be required for various operations.
 	homedir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{
@@ -139,10 +144,13 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	}
 
 	// Handle registries
+
+	// We need at least one registry otherwise tb is pretty useless so let the user know.
 	if len(config.Registries) == 0 {
 		return nil, errors.New(errkind.Invalid, "no registries defined", op)
 	}
 
+	// Validate and normalize all registries.
 	tracker := progress.TrackerFromContext(ctx)
 	for i, r := range config.Registries {
 		// Resolve true registry path
@@ -165,22 +173,25 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 				r.Path = path
 			}
 		} else {
+			// If not local, the path will be where the registry is/will be cloned.
 			r.Path = filepath.Join(homedir, registriesDir, r.Name)
 		}
 		config.Registries[i] = r
 	}
 
+	// Go through each registry and make sure it is ready for use.
 	err = progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message: "Cloning/updating registries",
 		Count:   len(config.Registries),
 	}, func(ctx context.Context, i int) error {
 		r := config.Registries[i]
 		if r.LocalPath != "" {
+			// User's are responsible for local registries so we just assume they are good to go.
 			tracker.Debugf("Skipping local registry %s", r.Name)
 			return nil
 		}
 
-		// Clone if missing
+		// Clone if missing, otherwise we can't actually use it which would be pretty useless.
 		gitClient := git.New()
 		if !file.Exists(r.Path) {
 			tracker.Debugf("Registry %s is missing, cloning", r.Name)
@@ -215,7 +226,9 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		})
 	}
 
-	// Make sure all overrides use the full name of the service
+	// Validate service overrides.
+	// Make sure all overrides use the full name of the service. This is necessary so
+	// we can determine which service to override in which registry without ambiguity.
 	for name := range config.Overrides {
 		registryName, _, err := resource.ParseName(name)
 		if err != nil {
@@ -288,6 +301,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		}
 		tracker.Debug("Successfully generated docker-compose.yml")
 	}
+
 	var deviceList simulator.DeviceList
 	if opts.LoadApps {
 		deviceData, err := simulator.ListDevices(ctx)
@@ -316,14 +330,14 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	return e, nil
 }
 
+// AddRegistry adds the registry to the config file located in the given home directory.
+// If homedir is empty, it will be resolved from the environment.
+// If a config file does not exist in homedir, one will be created and the registry
+// will then be added to it.
+//
+// If the registry already exists in the config file, ErrRegistryExists will be returned.
 func AddRegistry(registryName, homedir string) error {
 	const op = errors.Op("config.AddRegistry")
-	// Check if registry already added
-	for _, r := range registries {
-		if r.Name == registryName {
-			return ErrRegistryExists
-		}
-	}
 	if homedir == "" {
 		var err error
 		homedir, err = os.UserHomeDir()
@@ -335,6 +349,25 @@ func AddRegistry(registryName, homedir string) error {
 			})
 		}
 	}
+
+	// Check if registry already added
+	// We need to read the config first so we can look at the registries
+	config, err := Read(homedir)
+	if err != nil {
+		return errors.Wrap(err, errors.Meta{Op: op})
+	}
+	for _, r := range config.Registries {
+		if r.Name == registryName {
+			return ErrRegistryExists
+		}
+	}
+
+	// Registry does not exist, we need to add it.
+	// In order to do this we need to read the config file again but
+	// unmarshal it unto a yaml node. This is necessary in order to
+	// preserve comments in the file. Do this since tbrc is meant to be
+	// a human-editable file so we want to allow comments and now
+	// mess it up every time a registry is added.
 
 	tbrcPath := filepath.Join(homedir, tbrcName)
 	f, err := os.OpenFile(tbrcPath, os.O_RDWR, 0644)
@@ -348,7 +381,7 @@ func AddRegistry(registryName, homedir string) error {
 	defer f.Close()
 
 	// Decode into a Node so we can manipulate the contents while
-	// preserving comments and formatting
+	// preserving comments and ordering
 	tbrcDocumentNode := &yaml.Node{}
 	err = yaml.NewDecoder(f).Decode(tbrcDocumentNode)
 	if err != nil {

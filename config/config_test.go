@@ -30,12 +30,10 @@ registries:
 						{
 							Name:      "TouchBistro/tb-registry",
 							LocalPath: "",
-							Path:      filepath.Join(homedir, "registries", "TouchBistro/tb-registry"),
 						},
 						{
 							Name:      "ExampleZone/tb-registry",
 							LocalPath: "~/tools/tb-registry",
-							Path:      filepath.Join(homedir, "tools/tb-registry"),
 						},
 					},
 				}

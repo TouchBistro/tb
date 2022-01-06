@@ -44,6 +44,9 @@ type Device struct {
 }
 
 // DeviceList contains all device configurations.
+//
+// A zero value DeviceList is valid and represents an empty
+// list with no device configurations.
 type DeviceList struct {
 	// A map of runtimes (OS versions) to devices (simulators)
 	deviceMap map[string][]Device
