@@ -11,7 +11,6 @@ import (
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/errors"
-	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/file"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/engine"
@@ -23,7 +22,6 @@ import (
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,8 +60,9 @@ func (c Config) DebugEnabled() bool {
 }
 
 // Read reads the config file using the given home directory.
+// If homedir is empty, it will be resolved from the environment.
 // If a config file does not exist in homedir, one will be created.
-func Load(homedir string) (Config, error) {
+func Read(homedir string) (Config, error) {
 	const op = errors.Op("config.Read")
 	if homedir == "" {
 		var err error
@@ -108,71 +107,8 @@ func Load(homedir string) (Config, error) {
 		})
 	}
 
-	// Triple state bools suck but we need this so we can tell if the user set it explicitly.
-	// TODO(@cszatmary): Remove this when we do a breaking change.
-	if config.Debug != nil {
-		if *config.Debug {
-			logrus.SetLevel(logrus.DebugLevel)
-			logrus.SetFormatter(&logrus.TextFormatter{
-				DisableTimestamp: true,
-				ForceColors:      true,
-			})
-			fatal.PrintDetailedError(true)
-		}
-		// This prints a warning sign
-		logrus.Warn("\u26A0\uFE0F  Using the 'debug' field in tbrc.yml is deprecated. Use the '--verbose' or '-v' flag instead.")
-	}
-
-	if config.ExperimentalMode {
-		logrus.Info(color.Yellow("🚧 Experimental mode enabled 🚧"))
-		logrus.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
-	}
-
-	// Resolve registry paths
-	for i, r := range config.Registries {
-		// Set true path for usage later
-		if r.LocalPath != "" {
-			// Remind people they are using a local version in case they forgot
-			logrus.Infof("❗ Using a local version of the %s registry ❗", color.Cyan(r.Name))
-
-			// Local paths can be prefixed with ~ for convenience
-			if strings.HasPrefix(r.LocalPath, "~") {
-				r.Path = filepath.Join(homedir, strings.TrimPrefix(r.LocalPath, "~"))
-			} else {
-				path, err := filepath.Abs(r.LocalPath)
-				if err != nil {
-					return config, errors.Wrap(err, errors.Meta{
-						Kind:   errkind.IO,
-						Reason: fmt.Sprintf("failed to resolve absolute path to local registry %s", r.Name),
-						Op:     op,
-					})
-				}
-				r.Path = path
-			}
-		} else {
-			r.Path = filepath.Join(homedir, registriesDir, r.Name)
-		}
-		config.Registries[i] = r
-	}
+	// Required until we can figure out a better way to handle AddRegistry.
 	registries = config.Registries
-
-	// Make sure all overrides use the full name of the service
-	for name := range config.Overrides {
-		registryName, _, err := resource.ParseName(name)
-		if err != nil {
-			return config, errors.Wrap(err, errors.Meta{
-				Reason: fmt.Sprintf("invalid service name to override %s", name),
-				Op:     op,
-			})
-		}
-		if registryName == "" {
-			return config, errors.New(
-				errkind.Invalid,
-				fmt.Sprintf("invalid service override %s, overrides must use the full name <registry>/<service>", name),
-				op,
-			)
-		}
-	}
 	return config, nil
 }
 
@@ -206,12 +142,39 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	if len(config.Registries) == 0 {
 		return nil, errors.New(errkind.Invalid, "no registries defined", op)
 	}
+
+	tracker := progress.TrackerFromContext(ctx)
+	for i, r := range config.Registries {
+		// Resolve true registry path
+		if r.LocalPath != "" {
+			// Remind people they are using a local version in case they forgot
+			tracker.Infof("❗ Using a local version of the %s registry ❗", color.Cyan(r.Name))
+
+			// Local paths can be prefixed with ~ for convenience
+			if strings.HasPrefix(r.LocalPath, "~") {
+				r.Path = filepath.Join(homedir, strings.TrimPrefix(r.LocalPath, "~"))
+			} else {
+				path, err := filepath.Abs(r.LocalPath)
+				if err != nil {
+					return nil, errors.Wrap(err, errors.Meta{
+						Kind:   errkind.IO,
+						Reason: fmt.Sprintf("failed to resolve absolute path to local registry %s", r.Name),
+						Op:     op,
+					})
+				}
+				r.Path = path
+			}
+		} else {
+			r.Path = filepath.Join(homedir, registriesDir, r.Name)
+		}
+		config.Registries[i] = r
+	}
+
 	err = progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message: "Cloning/updating registries",
 		Count:   len(config.Registries),
 	}, func(ctx context.Context, i int) error {
 		r := config.Registries[i]
-		tracker := progress.TrackerFromContext(ctx)
 		if r.LocalPath != "" {
 			tracker.Debugf("Skipping local registry %s", r.Name)
 			return nil
@@ -252,7 +215,24 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		})
 	}
 
-	tracker := progress.TrackerFromContext(ctx)
+	// Make sure all overrides use the full name of the service
+	for name := range config.Overrides {
+		registryName, _, err := resource.ParseName(name)
+		if err != nil {
+			return nil, errors.Wrap(err, errors.Meta{
+				Reason: fmt.Sprintf("invalid service name to override %s", name),
+				Op:     op,
+			})
+		}
+		if registryName == "" {
+			return nil, errors.New(
+				errkind.Invalid,
+				fmt.Sprintf("invalid service override %s, overrides must use the full name <registry>/<service>", name),
+				op,
+			)
+		}
+	}
+
 	registryResult, err := registry.ReadAll(config.Registries, registry.ReadAllOptions{
 		ReadServices: opts.LoadServices,
 		ReadApps:     opts.LoadApps,

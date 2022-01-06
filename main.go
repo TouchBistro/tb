@@ -35,9 +35,13 @@ func main() {
 		<-abort
 		cancel()
 	}()
+
 	var c cli.Container
 	rootCmd := commands.NewRootCommand(&c, version)
 	err := rootCmd.ExecuteContext(ctx)
+
+	// Close log file and remove it if there was no error
+	c.Logger.Cleanup(err == nil)
 	if err == nil {
 		return
 	}
@@ -61,7 +65,13 @@ func main() {
 	default:
 		// TODO(@cszatmary): We can check if errors.Error and use the Kind
 		// to add custom messages to try and help the user.
+		// We should also add sepecific error codes based on Kind.
 		exitErr = &cli.ExitError{Err: err}
+	}
+	// Make sure a valid exit code was set, if not just default to 1
+	// since that's the general catch all error code.
+	if exitErr.Code <= 0 {
+		exitErr.Code = 1
 	}
 
 	// Print out the error and message then exit
@@ -82,6 +92,11 @@ func main() {
 		if !strings.HasSuffix(exitErr.Message, "\n") {
 			fmt.Fprintln(os.Stderr)
 		}
+	}
+
+	// Tell user where log file is for further troubleshooting.
+	if name := c.Logger.Filename(); name != "" {
+		fmt.Fprintf(os.Stderr, "\n👉 Logs are available at: %s 👈\n", name)
 	}
 	os.Exit(exitErr.Code)
 }

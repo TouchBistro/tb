@@ -48,10 +48,10 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 			tail.Stderr = os.Stderr
 			if err := tail.Run(); err != nil {
 				code := tail.ProcessState.ExitCode()
-				if code != -1 {
-					os.Exit(code)
+				if code == -1 {
+					code = 1
 				}
-				os.Exit(1)
+				os.Exit(code)
 			}
 			return nil
 		},

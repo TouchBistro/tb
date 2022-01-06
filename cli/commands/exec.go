@@ -48,6 +48,9 @@ Start an interactive bash shell in the core-database container:
 			if err != nil {
 				return err
 			}
+			if exitCode == -1 {
+				exitCode = 1
+			}
 			// Match the exit code of the command
 			os.Exit(exitCode)
 			return nil

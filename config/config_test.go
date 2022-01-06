@@ -59,7 +59,7 @@ registries:
 				}
 			}
 
-			cfg, err := config.Load(tmpdir)
+			cfg, err := config.Read(tmpdir)
 			is := is.New(t)
 			is.NoErr(err)
 			is.Equal(cfg, tt.want(tmpdir))
@@ -222,7 +222,7 @@ func TestAddRegistry(t *testing.T) {
 			if err != nil {
 				t.Fatalf("failed to write file %s: %v", tbrcPath, err)
 			}
-			if _, err := config.Load(tmpdir); err != nil {
+			if _, err := config.Read(tmpdir); err != nil {
 				t.Fatalf("failed to load tbrc: %v", err)
 			}
 

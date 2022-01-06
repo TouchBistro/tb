@@ -14,7 +14,6 @@ import (
 	"github.com/TouchBistro/tb/integrations/github"
 	"github.com/TouchBistro/tb/util"
 	"github.com/blang/semver/v4"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -39,20 +38,8 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 		// cobra prints command usage by default if RunE returns an error.
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			// Initialize logging
-			if opts.verbose {
-				logrus.SetLevel(logrus.DebugLevel)
-				fatal.PrintDetailedError(true)
-			}
-			logrus.SetFormatter(&logrus.TextFormatter{
-				DisableTimestamp: true,
-				// Need to force colours since the decision of whether or not to use colour
-				// is made lazily the first time a log is written, and Out may be changed
-				// to a spinner before then.
-				ForceColors: true,
-			})
-			// Pass empty string to have it find the config
-			cfg, err := config.Load("")
+			// Get the user config, pass empty string to have it find the config file
+			cfg, err := config.Read("")
 			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to load tbrc",
@@ -60,9 +47,28 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				}
 			}
 			c.Verbose = opts.verbose || cfg.DebugEnabled()
+
+			// Initialize logging
+			fatal.PrintDetailedError(c.Verbose)
+			c.Logger, err = cli.NewLogger(c.Verbose)
+			if err != nil {
+				return err
+			}
 			c.Tracker = &progress.SpinnerTracker{
-				OutputLogger:    cli.OutputLogger{Logger: logrus.StandardLogger()},
+				OutputLogger:    c.Logger,
 				PersistMessages: c.Verbose,
+			}
+
+			// Any special messages based on user config
+			// Triple state bools suck but we need this so we can tell if the user set it explicitly.
+			// TODO(@cszatmary): Remove this when we do a breaking change.
+			if cfg.Debug != nil {
+				// This prints a warning sign
+				c.Tracker.Warn("\u26A0\uFE0F  Using the 'debug' field in tbrc.yml is deprecated. Use the '--verbose' or '-v' flag instead.")
+			}
+			if cfg.ExperimentalMode {
+				c.Tracker.Info(color.Yellow("🚧 Experimental mode enabled 🚧"))
+				c.Tracker.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
 			}
 			checkVersion(cmd.Context(), version, c.Tracker)
 
