@@ -84,15 +84,3 @@ Ex: Show all playlists and their services
 ```
 tb list -s -t
 ```
-
-## `tb images`
-
-`tb images` provides a convient way to list the available images for a service from a remote registry.
-
-The following docker registries are supported:
-* `ecr`: AWS Elastic Container Registry
-
-Ex:
-```
-tb images --docker-registry ecr venue-core-service
-```

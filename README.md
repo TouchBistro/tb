@@ -29,11 +29,14 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 
 ### Installed Software
 
-Right now, the only requirement is that you have the xcode cli tools and [Docker for Mac](https://docs.docker.com/docker-for-mac/install/).
+The main requirement for using `tb` is having `docker` and `docker-compose` installed.
+See the [Docker installation instructions](https://docs.docker.com/get-docker/) and select your operating system for more details.
 
-You can install xcode tools by running `xcode-select --install`.
+If you are using macOS having the Xcode CLI tools is also required. These can be easily installed by running `xcode-select --install`.
 
-This project will install and manage all other dependencies that you need.
+It is also highly recommended to install [lazydocker](https://github.com/jesseduffield/lazydocker).
+This is a CLI UI that makes it easier to see the docker containers created by `tb` to run services.
+See the [lazydocker installation instructions](https://github.com/jesseduffield/lazydocker#installation) to install it.
 
 ### SSH Key
 `tb` uses ssh for certain git operations and assumes you have an ssh key connected to your GitHub account. If you do not have one, please create one by following the instructions [here](https://help.github.com/en/articles/connecting-to-github-with-ssh).
@@ -113,9 +116,6 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 ## Configuration
 
 `tb` can be configured through the `.tbrc.yml` file located in your home directory. `tb` will automatically create a basic `.tbrc.yml` for you if one doesn't exist.
-
-### Toggling debug mode
-To toggle debug mode set the `debug` property to `true` or `false`. Debug mode will print more verbose logs of what is happening.
 
 ### Toggling experimental mode
 To to enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
