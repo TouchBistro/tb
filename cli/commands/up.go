@@ -31,9 +31,12 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			if len(args) > 0 && opts.playlistName != "" {
 				return fmt.Errorf("cannot specify service names as args when --playlist or -p is used")
 			}
-			// This is deprecated and will be removed but we need to check for it for now
+			// These are deprecated and will be removed but we need to check for it for now for backwards compatibility
 			if len(args) > 0 && len(opts.serviceNames) > 0 {
 				return fmt.Errorf("cannot specify service names as args when --services or -s is used")
+			}
+			if len(opts.serviceNames) > 0 && opts.playlistName != "" {
+				return fmt.Errorf("cannot specify both --playist,-p and --services,-s")
 			}
 			return nil
 		},
