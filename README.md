@@ -45,17 +45,21 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
 
 ## Installation
 
+### Homebrew (Recommended)
+
 `tb` is available through TouchBistro's `homebrew` tap. If you do not have homebrew, you can install it by going to [brew.sh](https://brew.sh)
 
-1. Add Touchbistro's tap to get access to all the available tools:
-    ```sh
-    brew tap touchbistro/tap
-    ```
+```
+brew install touchbistro/tap/tb
+```
 
-2. Install `tb` with brew
-    ```sh
-    brew install tb
-    ```
+### From source
+
+Alternatively tb can be installed from source. This requires having go 1.17 or greater installed.
+
+```
+go install github.com/TouchBistro/tb@latest
+```
 
 ### Updating tb
 To update to the latest version of `tb` do the following:
