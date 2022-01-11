@@ -47,10 +47,18 @@ type Collection struct {
 // Get retrieves the playlist with the given name from the Collection.
 // name can either be the full name or the short name of the playlist.
 //
+// Get will first check for a matching custom playlist. That means, if a custom playlist
+// has the same name as a playlist in a registry, the custom playlist will take precedence.
+// In this case the full name of the registry playlist must be used to retrieve it.
+//
 // If no playlist is found, resource.ErrNotFound is returned. If name is a short name
 // and multiple playlists are found, resource.ErrMultipleResources is returned.
 func (c *Collection) Get(name string) (Playlist, error) {
-	// Check custom playlists first
+	// Check custom playlists first. Since custom playlists exist outside of a registry
+	// there is no such thing as a full name for a custom playlist so there is no other way
+	// to resolve ambiguity if the name conflicts with a playlist from a registry.
+	// Therefore, custom playlists take precedence so they can always be resolved, and users
+	// need to use the full name for the registry playlist.
 	if p, ok := c.customPlaylists[name]; ok {
 		return p, nil
 	}
@@ -84,6 +92,12 @@ func (c *Collection) SetCustom(p Playlist) {
 
 // ServiceNames returns all the service names contained in the playlist with playlistName.
 // It will resolve any extends fields and merge the playlists.
+//
+// ServiceNames automatically removes any duplications as a result of merging playlists.
+// For example, if playlist B specifies service S and extends playlist A which also specifies
+// service S, the returned slice will only contain service S once not twice.
+//
+// If a dependency cycle is detected while resolving extends an error will be returned.
 func (c *Collection) ServiceNames(playlistName string) ([]string, error) {
 	const op = errors.Op("paylist.Collection.ServiceNames")
 	serviceNames, err := c.resolveServiceNames(op, playlistName, make(map[string]bool))

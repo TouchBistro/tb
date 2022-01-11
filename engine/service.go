@@ -563,9 +563,15 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 }
 
 // resolveServices resolves a list of services from either a list of service names or a playlist name.
-// If both serivceNames and playlistName are provided, an error will be returned.
-// If atLeastOne is true and neither serviceNames nor playlistName are provided, and error will be returned.
-func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, atLeastOne bool) ([]service.Service, error) {
+//
+// If both serivceNames and playlistName are provided, an error will be returned. Mixing service names
+// is not supported.
+//
+// If neither serviceNames nor playlistName are provided, then behaviour depends on the value of requireOne.
+// In this case, if requireOne is true, an error will be returned since at least one of serviceNames or playlistName
+// was required. Otherwise, both the returned slice and error will be nil, which can be treated as an empty slice
+// of services.
+func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, requireOne bool) ([]service.Service, error) {
 	if len(serviceNames) > 0 && playlistName != "" {
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
@@ -588,7 +594,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 		// Can just run resolveServices again with the service names to get the actual services.
 		return e.resolveServices(op, serviceNames, "", true)
 	}
-	if atLeastOne {
+	if requireOne {
 		return nil, errors.New(errkind.Invalid, "neither service names nor playlist name was provided", op)
 	}
 	// nil will be treated as an empty slice, which is fine since the caller said that no services is ok.
