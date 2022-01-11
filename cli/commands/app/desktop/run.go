@@ -29,9 +29,17 @@ Run the build for a specific branch:
 	tb app desktop run TouchBistroServer --branch task/bug-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appName := args[0]
-			return c.Engine.AppDesktopRun(c.Ctx, appName, engine.AppDesktopRunOptions{
+			err := c.Engine.AppDesktopRun(c.Ctx, appName, engine.AppDesktopRunOptions{
 				Branch: opts.branch,
 			})
+			if err != nil {
+				return &cli.ExitError{
+					Message: "Failed to run desktop app",
+					Err:     err,
+				}
+			}
+			c.Tracker.Info("✔ Launched desktop app")
+			return nil
 		},
 	}
 

@@ -32,12 +32,20 @@ Run the build for specific branch in an iOS 12.3 iPad Air 2 simulator:
 	tb app ios run TouchBistro --ios-version 12.3 --device iPad Air 2 --branch task/pay-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appName := args[0]
-			return c.Engine.AppiOSRun(c.Ctx, appName, engine.AppiOSRunOptions{
+			err := c.Engine.AppiOSRun(c.Ctx, appName, engine.AppiOSRunOptions{
 				IOSVersion: opts.iosVersion,
 				DeviceName: opts.deviceName,
 				DataPath:   opts.dataPath,
 				Branch:     opts.branch,
 			})
+			if err != nil {
+				return &cli.ExitError{
+					Message: "Failed to run iOS app",
+					Err:     err,
+				}
+			}
+			c.Tracker.Info("✔ Launched iOS app")
+			return nil
 		},
 	}
 
