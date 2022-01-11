@@ -18,11 +18,11 @@ import (
 	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/integrations/simulator"
+	"github.com/TouchBistro/tb/internal/util"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	"github.com/TouchBistro/tb/util"
 	"gopkg.in/yaml.v3"
 )
 

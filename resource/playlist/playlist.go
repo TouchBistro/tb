@@ -7,8 +7,8 @@ import (
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/TouchBistro/tb/internal/util"
 	"github.com/TouchBistro/tb/resource"
-	"github.com/TouchBistro/tb/util"
 )
 
 // Playlist specifies the configuration for a playlist.

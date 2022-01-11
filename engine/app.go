@@ -14,8 +14,8 @@ import (
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/simulator"
+	"github.com/TouchBistro/tb/internal/util"
 	"github.com/TouchBistro/tb/resource/app"
-	"github.com/TouchBistro/tb/util"
 )
 
 // AppiOSRunOptions customizes the behaviour of AppiOSRun.

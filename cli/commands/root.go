@@ -2,7 +2,9 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/progress"
@@ -11,9 +13,11 @@ import (
 	registryCommands "github.com/TouchBistro/tb/cli/commands/registry"
 	"github.com/TouchBistro/tb/config"
 	"github.com/TouchBistro/tb/integrations/github"
-	"github.com/TouchBistro/tb/util"
+	"github.com/TouchBistro/tb/internal/fortune"
+	"github.com/TouchBistro/tb/internal/util"
 	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 type rootOptions struct {
@@ -37,6 +41,16 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			if cmd.Parent().Name() == "completion" {
 				return nil
 			}
+
+			// Print out fortune first
+			// Figure out the size of the terminal
+			termWidth, _, err := term.GetSize(int(os.Stderr.Fd()))
+			if err != nil {
+				// Likely means it isn't a terminal, just pass 0 and the fortune
+				// will do the right thing
+				termWidth = 0
+			}
+			fmt.Fprintln(os.Stderr, color.Magenta(fortune.Random().Pretty(termWidth)))
 
 			// Get the user config, pass empty string to have it find the config file
 			cfg, err := config.Read("")
