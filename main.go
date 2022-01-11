@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"runtime/debug"
 	"strings"
 
 	"github.com/TouchBistro/tb/cli"
@@ -15,17 +14,9 @@ import (
 )
 
 // Set by goreleaser when release build is created.
-var version string
+var version = "dev"
 
 func main() {
-	// Set version if built from source
-	if version == "" {
-		version = "source"
-		if info, available := debug.ReadBuildInfo(); available {
-			version = info.Main.Version
-		}
-	}
-
 	// Listen for SIGINT to do a graceful abort
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

@@ -21,8 +21,8 @@ build: ## Build tb
 
 artifacts: ## Generate artifacts for distribution
 	@mkdir -p artifacts
-	@$(TB) completions bash > artifacts/tb.bash
-	@$(TB) completions zsh > artifacts/_tb
+	@$(TB) completion bash > artifacts/tb.bash
+	@$(TB) completion zsh > artifacts/_tb
 .PHONY: artifacts
 
 clean: ## Clean all build artifacts

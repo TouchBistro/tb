@@ -27,16 +27,17 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 		Use:     "tb",
 		Version: version,
 		Short:   "tb is a CLI for running services on a development machine",
-		CompletionOptions: cobra.CompletionOptions{
-			// Cobra generates an `completion` command by default.
-			// Disable this since we handle completions ourselves.
-			DisableDefaultCmd: true,
-		},
 		// cobra prints errors returned from RunE by default. Disable that since we handle errors ourselves.
 		SilenceErrors: true,
 		// cobra prints command usage by default if RunE returns an error.
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Check if the command being run is one of the completion commands provided by cobra.
+			// If so, skip all initialization since it unnecessary overhead.
+			if cmd.Parent().Name() == "completion" {
+				return nil
+			}
+
 			// Get the user config, pass empty string to have it find the config file
 			cfg, err := config.Read("")
 			if err != nil {
@@ -108,7 +109,6 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 		appCommands.NewAppCommand(c),
 		registryCommands.NewRegistryCommand(c),
 		newCloneCommand(c),
-		newCompletionsCommand(),
 		newDBCommand(c),
 		newDownCommand(c),
 		newExecCommand(c),
