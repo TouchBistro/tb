@@ -239,7 +239,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	}
 	tracker.UpdateMessage("Launching app")
 	// TODO(@cszatmary): probably want to figure out a better way to abstract opening an app cross platform
-	if util.IsMacOS() {
+	if util.IsMacOS {
 		w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
 		defer w.Close()
 		args := []string{"open", appPath}

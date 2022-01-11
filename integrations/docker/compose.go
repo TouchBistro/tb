@@ -56,21 +56,21 @@ type ComposeLogsOptions struct {
 }
 
 func (c *apiClient) ComposeBuild(ctx context.Context, project ComposeProject, services []string) error {
-	return c.exec(ctx, execOptions{
+	return c.execCompose(ctx, execComposeOptions{
 		project: project,
 		args:    append([]string{"build", "--parallel"}, services...),
 	})
 }
 
 func (c *apiClient) ComposeUp(ctx context.Context, project ComposeProject, services []string) error {
-	return c.exec(ctx, execOptions{
+	return c.execCompose(ctx, execComposeOptions{
 		project: project,
 		args:    append([]string{"up", "-d"}, services...),
 	})
 }
 
 func (c *apiClient) ComposeRun(ctx context.Context, project ComposeProject, opts ComposeRunOptions) error {
-	return c.exec(ctx, execOptions{
+	return c.execCompose(ctx, execComposeOptions{
 		project: project,
 		args:    append([]string{"run", "--rm", opts.Service}, opts.Cmd...),
 		stdin:   opts.Stdin,
@@ -80,7 +80,7 @@ func (c *apiClient) ComposeRun(ctx context.Context, project ComposeProject, opts
 }
 
 func (c *apiClient) ComposeExec(ctx context.Context, project ComposeProject, opts ComposeRunOptions) (int, error) {
-	err := c.exec(ctx, execOptions{
+	err := c.execCompose(ctx, execComposeOptions{
 		project: project,
 		args:    append([]string{"exec", opts.Service}, opts.Cmd...),
 		stdin:   opts.Stdin,
@@ -108,14 +108,14 @@ func (c *apiClient) ComposeLogs(ctx context.Context, project ComposeProject, opt
 	if opts.Follow {
 		args = append(args, "--follow")
 	}
-	return c.exec(ctx, execOptions{
+	return c.execCompose(ctx, execComposeOptions{
 		project: project,
 		args:    append(args, opts.Services...),
 		stdout:  opts.Out,
 	})
 }
 
-type execOptions struct {
+type execComposeOptions struct {
 	project ComposeProject
 	args    []string
 	stdin   io.Reader
@@ -123,7 +123,7 @@ type execOptions struct {
 	stderr  io.Writer
 }
 
-func (c *apiClient) exec(ctx context.Context, opts execOptions) error {
+func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) error {
 	const cmdName = "docker-compose"
 	var w io.Writer
 	if opts.stdout == nil || opts.stderr == nil {

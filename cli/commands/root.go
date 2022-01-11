@@ -75,7 +75,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				// No further action required for registry commands
 				return nil
 			case "ios":
-				if !util.IsMacOS() {
+				if !util.IsMacOS {
 					return &cli.ExitError{Message: "tb app ios is only supported on macOS"}
 				}
 				fallthrough

@@ -82,8 +82,9 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 		}
 
 		err := progress.RunParallel(ctx, progress.RunParallelOptions{
-			Message: "Logging into services",
-			Count:   len(loginStrategies),
+			Message:     "Logging into services",
+			Count:       len(loginStrategies),
+			Concurrency: e.concurrency,
 			// Bail if one fails since there's no point on waiting on the others
 			// since we can't proceed anyway.
 			CancelOnError: true,

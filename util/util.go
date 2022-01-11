@@ -4,13 +4,7 @@ import (
 	"runtime"
 )
 
-func IsMacOS() bool {
-	return runtime.GOOS == "darwin"
-}
-
-func IsLinux() bool {
-	return runtime.GOOS == "linux"
-}
+const IsMacOS = runtime.GOOS == "darwin"
 
 func UniqueStrings(s []string) []string {
 	set := make(map[string]bool)
@@ -19,7 +13,6 @@ func UniqueStrings(s []string) []string {
 		if ok := set[v]; ok {
 			continue
 		}
-
 		set[v] = true
 		us = append(us, v)
 	}

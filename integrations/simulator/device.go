@@ -61,6 +61,7 @@ func ParseDevices(data []byte) (DeviceList, error) {
 	}
 	if err := json.Unmarshal(data, &rawDeviceList); err != nil {
 		return DeviceList{}, errors.Wrap(err, errors.Meta{
+			Kind:   errkind.Internal,
 			Reason: "failed to parse device list JSON",
 			Op:     op,
 		})
@@ -133,6 +134,7 @@ func (dl DeviceList) GetDevice(osVersion, deviceName string) (Device, error) {
 			foundDevices = append(foundDevices, d)
 		}
 	}
+
 	switch len(foundDevices) {
 	case 0:
 		return Device{}, errors.Wrap(ErrDeviceNotFound, errors.Meta{

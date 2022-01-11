@@ -22,6 +22,7 @@ import (
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
+	"github.com/TouchBistro/tb/util"
 	"gopkg.in/yaml.v3"
 )
 
@@ -304,8 +305,10 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		tracker.Debug("Successfully generated docker-compose.yml")
 	}
 
+	// Only try loading devices if we are on macOS.
+	// This way other commands like 'tb app list' can still function on linux.
 	var deviceList simulator.DeviceList
-	if opts.LoadApps {
+	if opts.LoadApps && util.IsMacOS {
 		deviceData, err := simulator.ListDevices(ctx)
 		if err != nil {
 			return nil, errors.Wrap(err, errors.Meta{Reason: "failed to get list of simulators", Op: op})
