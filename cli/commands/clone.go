@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/resource"
@@ -39,9 +38,8 @@ func newCloneCommand(c *cli.Container) *cobra.Command {
 				}
 			}
 
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			repoPath := fmt.Sprintf("./%s", strings.Split(s.GitRepo.Name, "/")[1])
-			err = git.New().Clone(ctx, s.GitRepo.Name, repoPath)
+			err = git.New().Clone(c.Ctx, s.GitRepo.Name, repoPath)
 			if err != nil {
 				return err
 			}

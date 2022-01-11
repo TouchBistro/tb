@@ -1,7 +1,6 @@
 package ios
 
 import (
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -33,8 +32,7 @@ Run the build for specific branch in an iOS 12.3 iPad Air 2 simulator:
 	tb app ios run TouchBistro --ios-version 12.3 --device iPad Air 2 --branch task/pay-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appName := args[0]
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			return c.Engine.AppiOSRun(ctx, appName, engine.AppiOSRunOptions{
+			return c.Engine.AppiOSRun(c.Ctx, appName, engine.AppiOSRunOptions{
 				IOSVersion: opts.iosVersion,
 				DeviceName: opts.deviceName,
 				DataPath:   opts.dataPath,

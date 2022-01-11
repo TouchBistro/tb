@@ -5,7 +5,6 @@ import (
 	"os/exec"
 
 	"github.com/TouchBistro/goutils/command"
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -69,8 +68,7 @@ Run the postgres and localstack services directly:
 			if len(serviceNames) == 0 {
 				serviceNames = opts.serviceNames
 			}
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			err := c.Engine.Up(ctx, engine.UpOptions{
+			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,
 				PlaylistName:   opts.playlistName,
 				SkipPreRun:     opts.skipServicePreRun,

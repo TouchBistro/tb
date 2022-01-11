@@ -4,7 +4,6 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -34,8 +33,7 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 
 	tb app logs --number 20 --ios-version 12.4 --device iPad Air 2`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			logsPath, err := c.Engine.AppiOSLogsPath(ctx, engine.AppiOSLogsPathOptions{
+			logsPath, err := c.Engine.AppiOSLogsPath(c.Ctx, engine.AppiOSLogsPathOptions{
 				IOSVersion: opts.iosVersion,
 				DeviceName: opts.deviceName,
 			})
@@ -43,7 +41,7 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 				return err
 			}
 			c.Tracker.Info("Attaching to simulator logs")
-			tail := exec.CommandContext(ctx, "tail", "-f", "-n", opts.numberOfLines, logsPath)
+			tail := exec.CommandContext(c.Ctx, "tail", "-f", "-n", opts.numberOfLines, logsPath)
 			tail.Stdout = os.Stdout
 			tail.Stderr = os.Stderr
 			if err := tail.Run(); err != nil {

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -37,8 +36,7 @@ Start an interactive bash shell in the core-database container:
 
 	tb exec core-database bash`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			exitCode, err := c.Engine.Exec(ctx, args[0], engine.ExecOptions{
+			exitCode, err := c.Engine.Exec(c.Ctx, args[0], engine.ExecOptions{
 				SkipGitPull: opts.skipGitPull,
 				Cmd:         args[1:],
 				Stdin:       os.Stdin,

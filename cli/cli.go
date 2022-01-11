@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -43,12 +44,17 @@ func ExpectSingleArg(name string) cobra.PositionalArgs {
 }
 
 // Container stores all the dependencies that can be used by commands.
+//
+// Fields on Container are only safe to use within the Run function of a command
+// where they are guaranteed to be initialized. Outside of Run, the only usage of
+// a Container instance should be to pass it to command constructors so they can capture it.
 type Container struct {
 	Engine  *engine.Engine
 	Tracker progress.Tracker
 	Verbose bool
-	// This is only here for cleanup purposes, don't use it directly,
-	// use Tracker instead.
+	// Ctx is the context that should be used within a command to carry deadlines and cancellation signals.
+	Ctx context.Context
+	// This is only here for cleanup purposes, don't use it directly, use Tracker instead.
 	Logger *Logger
 }
 

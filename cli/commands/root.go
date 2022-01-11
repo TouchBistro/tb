@@ -85,8 +85,12 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				initOpts.LoadServices = true
 			}
 
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			c.Engine, err = config.Init(ctx, cfg, initOpts)
+			// Create the context that commands can use.
+			// Generally it is recommended not to store contexts in structs, however this case is special
+			// since only one command runs on the each invocation of tb and the container can be seen
+			// as special parameters to the command. Also cobra does with cmd.Context().
+			c.Ctx = progress.ContextWithTracker(cmd.Context(), c.Tracker)
+			c.Engine, err = config.Init(c.Ctx, cfg, initOpts)
 			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to load registries",

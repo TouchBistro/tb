@@ -9,7 +9,6 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/errors"
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -30,8 +29,7 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			c.Tracker.Info("checking required env vars.")
 
 			serviceName := args[0]
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			dbConf, err := getDbConf(ctx, c, serviceName)
+			dbConf, err := getDbConf(c.Ctx, c, serviceName)
 			if err != nil {
 				return &cli.ExitError{
 					Message: "Could not retrieve database config for this service.",

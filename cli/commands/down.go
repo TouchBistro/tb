@@ -1,7 +1,6 @@
 package commands
 
 import (
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -26,8 +25,7 @@ Stop and remove on the postgres and redis containers:
 
 	tb down postgres redis`,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			err := c.Engine.Down(ctx, engine.DownOptions{ServiceNames: args})
+			err := c.Engine.Down(c.Ctx, engine.DownOptions{ServiceNames: args})
 			if err != nil {
 				return &cli.ExitError{
 					Message: "Failed to stop services",

@@ -1,7 +1,6 @@
 package desktop
 
 import (
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -30,8 +29,7 @@ Run the build for a specific branch:
 	tb app desktop run TouchBistroServer --branch task/bug-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			appName := args[0]
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			return c.Engine.AppDesktopRun(ctx, appName, engine.AppDesktopRunOptions{
+			return c.Engine.AppDesktopRun(c.Ctx, appName, engine.AppDesktopRunOptions{
 				Branch: opts.branch,
 			})
 		},

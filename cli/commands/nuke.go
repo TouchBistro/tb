@@ -3,7 +3,6 @@ package commands
 import (
 	"os"
 
-	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -59,8 +58,7 @@ Remove everything (completely wipe all tb data):
 					Message: "Error: Must specify what to nuke. Try tb nuke --help to see all the options.",
 				}
 			}
-			ctx := progress.ContextWithTracker(cmd.Context(), c.Tracker)
-			err := c.Engine.Nuke(ctx, engine.NukeOptions{
+			err := c.Engine.Nuke(c.Ctx, engine.NukeOptions{
 				RemoveContainers:  opts.nukeContainers || opts.nukeAll,
 				RemoveImages:      opts.nukeImages || opts.nukeAll,
 				RemoveNetworks:    opts.nukeNetworks || opts.nukeAll,
