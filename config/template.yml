@@ -1,0 +1,23 @@
+# Toggle experimental mode to test new features
+experimental: false
+# Add registries to access their services and playlists
+# A registry corresponds to a GitHub repo and is of the form <org>/<repo>
+registries:
+  # - name: TouchBistro/tb-registry-example
+# Custom playlists
+# Each playlist can extend another playlist as well as define its services
+playlists:
+  # db:
+    # services:
+      # - postgres
+  # dev-tools:
+    # extends: db
+    # services:
+      # - localstack
+# Override service configuration
+# Overrides must use the full service name with the registry name.
+overrides:
+  # TouchBistro/tb-registry-example/postgres:
+    # mode: remote
+    # remote:
+      # tag: feat/new-version

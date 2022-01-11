@@ -24,39 +24,3 @@ Nuke provides the following flags to clean up resources:
 * `--repos`:      Removes all clone service git repos
 
 Additionally the `--all` flag is also available which combines all the flags listed above and removes the `~/.tb` directory.
-
-## `tb db`
-
-`tb db` provides the ability to quickly connect to a database through the use of [dbcli tools](https://www.dbcli.com/)
-
-The following database types are supported:
-* `postgresql` through [`pgcli`](https://www.pgcli.com/)
-* `mysql` through [`mycli`](https://www.mycli.net/)
-* `mssql` through [`mssql-cli`](https://github.com/dbcli/mssql-cli)
-
-`tb db` will prompt you to download the necessary CLI the first time it is used.
-
-The have your service support `tb db` the following environment variables must be set inside your service's docker container:
-* `DB_TYPE`: One of `postgresql`, `mysql`, or `mssql`
-* `DB_NAME`: The name of the database to connect to
-* `DB_PORT`: The port the database service is running on
-* `DB_USER`: The database user name
-* `DB_PASSWORD`: The database user password
-
-To connect your service's database simply run:
-```
-tb db <service>
-```
-
-**NOTE:** `tb db` assumes the database service host is `localhost`.
-
-## `tb clone`
-
-`tb clone` provides a convenient way to clone any service that has a GitHub repo configured.
-
-Ex:
-```
-tb clone venue-core-serivce
-```
-
-This would clone the git repo for `venue-core-service` into `./venue-core-service`.

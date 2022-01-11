@@ -3,13 +3,13 @@ project_name: tb
 before:
   hooks:
     - go mod tidy
-    - go run scripts/build-artifacts/main.go
+    - make artifacts
 
 builds:
   - env:
       - CGO_ENABLED=0
     ldflags:
-      - -s -w -X github.com/TouchBistro/tb/cmd.version={{.Version}}
+      - -s -w -X main.version={{.Version}}
     goos:
       - darwin
       - linux
@@ -28,7 +28,6 @@ archives:
       - README.md
       - artifacts/tb.bash
       - artifacts/_tb
-      - artifacts/man1/*
 
 checksum:
   name_template: 'checksums.txt'
@@ -60,7 +59,6 @@ brews:
       bin.install "tb"
       bash_completion.install "artifacts/tb.bash"
       zsh_completion.install "artifacts/_tb"
-      man1.install Dir["artifacts/man1/*.1"]
 
 release:
   github:
