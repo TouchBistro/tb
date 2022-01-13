@@ -177,7 +177,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 			}
 		} else {
 			// If not local, the path will be where the registry is/will be cloned.
-			r.Path = filepath.Join(homedir, registriesDir, r.Name)
+			r.Path = filepath.Join(tbRoot, registriesDir, r.Name)
 		}
 		config.Registries[i] = r
 	}
@@ -212,8 +212,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		}
 
 		tracker.Debugf("Updating registry %s", r.Name)
-		path := filepath.Join(tbRoot, registriesDir, r.Name)
-		if err := gitClient.Pull(ctx, path); err != nil {
+		if err := gitClient.Pull(ctx, r.Path); err != nil {
 			return errors.Wrap(err, errors.Meta{
 				Reason: fmt.Sprintf("failed to update registry %s", r.Name),
 				Op:     op,
