@@ -5,6 +5,7 @@ import (
 	"os/exec"
 
 	"github.com/TouchBistro/goutils/command"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -76,9 +77,9 @@ Run the postgres and localstack services directly:
 				SkipGitPull:    opts.skipGitPull,
 			})
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to start services",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to start services",
+					Err: err,
 				}
 			}
 			c.Tracker.Info("✔ Started services")
@@ -86,18 +87,18 @@ Run the postgres and localstack services directly:
 			if !opts.skipLazydocker {
 				// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
 				const lazydocker = "lazydocker"
-				if command.IsAvailable(lazydocker) {
+				if command.Exists(lazydocker) {
 					c.Tracker.Debug("Running lazydocker")
 					// Lazydocker doesn't write to stdout or stderr since everything is displaed in the terminal GUI
 					if err := exec.Command(lazydocker).Run(); err != nil {
-						return &cli.ExitError{
-							Message: "Failed running lazydocker",
-							Err:     err,
+						return &fatal.Error{
+							Msg: "Failed running lazydocker",
+							Err: err,
 						}
 					}
 				} else {
 					// Skip, but inform users about installing it
-					c.Tracker.Warnf("lazydocker is not insalled. Consider installing it: https://github.com/jesseduffield/lazydocker#installation")
+					c.Tracker.Warnf("lazydocker is not installed. Consider installing it: https://github.com/jesseduffield/lazydocker#installation")
 				}
 			}
 			c.Tracker.Info("🔈 the containers are running in the background. If you want to terminate them, run tb down")

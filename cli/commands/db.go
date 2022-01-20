@@ -9,6 +9,7 @@ import (
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -31,9 +32,9 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			serviceName := args[0]
 			dbConf, err := getDbConf(c.Ctx, c, serviceName)
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Could not retrieve database config for this service.",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Could not retrieve database config for this service.",
+					Err: err,
 				}
 			}
 
@@ -52,14 +53,14 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 				connArg = fmt.Sprintf("-U %s -P %s -S localhost -d %s", dbConf.user, dbConf.password, dbConf.name)
 				fmt.Println(connArg)
 			default:
-				return &cli.ExitError{
-					Message: fmt.Sprintf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType),
+				return &fatal.Error{
+					Msg: fmt.Sprintf("DB_TYPE %s is not currently supported by tb db. Please consider making a pull request or let the maintainers know about your use case.", dbConf.dbType),
 				}
 			}
 
-			if !command.IsAvailable(cliName) {
-				return &cli.ExitError{
-					Message: fmt.Sprintf("This command requires %s for %s, which uses a %s database.\n Please install it then run tb db.", cliName, serviceName, dbConf.dbType),
+			if !command.Exists(cliName) {
+				return &fatal.Error{
+					Msg: fmt.Sprintf("This command requires %s for %s, which uses a %s database.\n Please install it then run tb db.", cliName, serviceName, dbConf.dbType),
 				}
 			}
 
@@ -68,9 +69,9 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
 				Exec(cliName, strings.Fields(connArg)...)
 			if err != nil {
-				return &cli.ExitError{
-					Message: fmt.Sprintf("could not start database client %s", cliName),
-					Err:     err,
+				return &fatal.Error{
+					Msg: fmt.Sprintf("could not start database client %s", cliName),
+					Err: err,
 				}
 			}
 			return nil

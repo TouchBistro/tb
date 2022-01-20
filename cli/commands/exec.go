@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -46,11 +47,10 @@ Start an interactive bash shell in the core-database container:
 			if err != nil {
 				return err
 			}
-			if exitCode == -1 {
-				exitCode = 1
+			if exitCode != 0 {
+				// Match the exit code of the command
+				return &fatal.Error{Code: exitCode}
 			}
-			// Match the exit code of the command
-			os.Exit(exitCode)
 			return nil
 		},
 	}

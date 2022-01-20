@@ -7,7 +7,9 @@ import (
 	"os"
 
 	"github.com/TouchBistro/goutils/color"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/goutils/progress"
+	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/cli"
 	appCommands "github.com/TouchBistro/tb/cli/commands/app"
 	registryCommands "github.com/TouchBistro/tb/cli/commands/registry"
@@ -55,9 +57,9 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			// Get the user config, pass empty string to have it find the config file
 			cfg, err := config.Read("")
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to load tbrc",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to load tbrc",
+					Err: err,
 				}
 			}
 			c.Verbose = opts.verbose || cfg.DebugEnabled()
@@ -67,7 +69,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			c.Tracker = &progress.SpinnerTracker{
+			c.Tracker = &spinner.Tracker{
 				OutputLogger:    c.Logger,
 				PersistMessages: c.Verbose,
 			}
@@ -91,7 +93,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				return nil
 			case "ios":
 				if !util.IsMacOS {
-					return &cli.ExitError{Message: "tb app ios is only supported on macOS"}
+					return &fatal.Error{Msg: "tb app ios is only supported on macOS"}
 				}
 				fallthrough
 			case "app", "desktop":
@@ -107,9 +109,9 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			c.Ctx = progress.ContextWithTracker(cmd.Context(), c.Tracker)
 			c.Engine, err = config.Init(c.Ctx, cfg, initOpts)
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to load registries",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to load registries",
+					Err: err,
 				}
 			}
 			return nil
