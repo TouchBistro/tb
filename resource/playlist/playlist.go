@@ -99,7 +99,7 @@ func (c *Collection) SetCustom(p Playlist) {
 //
 // If a dependency cycle is detected while resolving extends an error will be returned.
 func (c *Collection) ServiceNames(playlistName string) ([]string, error) {
-	const op = errors.Op("paylist.Collection.ServiceNames")
+	const op = errors.Op("playlist.Collection.ServiceNames")
 	serviceNames, err := c.resolveServiceNames(op, playlistName, make(map[string]bool))
 	if err != nil {
 		return nil, err

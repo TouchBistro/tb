@@ -2,6 +2,7 @@
 package cli
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -9,9 +10,9 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/TouchBistro/goutils/log"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/engine"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -58,22 +59,10 @@ type Container struct {
 	Logger *Logger
 }
 
-// ExitError is used to signal that the CLI should exit with a given code and message.
-type ExitError struct {
-	Code    int
-	Message string
-	Err     error
-}
-
-func (e *ExitError) Error() string {
-	return e.Message
-}
-
-// Logger that wraps a logrus.Logger and implements progress.OutputLogger.
-// It writes to both stderr and a temp file.
+// Logger is a logger that writes to both stderr and a temp file.
 type Logger struct {
-	// Embed a logrus logger to automatically implement all the log methods.
-	*logrus.Logger
+	// Embed a logger to automatically implement all the log methods.
+	*log.Logger
 
 	f *os.File    // temp file where all logs are written
 	h *loggerHook // hook for also logging to stderr
@@ -94,28 +83,21 @@ func NewLogger(verbose bool) (*Logger, error) {
 		return nil, fmt.Errorf("failed to create log file: %w", err)
 	}
 
-	logger := &logrus.Logger{
-		Out: f,
-		Formatter: &logrus.TextFormatter{
-			DisableColors: true,
-		},
-		Hooks: make(logrus.LevelHooks),
-		Level: logrus.DebugLevel,
-	}
+	logger := log.New(
+		log.WithOutput(f),
+		log.WithFormatter(&log.TextFormatter{}),
+		log.WithLevel(log.LevelDebug),
+	)
 	h := &loggerHook{
 		w:       os.Stderr,
 		verbose: verbose,
-		formatter: &logrus.TextFormatter{
+		formatter: &log.TextFormatter{
+			Pretty:           true,
 			DisableTimestamp: true,
-			ForceColors:      true,
 		},
 	}
 	logger.AddHook(h)
 	return &Logger{logger, f, h}, nil
-}
-
-func (l *Logger) WithFields(fields progress.Fields) progress.Logger {
-	return progressLogger{l.Logger.WithFields(logrus.Fields(fields))}
 }
 
 func (l *Logger) Output() io.Writer {
@@ -159,40 +141,28 @@ func (l *Logger) Cleanup(remove bool) error {
 	return nil
 }
 
-// progressLogger is a simple wrapper for a logrus.FieldLogger that makes
-// it implement progress.Logger.
-type progressLogger struct {
-	logrus.FieldLogger
-}
-
-func (pl progressLogger) WithFields(fields progress.Fields) progress.Logger {
-	return progressLogger{pl.FieldLogger.WithFields(logrus.Fields(fields))}
-}
-
-// loggerHook is a logrus hook to writes to an io.Writer.
+// loggerHook is a logger hook to writes to an io.Writer.
 type loggerHook struct {
 	w         io.Writer
 	verbose   bool
 	mu        sync.Mutex
-	formatter logrus.Formatter
+	formatter log.Formatter
+	buf       bytes.Buffer
 }
 
-func (h *loggerHook) Levels() []logrus.Level {
-	// We want the hook to fire on all levels and then we will decide what to do.
-	return logrus.AllLevels
-}
-
-func (h *loggerHook) Fire(e *logrus.Entry) error {
-	if e.Level == logrus.DebugLevel && !h.verbose {
+func (h *loggerHook) Run(e *log.Entry) error {
+	if e.Level == log.LevelDebug && !h.verbose {
 		// Ignore debug level if we aren't verbose
 		return nil
 	}
-	b, err := h.formatter.Format(e)
+
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.buf.Reset()
+	b, err := h.formatter.Format(e, &h.buf)
 	if err != nil {
 		return err
 	}
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	_, err = h.w.Write(b)
 	return err
 }

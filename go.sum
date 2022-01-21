@@ -87,8 +87,12 @@ github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAE
 github.com/PuerkitoBio/purell v1.1.1/go.mod h1:c11w/QuzBsJSee3cPx9rAFu61PvFxuPbtSwDGJws/X0=
 github.com/PuerkitoBio/urlesc v0.0.0-20170810143723-de5bf2ad4578/go.mod h1:uGdkoq3SwY9Y+13GIhn11/XLaGBb4BfwItxLd5jeuXE=
 github.com/Shopify/logrus-bugsnag v0.0.0-20171204204709-577dee27f20d/go.mod h1:HI8ITrYtUY+O+ZhtlqUnD8+KwNPOyugEhfP9fdUIaEQ=
-github.com/TouchBistro/goutils v0.2.0 h1:UF1gDr5JCpN9mC301eaSK2X4Ch1B1ZONEGTtyZTi25g=
-github.com/TouchBistro/goutils v0.2.0/go.mod h1:Z4vmIj97FCumPsWY9w/h+KgTglEUDJjTySWP7RgUIJ4=
+github.com/TouchBistro/goutils v0.2.1-0.20220117001054-efef9eb368e2 h1:ezxe2++GMN4vz/Y2nTIT6fsAAUFLeTnMrK4GKOjYQuA=
+github.com/TouchBistro/goutils v0.2.1-0.20220117001054-efef9eb368e2/go.mod h1:Z4vmIj97FCumPsWY9w/h+KgTglEUDJjTySWP7RgUIJ4=
+github.com/TouchBistro/goutils v0.2.1-0.20220120212605-0560d8656f2a h1:AlOxfeaTXFu0rqyblS329i0TFMiwsDk610ssa5G0nUM=
+github.com/TouchBistro/goutils v0.2.1-0.20220120212605-0560d8656f2a/go.mod h1:Z4vmIj97FCumPsWY9w/h+KgTglEUDJjTySWP7RgUIJ4=
+github.com/TouchBistro/goutils v0.3.0 h1:k1LNPCJbcC/tkbG14nplU9OxSMSzjLCcgHMn8NIVDqQ=
+github.com/TouchBistro/goutils v0.3.0/go.mod h1:Z4vmIj97FCumPsWY9w/h+KgTglEUDJjTySWP7RgUIJ4=
 github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751/go.mod h1:LOuyumcjzFXgccqObfd/Ljyb9UuFJ6TxHnclSeseNhc=
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=

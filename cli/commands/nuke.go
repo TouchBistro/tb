@@ -3,6 +3,7 @@ package commands
 import (
 	"os"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -54,8 +55,8 @@ Remove everything (completely wipe all tb data):
 			if !opts.nukeContainers && !opts.nukeImages && !opts.nukeVolumes &&
 				!opts.nukeNetworks && !opts.nukeRepos && !opts.nukeDesktopApps &&
 				!opts.nukeIOSBuilds && !opts.nukeRegistries && !opts.nukeAll {
-				return &cli.ExitError{
-					Message: "Error: Must specify what to nuke. Try tb nuke --help to see all the options.",
+				return &fatal.Error{
+					Msg: "Error: Must specify what to nuke. Try tb nuke --help to see all the options.",
 				}
 			}
 			err := c.Engine.Nuke(c.Ctx, engine.NukeOptions{
@@ -69,18 +70,18 @@ Remove everything (completely wipe all tb data):
 				RemoveRegistries:  opts.nukeRegistries || opts.nukeAll,
 			})
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to clean up tb data",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to clean up tb data",
+					Err: err,
 				}
 			}
 
 			// If --all was used removed the entire .tb dir as a way to completely clean up all trace of tb.
 			if opts.nukeAll {
 				if err := os.RemoveAll(c.Engine.Workdir()); err != nil {
-					return &cli.ExitError{
-						Message: "Failed to remove .tb root directory",
-						Err:     err,
+					return &fatal.Error{
+						Msg: "Failed to remove .tb root directory",
+						Err: err,
 					}
 				}
 			}

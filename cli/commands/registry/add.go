@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/TouchBistro/goutils/color"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/config"
 	"github.com/spf13/cobra"
@@ -29,9 +30,9 @@ Add the registry named TouchBistro/tb-registry-example:
 				c.Tracker.Infof(color.Green("☑ registry %s has already been added"), registryName)
 				return nil
 			} else if err != nil {
-				return &cli.ExitError{
-					Message: fmt.Sprintf("failed to add registry %s", registryName),
-					Err:     err,
+				return &fatal.Error{
+					Msg: fmt.Sprintf("failed to add registry %s", registryName),
+					Err: err,
 				}
 			}
 			c.Tracker.Infof(color.Green("Successfully added registry %s"), registryName)

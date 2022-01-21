@@ -1,6 +1,7 @@
 package ios
 
 import (
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -39,9 +40,9 @@ Run the build for specific branch in an iOS 12.3 iPad Air 2 simulator:
 				Branch:     opts.branch,
 			})
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to run iOS app",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to run iOS app",
+					Err: err,
 				}
 			}
 			c.Tracker.Info("✔ Launched iOS app")

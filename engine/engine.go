@@ -26,7 +26,7 @@ type Engine struct {
 	baseImages       []string
 	loginStrategies  []string
 	deviceList       simulator.DeviceList
-	concurrency      uint
+	concurrency      int
 
 	gitClient        git.Git
 	dockerClient     *docker.Docker
@@ -64,7 +64,7 @@ type Options struct {
 	DeviceList simulator.DeviceList
 	// Concurrency controls how many goroutines can run concurrently.
 	// Defaults to runtime.NumCPU if omitted.
-	Concurrency uint
+	Concurrency int
 	// GitClient is the client to use for git operations.
 	// This allows for overriding the default git client if provided.
 	GitClient git.Git

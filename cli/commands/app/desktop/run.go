@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -33,9 +34,9 @@ Run the build for a specific branch:
 				Branch: opts.branch,
 			})
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to run desktop app",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to run desktop app",
+					Err: err,
 				}
 			}
 			c.Tracker.Info("✔ Launched desktop app")

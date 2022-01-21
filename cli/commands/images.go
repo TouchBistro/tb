@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	dockerregistry "github.com/TouchBistro/tb/integrations/docker/registry"
 	"github.com/TouchBistro/tb/resource"
@@ -32,16 +33,16 @@ func newImagesCommand(c *cli.Container) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			service, err := c.Engine.ResolveService(args[0])
 			if errors.Is(err, resource.ErrNotFound) {
-				return &cli.ExitError{
-					Message: "Try running `tb list` to see available services",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Try running `tb list` to see available services",
+					Err: err,
 				}
 			} else if err != nil {
 				return err
 			}
 			if service.Remote.Image == "" {
-				return &cli.ExitError{
-					Message: fmt.Sprintf("%s is not available from a remote docker registry", service.FullName()),
+				return &fatal.Error{
+					Msg: fmt.Sprintf("%s is not available from a remote docker registry", service.FullName()),
 				}
 			}
 
@@ -54,9 +55,9 @@ func newImagesCommand(c *cli.Container) *cobra.Command {
 			imgs, err := dockerRegistry.FetchRepoImages(cmd.Context(), service.Remote.Image, opts.max)
 			c.Tracker.Stop()
 			if err != nil {
-				return &cli.ExitError{
-					Message: "Failed to fetch docker images",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Failed to fetch docker images",
+					Err: err,
 				}
 			}
 			for _, img := range imgs {

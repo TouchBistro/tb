@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/resource"
@@ -25,16 +26,16 @@ func newCloneCommand(c *cli.Container) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s, err := c.Engine.ResolveService(args[0])
 			if errors.Is(err, resource.ErrNotFound) {
-				return &cli.ExitError{
-					Message: "Try running `tb list` to see available services",
-					Err:     err,
+				return &fatal.Error{
+					Msg: "Try running `tb list` to see available services",
+					Err: err,
 				}
 			} else if err != nil {
 				return err
 			}
 			if !s.HasGitRepo() {
-				return &cli.ExitError{
-					Message: fmt.Sprintf("%s does not have a repo", s.FullName()),
+				return &fatal.Error{
+					Msg: fmt.Sprintf("%s does not have a repo", s.FullName()),
 				}
 			}
 

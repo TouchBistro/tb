@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/cli/commands"
 	"github.com/TouchBistro/tb/resource"
@@ -41,50 +41,35 @@ func main() {
 	}
 
 	// Handle error
-	var exitErr *cli.ExitError
+	var fatalErr *fatal.Error
 	switch {
-	case errors.As(err, &exitErr):
-		// Nothing to do, since exitErr is now populated
+	case errors.As(err, &fatalErr):
+		// Nothing to do, since fatalErr is now populated
 	case errors.Is(err, context.Canceled):
-		exitErr = &cli.ExitError{
-			Code:    130,
-			Message: "\nOperation cancelled",
+		fatalErr = &fatal.Error{
+			Code: 130,
+			Msg:  "\nOperation cancelled",
 		}
 	case
 		errors.Is(err, resource.ErrNotFound):
-		exitErr = &cli.ExitError{
-			Message: "Try running `tb list` to see available services",
-			Err:     err,
+		fatalErr = &fatal.Error{
+			Msg: "Try running `tb list` to see available services",
+			Err: err,
 		}
 	default:
 		// TODO(@cszatmary): We can check if errors.Error and use the Kind
 		// to add custom messages to try and help the user.
 		// We should also add sepecific error codes based on Kind.
-		exitErr = &cli.ExitError{Err: err}
-	}
-	// Make sure a valid exit code was set, if not just default to 1
-	// since that's the general catch all error code.
-	if exitErr.Code <= 0 {
-		exitErr.Code = 1
+		fatalErr = &fatal.Error{Err: err}
 	}
 
-	// Print out the error and message then exit
-	if exitErr.Err != nil {
+	// Print the error ourselves instead of letting fatal do it since we want
+	// to do some additional stuff after before exiting.
+	if fatalErr.Msg != "" || fatalErr.Err != nil {
 		if c.Verbose {
-			fmt.Fprintf(os.Stderr, "Error: %+v\n", exitErr.Err)
+			fmt.Fprintf(os.Stderr, "%+v\n", fatalErr)
 		} else {
-			fmt.Fprintf(os.Stderr, "Error: %s\n", exitErr.Err)
-		}
-	}
-	// If an error was just printed and a message is going to be printed,
-	// add an extra newline inbetween them
-	if exitErr.Err != nil && exitErr.Message != "" {
-		fmt.Fprintln(os.Stderr)
-	}
-	if exitErr.Message != "" {
-		fmt.Fprint(os.Stderr, exitErr.Message)
-		if !strings.HasSuffix(exitErr.Message, "\n") {
-			fmt.Fprintln(os.Stderr)
+			fmt.Fprintf(os.Stderr, "%v\n", fatalErr)
 		}
 	}
 
@@ -92,5 +77,5 @@ func main() {
 	if name := c.Logger.Filename(); name != "" {
 		fmt.Fprintf(os.Stderr, "\n👉 Logs are available at: %s 👈\n", name)
 	}
-	os.Exit(exitErr.Code)
+	fatal.Exit(fatalErr)
 }

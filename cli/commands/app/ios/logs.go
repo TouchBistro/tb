@@ -1,9 +1,11 @@
 package ios
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
@@ -45,11 +47,11 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 			tail.Stdout = os.Stdout
 			tail.Stderr = os.Stderr
 			if err := tail.Run(); err != nil {
-				code := tail.ProcessState.ExitCode()
-				if code == -1 {
-					code = 1
+				var exitErr *exec.ExitError
+				if errors.As(err, &exitErr) {
+					return &fatal.Error{Code: exitErr.ExitCode()}
 				}
-				os.Exit(code)
+				return &fatal.Error{Err: err}
 			}
 			return nil
 		},

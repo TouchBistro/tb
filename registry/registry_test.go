@@ -276,6 +276,17 @@ func TestValidate(t *testing.T) {
 	is.NoErr(result.ServicesErr)
 }
 
+func TestValidateNormalizePath(t *testing.T) {
+	is := is.New(t)
+	// Make sure the path is normalized and it correctly resolves the registry name using
+	// the base name, i.e. `local/registry-2`. Before there was a bug where the last part of the
+	// path was taken as is and it lead to issues because `local/.` is not a valid registry name.
+	result := registry.Validate("testdata/registry-2/.", registry.ValidateOptions{})
+	is.NoErr(result.AppsErr)
+	is.NoErr(result.PlaylistsErr)
+	is.NoErr(result.ServicesErr)
+}
+
 func TestValidateErrors(t *testing.T) {
 	is := is.New(t)
 	result := registry.Validate("testdata/invalid-registry-1", registry.ValidateOptions{

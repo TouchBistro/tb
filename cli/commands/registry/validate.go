@@ -5,6 +5,7 @@ import (
 	"io/fs"
 
 	"github.com/TouchBistro/goutils/color"
+	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/registry"
 	"github.com/spf13/cobra"
@@ -29,7 +30,7 @@ Validate the config files in the current directory:
 	tb registry validate .`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			registryPath := args[0]
-			c.Tracker.Infof(color.Cyan("Validating registry files at path %s..."), registryPath)
+			c.Tracker.Infof(color.Cyan("Validating registry files at path %q"), registryPath)
 
 			valid := true
 			result := registry.Validate(registryPath, registry.ValidateOptions{
@@ -64,8 +65,8 @@ Validate the config files in the current directory:
 			}
 
 			if !valid {
-				return &cli.ExitError{
-					Message: color.Red("❌ registry is invalid"),
+				return &fatal.Error{
+					Msg: color.Red("❌ registry is invalid"),
 				}
 			}
 			c.Tracker.Info(color.Green("✅ registry is valid"))

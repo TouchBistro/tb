@@ -215,19 +215,35 @@ type ValidateResult struct {
 // See each field for more details.
 func Validate(path string, opts ValidateOptions) ValidateResult {
 	const op = errors.Op("registry.Validate")
+
+	// We need a valid registry name for validation to work. For the "org" we can just use "local".
+	// Resolve the absolute path ourselves so we can get the name of the registry directory.
+	// This way if you are in the `my-registry` dir and pass `.` you'd get
+	// `local/my-registry` as the registry name, not `local/.` which would break.
+	absPath, err := filepath.Abs(path)
+	if err != nil {
+		err = errors.Wrap(err, errors.Meta{
+			Kind:   errkind.IO,
+			Reason: "unable to resolve absolute path to registry",
+			Op:     op,
+		})
+		// We can just return this error for every single one.
+		return ValidateResult{err, err, err}
+	}
+
 	r := Registry{
-		// Name needs to be a proper registry name so just say the org is local
-		Name: "local/" + filepath.Base(path),
-		Path: path,
+		Name: "local/" + filepath.Base(absPath),
+		Path: absPath,
 	}
 	var result ValidateResult
 	if opts.Logger == nil {
 		opts.Logger = progress.NoopTracker{}
 	}
+	opts.Logger.Debugf("Validating registry %s", r.Name)
 
 	// Validate apps.yml
 	opts.Logger.Debug("Validating apps")
-	err := readApps(op, r, readAppsOptions{
+	err = readApps(op, r, readAppsOptions{
 		iosCollection:     &app.Collection{},
 		desktopCollection: &app.Collection{},
 	})
