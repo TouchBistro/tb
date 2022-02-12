@@ -346,6 +346,45 @@ func TestNuke(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "remove containers if removing other docker resources",
+			mockAPIClientOpts: docker.MockAPIClientOptions{
+				Containers: []dockertypes.Container{
+					{
+						ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
+						Names: []string{"touchbistro-tb-registry-postgres"},
+						Labels: map[string]string{
+							docker.ProjectLabel: "tb",
+						},
+						State: docker.ContainerStateRunning,
+					},
+				},
+				Networks: []dockertypes.NetworkResource{
+					{
+						ID:   "872eead77c73055de86c8ca6a17d509937c8e8c747b00a40a8374cec721b70e4",
+						Name: "tb_default",
+						Labels: map[string]string{
+							docker.ProjectLabel: "tb",
+						},
+					},
+				},
+				Volumes: []dockertypes.Volume{
+					{
+						Name: "tb_postgres",
+						Labels: map[string]string{
+							docker.ProjectLabel: "tb",
+						},
+					},
+				},
+			},
+			nukeOpts: engine.NukeOptions{
+				RemoveNetworks: true,
+				RemoveVolumes:  true,
+			},
+			wantContainers: nil,
+			wantNetworks:   nil,
+			wantVolumes:    nil,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
