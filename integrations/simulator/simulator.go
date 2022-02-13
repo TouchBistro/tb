@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -34,6 +35,7 @@ type Simulator interface {
 	InstallApp(ctx context.Context, appPath string) error
 	LaunchApp(ctx context.Context, appBundleID string) error
 	GetAppDataPath(ctx context.Context, appBundleID string) (string, error)
+	Setenv(key, value string) error
 }
 
 // simulator implements Simulator using the simctl command.
@@ -85,6 +87,11 @@ func (sim *simulator) GetAppDataPath(ctx context.Context, appBundleID string) (s
 		return "", err
 	}
 	return strings.TrimSpace(buf.String()), nil
+}
+
+func (sim *simulator) Setenv(key, value string) error {
+	// Env vars can be passed to simctl if they are set in the calling environment with a SIMCTL_CHILD_ prefix.
+	return os.Setenv("SIMCTL_CHILD_"+key, value)
 }
 
 func execSimctl(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {

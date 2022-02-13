@@ -79,24 +79,6 @@
     ],
     "com.apple.CoreSimulator.SimRuntime.iOS-13-5": [
       {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/67D79B13-7D22-4CE4-A15C-0472EE48360D/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/67D79B13-7D22-4CE4-A15C-0472EE48360D",
-        "udid": "67D79B13-7D22-4CE4-A15C-0472EE48360D",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-8",
-        "state": "Shutdown",
-        "name": "iPhone 8"
-      },
-      {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/5EEE5EFF-A600-4623-BD14-386124A03657/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/5EEE5EFF-A600-4623-BD14-386124A03657",
-        "udid": "5EEE5EFF-A600-4623-BD14-386124A03657",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-8-Plus",
-        "state": "Shutdown",
-        "name": "iPhone 8 Plus"
-      },
-      {
         "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/E199247A-BCBE-431A-B909-16C3A58EFC89/data",
         "logPath": "/Users/admin/Library/Logs/CoreSimulator/E199247A-BCBE-431A-B909-16C3A58EFC89",
         "udid": "E199247A-BCBE-431A-B909-16C3A58EFC89",
@@ -115,24 +97,6 @@
         "name": "iPhone 11 Pro"
       },
       {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/6838393D-132F-47AF-984D-CC0F9C8ED33F/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/6838393D-132F-47AF-984D-CC0F9C8ED33F",
-        "udid": "6838393D-132F-47AF-984D-CC0F9C8ED33F",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-11-Pro-Max",
-        "state": "Shutdown",
-        "name": "iPhone 11 Pro Max"
-      },
-      {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/CD3BD8C5-819C-4B12-9310-E312A42F3BBC/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/CD3BD8C5-819C-4B12-9310-E312A42F3BBC",
-        "udid": "CD3BD8C5-819C-4B12-9310-E312A42F3BBC",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPhone-SE--2nd-generation-",
-        "state": "Shutdown",
-        "name": "iPhone SE (2nd generation)"
-      },
-      {
         "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/A01ADC2E-6AAE-401C-A5B4-5CC5B165E8A1/data",
         "logPath": "/Users/admin/Library/Logs/CoreSimulator/A01ADC2E-6AAE-401C-A5B4-5CC5B165E8A1",
         "udid": "A01ADC2E-6AAE-401C-A5B4-5CC5B165E8A1",
@@ -149,33 +113,6 @@
         "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad--7th-generation-",
         "state": "Shutdown",
         "name": "iPad (7th generation)"
-      },
-      {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/7DE96DB3-36DB-453F-88A2-92BD79F8168D/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/7DE96DB3-36DB-453F-88A2-92BD79F8168D",
-        "udid": "7DE96DB3-36DB-453F-88A2-92BD79F8168D",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--11-inch---2nd-generation-",
-        "state": "Shutdown",
-        "name": "iPad Pro (11-inch) (2nd generation)"
-      },
-      {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/E93D9611-7AD2-4300-9245-3C7F73EA64A9/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/E93D9611-7AD2-4300-9245-3C7F73EA64A9",
-        "udid": "E93D9611-7AD2-4300-9245-3C7F73EA64A9",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Pro--12-9-inch---4th-generation-",
-        "state": "Shutdown",
-        "name": "iPad Pro (12.9-inch) (4th generation)"
-      },
-      {
-        "dataPath": "/Users/admin/Library/Developer/CoreSimulator/Devices/E569908B-F992-44D8-843C-205B7070AD9E/data",
-        "logPath": "/Users/admin/Library/Logs/CoreSimulator/E569908B-F992-44D8-843C-205B7070AD9E",
-        "udid": "E569908B-F992-44D8-843C-205B7070AD9E",
-        "isAvailable": true,
-        "deviceTypeIdentifier": "com.apple.CoreSimulator.SimDeviceType.iPad-Air--3rd-generation-",
-        "state": "Booted",
-        "name": "iPad Air (3rd generation)"
       }
     ],
     "com.apple.CoreSimulator.SimRuntime.watchOS-5-2": [],

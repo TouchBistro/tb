@@ -40,6 +40,7 @@ type Device struct {
 	IsAvailable bool       `json:"isAvailable"`
 	Name        string     `json:"name"`
 	UDID        string     `json:"udid"`
+	LogPath     string     `json:"logPath"`
 	Type        DeviceType `json:"-"`
 }
 
@@ -116,6 +117,28 @@ OSLoop:
 	return deviceList, nil
 }
 
+// ListDevices returns a list of all devices with the given OS version and device type.
+// If deviceType is DeviceTypeUnspecified, all devices with the given OS version will be returned.
+//
+// If the OS version does not exist, ErrOSNotFound will be returned.
+func (dl DeviceList) ListDevices(osVersion string, deviceType DeviceType) ([]Device, error) {
+	const op = errors.Op("DeviceList.ListDevices")
+	devices, err := dl.getDevices(osVersion, op)
+	if err != nil {
+		return nil, err
+	}
+	if deviceType == DeviceTypeUnspecified {
+		return devices, nil
+	}
+	var filtered []Device
+	for _, d := range devices {
+		if d.Type == deviceType {
+			filtered = append(filtered, d)
+		}
+	}
+	return filtered, nil
+}
+
 // GetDevice returns the device with the given OS version and name.
 //
 // If the OS version does not exist, ErrOSNotFound will be returned.
@@ -151,34 +174,6 @@ func (dl DeviceList) GetDevice(osVersion, deviceName string) (Device, error) {
 			Op:     op,
 		})
 	}
-}
-
-// GetDefaultDevice returns the default device to be used with the given OS version and device type.
-// If deviceType is DeviceTypeUnspecified the first device found will be returned.
-//
-// If the OS version does not exist, ErrOSNotFound will be returned.
-// If no devices with the given device type are found, ErrDeviceNotFound will be returned.
-func (dl DeviceList) GetDefaultDevice(osVersion string, deviceType DeviceType) (Device, error) {
-	const op = errors.Op("DeviceList.GetDefaultDevice")
-	devices, err := dl.getDevices(osVersion, op)
-	if err != nil {
-		return Device{}, err
-	}
-	// Find the first available device the matches the deviceType.
-	for _, d := range devices {
-		// If unspecified just pick the first one we find.
-		if deviceType == DeviceTypeUnspecified {
-			return d, nil
-		}
-		if d.Type == deviceType {
-			return d, nil
-		}
-	}
-	return Device{}, errors.Wrap(ErrDeviceNotFound, errors.Meta{
-		Kind:   errkind.Invalid,
-		Reason: fmt.Sprintf("OS version %q, device type %q", osVersion, deviceType),
-		Op:     op,
-	})
 }
 
 // getDevices returns a list of devices with the given os version.
