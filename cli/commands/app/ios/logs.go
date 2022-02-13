@@ -57,7 +57,8 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 				if errors.As(err, &exitErr) {
 					return &fatal.Error{Code: exitErr.ExitCode()}
 				}
-				return &fatal.Error{Err: err}
+				// Error isn't from tail, some other error occurred while trying to run it.
+				return &fatal.Error{Msg: "Failed to view simulator logs", Err: err}
 			}
 			return nil
 		},
