@@ -18,12 +18,51 @@ import (
 	"github.com/TouchBistro/tb/resource/app"
 )
 
+// AppiOSListDevicesOptions customizes the behavior of AppiOSListDevices.
+type AppiOSListDevicesOptions struct {
+	// AppName is the name of an iOS app.
+	// If provided, only devices that this app can run on will be returned.
+	AppName string
+	// IOSVersion is the iOS version to use.
+	// If omitted, the latest available iOS version will be used.
+	IOSVersion string
+}
+
+// AppiOSListDevices returns a list of device names for available devices based on opts.
+// It also returns the resolved iOS version.
+func (e *Engine) AppiOSListDevices(ctx context.Context, opts AppiOSListDevicesOptions) ([]string, string, error) {
+	const op = errors.Op("engine.Engine.AppiOSListDevices")
+	iosVersion, err := e.resolveiOSVersion(ctx, opts.IOSVersion, op)
+	if err != nil {
+		return nil, "", err
+	}
+
+	deviceType := simulator.DeviceTypeUnspecified
+	if opts.AppName != "" {
+		a, err := e.iosApps.Get(opts.AppName)
+		if err != nil {
+			return nil, "", errors.Wrap(err, errors.Meta{Reason: "unable to resolve iOS app", Op: op})
+		}
+		deviceType = a.DeviceType()
+	}
+
+	devices, err := e.deviceList.ListDevices(iosVersion, deviceType)
+	if err != nil {
+		return nil, "", errors.Wrap(err, errors.Meta{Reason: "unable to get available iOS devices", Op: op})
+	}
+	deviceNames := make([]string, len(devices))
+	for i, d := range devices {
+		deviceNames[i] = d.Name
+	}
+	return deviceNames, iosVersion, nil
+}
+
 // AppiOSRunOptions customizes the behaviour of AppiOSRun.
-// All fields are optional.
 type AppiOSRunOptions struct {
 	// IOSVersion is the iOS version to use.
 	IOSVersion string
 	// DeviceName is the name of the device to use.
+	// This field is required.
 	DeviceName string
 	// DataPath is the path to a data directory to inject into the simulator.
 	DataPath string
@@ -42,7 +81,7 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 	if opts.Branch != "" {
 		a.Branch = opts.Branch
 	}
-	device, err := e.resolveDevice(ctx, opts.IOSVersion, opts.DeviceName, a.DeviceType(), op)
+	device, err := e.resolveDevice(ctx, opts.IOSVersion, opts.DeviceName, op)
 	if err != nil {
 		return err
 	}
@@ -120,8 +159,13 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 	tracker.UpdateMessage("Setting environment variables")
 	for k, v := range a.EnvVars {
 		tracker.Debugf("Setting %s to %s", k, v)
-		// Env vars can be passed to simctl if they are set in the calling environment with a SIMCTL_CHILD_ prefix.
-		os.Setenv(fmt.Sprintf("SIMCTL_CHILD_%s", k), v)
+		if err := sim.Setenv(k, v); err != nil {
+			return errors.Wrap(err, errors.Meta{
+				Kind:   errkind.Internal,
+				Reason: fmt.Sprintf("failed to set env var %s in simulator", k),
+				Op:     op,
+			})
+		}
 	}
 	tracker.UpdateMessage("Launching app in simulator")
 	if err := sim.LaunchApp(ctx, a.BundleID); err != nil {
@@ -135,11 +179,11 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 }
 
 // AppiOSLogsPathOptions customizes the behaviour of AppiOSLogsPath.
-// All fields are optional.
 type AppiOSLogsPathOptions struct {
 	// IOSVersion is the iOS version to use.
 	IOSVersion string
 	// DeviceName is the name of the device to use.
+	// This field is required.
 	DeviceName string
 }
 
@@ -147,41 +191,38 @@ type AppiOSLogsPathOptions struct {
 func (e *Engine) AppiOSLogsPath(ctx context.Context, opts AppiOSLogsPathOptions) (string, error) {
 	const op = errors.Op("engine.Engine.AppiOSRun")
 	tracker := progress.TrackerFromContext(ctx)
-	device, err := e.resolveDevice(ctx, opts.IOSVersion, opts.DeviceName, simulator.DeviceTypeUnspecified, op)
+	device, err := e.resolveDevice(ctx, opts.IOSVersion, opts.DeviceName, op)
 	if err != nil {
 		return "", err
 	}
 	tracker.Debugf("Found device UDID: %s", device.UDID)
-	homedir, err := os.UserHomeDir()
-	if err != nil {
-		return "", errors.Wrap(err, errors.Meta{
-			Kind:   errkind.Internal,
-			Reason: "unable to find user home directory",
-			Op:     op,
-		})
-	}
-	return filepath.Join(homedir, "Library/Logs/CoreSimulator", device.UDID, "system.log"), nil
+	return filepath.Join(device.LogPath, "system.log"), nil
 }
 
-func (e *Engine) resolveDevice(ctx context.Context, iosVersion, deviceName string, deviceType simulator.DeviceType, op errors.Op) (simulator.Device, error) {
-	tracker := progress.TrackerFromContext(ctx)
-	// Figure out default iOS version if it wasn't provided
-	if iosVersion == "" {
-		var err error
-		iosVersion, err = e.deviceList.GetLatestiOSVersion()
-		if err != nil {
-			return simulator.Device{}, errors.Wrap(err, errors.Meta{Reason: "unable to get latest iOS version", Op: op})
-		}
-		tracker.Infof("No iOS version provided, defaulting to version %s", iosVersion)
+// resolveiOSVersion finds the latest iOS version and returns it if iosVersion is empty.
+// If iosVersion is not empty, it is returned as is.
+func (e *Engine) resolveiOSVersion(ctx context.Context, iosVersion string, op errors.Op) (string, error) {
+	if iosVersion != "" {
+		return iosVersion, nil
 	}
+	latestVersion, err := e.deviceList.GetLatestiOSVersion()
+	if err != nil {
+		return "", errors.Wrap(err, errors.Meta{Reason: "unable to get latest iOS version", Op: op})
+	}
+	tracker := progress.TrackerFromContext(ctx)
+	tracker.Infof("No iOS version provided, defaulting to version %s", latestVersion)
+	return latestVersion, nil
+}
+
+func (e *Engine) resolveDevice(ctx context.Context, iosVersion, deviceName string, op errors.Op) (simulator.Device, error) {
+	var err error
+	iosVersion, err = e.resolveiOSVersion(ctx, iosVersion, op)
+	if err != nil {
+		return simulator.Device{}, err
+	}
+	// Make sure a device was provided as it is required
 	if deviceName == "" {
-		// Figure out default iOS device if it wasn't provided
-		device, err := e.deviceList.GetDefaultDevice(iosVersion, deviceType)
-		if err != nil {
-			return device, errors.Wrap(err, errors.Meta{Reason: "failed to get default iOS simulator", Op: op})
-		}
-		tracker.Infof("No iOS simulator provided, defaulting to %s\n", device.Name)
-		return device, nil
+		return simulator.Device{}, errors.New(errkind.Invalid, "no iOS device provided", op)
 	}
 	// Find specified device
 	device, err := e.deviceList.GetDevice(iosVersion, deviceName)

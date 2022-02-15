@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 
 	"github.com/TouchBistro/goutils/log"
@@ -15,21 +14,6 @@ import (
 	"github.com/TouchBistro/tb/engine"
 	"github.com/spf13/cobra"
 )
-
-// Prompt prompts the user for the answer to a yes/no question.
-func Prompt(msg string) bool {
-	// check for yes and assume no on any other input to avoid annoyance
-	fmt.Print(msg)
-	var resp string
-	_, err := fmt.Scanln(&resp)
-	if err != nil {
-		return false
-	}
-	if strings.ToLower(string(resp[0])) == "y" {
-		return true
-	}
-	return false
-}
 
 // ExpectSingleArg returns a function that validates the command only receives a single arg.
 // name is the name of the arg and is used in the error message.

@@ -33,15 +33,21 @@ Displays the last 10 logs in the default iOS simulator:
 
 Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 
-	tb app logs --number 20 --ios-version 12.4 --device iPad Air 2`,
+	tb app logs --number 20 --ios-version 12.4 --device "iPad Air 2"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			iosVersion, deviceName, err := resolveDeviceName(c, "", opts.iosVersion, opts.deviceName)
+			if err != nil {
+				return err
+			}
+
 			logsPath, err := c.Engine.AppiOSLogsPath(c.Ctx, engine.AppiOSLogsPathOptions{
-				IOSVersion: opts.iosVersion,
-				DeviceName: opts.deviceName,
+				IOSVersion: iosVersion,
+				DeviceName: deviceName,
 			})
 			if err != nil {
 				return err
 			}
+
 			c.Tracker.Info("Attaching to simulator logs")
 			tail := exec.CommandContext(c.Ctx, "tail", "-f", "-n", opts.numberOfLines, logsPath)
 			tail.Stdout = os.Stdout
@@ -51,7 +57,8 @@ Displays the last 20 logs in an iOS 12.4 iPad Air 2 simulator:
 				if errors.As(err, &exitErr) {
 					return &fatal.Error{Code: exitErr.ExitCode()}
 				}
-				return &fatal.Error{Err: err}
+				// Error isn't from tail, some other error occurred while trying to run it.
+				return &fatal.Error{Msg: "Failed to view simulator logs", Err: err}
 			}
 			return nil
 		},

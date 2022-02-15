@@ -393,12 +393,16 @@ type NukeOptions struct {
 	// RemoveContainers specifies to remove all service containers.
 	RemoveContainers bool
 	// RemoveImages specifies to remove all service images.
+	// This option also implies RemoveContainers.
 	RemoveImages bool
 	// RemoveNetworks specifies to remove all tb networks.
+	// This option also implies RemoveContainers.
 	RemoveNetworks bool
 	// RemoveVolumes specifies to remove all service volumes.
+	// This option also implies RemoveContainers.
 	RemoveVolumes bool
 	// RemoveRepos specifies to remove all service repos.
+	// This option also implies RemoveContainers.
 	RemoveRepos bool
 	// RemoveDesktopApps specifies to remove all downloaded desktop apps.
 	RemoveDesktopApps bool
@@ -422,22 +426,14 @@ func (e *Engine) Nuke(ctx context.Context, opts NukeOptions) error {
 func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error {
 	tracker := progress.TrackerFromContext(ctx)
 
-	// Make sure containers are stopped before removing docker resources
-	// to ensure no weirdness
-	var services []service.Service
+	// Remove containers if any docker resources were specified to be removed since
+	// they can't be removed if they are being used by containers.
 	if opts.RemoveContainers || opts.RemoveImages || opts.RemoveNetworks || opts.RemoveVolumes {
-		// Get all services
-		for it := e.services.Iter(); it.Next(); {
-			services = append(services, it.Value())
-		}
 		tracker.UpdateMessage("Stopping running containers")
 		if err := e.dockerClient.StopContainers(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to stop docker containers", Op: op})
 		}
 		tracker.Info("✔ Stopped running containers")
-	}
-
-	if opts.RemoveContainers {
 		tracker.UpdateMessage("Removing docker containers")
 		if err := e.dockerClient.RemoveContainers(ctx); err != nil {
 			return errors.Wrap(err, errors.Meta{Reason: "failed to remove docker containers", Op: op})
@@ -447,7 +443,8 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 
 	if opts.RemoveImages {
 		var imageSearches []docker.ImageSearch
-		for _, s := range services {
+		for it := e.services.Iter(); it.Next(); {
+			s := it.Value()
 			// Search for both remote and locally built images since the user might have switched
 			// between build and remote mode in their tbrc.
 			if s.Remote.Image != "" {
@@ -547,15 +544,15 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 		// they would have already been removed above.
 		switch item.Name() {
 		case reposDir, iosDir, desktopDir, registriesDir:
-		default:
-			p := filepath.Join(e.workdir, item.Name())
-			if err := os.RemoveAll(p); err != nil {
-				return errors.Wrap(err, errors.Meta{
-					Kind:   errkind.IO,
-					Reason: fmt.Sprintf("failed to remove %s", p),
-					Op:     op,
-				})
-			}
+			continue
+		}
+		p := filepath.Join(e.workdir, item.Name())
+		if err := os.RemoveAll(p); err != nil {
+			return errors.Wrap(err, errors.Meta{
+				Kind:   errkind.IO,
+				Reason: fmt.Sprintf("failed to remove %s", p),
+				Op:     op,
+			})
 		}
 	}
 	return nil
