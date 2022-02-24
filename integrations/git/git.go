@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -68,6 +69,10 @@ func execGit(ctx context.Context, op errors.Op, stdout io.Writer, args ...string
 
 	finalArgs := append([]string{"git"}, args...)
 	cmd := exec.CommandContext(ctx, finalArgs[0], finalArgs[1:]...)
+	cmd.Env = os.Environ()
+	// Disable prompting for passwords via ssh, fail fast instead.
+	// ref: https://groups.google.com/g/golang-codereviews/c/yOfVktgHf3M?pli=1
+	cmd.Env = append(cmd.Env, "GIT_SSH_COMMAND=ssh -o BatchMode=yes")
 	cmd.Stdout = stdout
 	cmd.Stderr = w
 	if err := cmd.Run(); err != nil {
