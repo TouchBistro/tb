@@ -1,10 +1,10 @@
 module github.com/TouchBistro/tb
 
-go 1.17
+go 1.18
 
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.2
-	github.com/TouchBistro/goutils v0.3.0
+	github.com/TouchBistro/goutils v0.3.1
 	github.com/aws/aws-sdk-go-v2 v1.11.2
 	github.com/aws/aws-sdk-go-v2/config v1.11.0
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.11.1
