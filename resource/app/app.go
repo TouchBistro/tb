@@ -5,7 +5,6 @@ package app
 import (
 	"strings"
 
-	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/resource"
 )
@@ -84,44 +83,4 @@ func Validate(a App, t Type) error {
 		return nil
 	}
 	return &resource.ValidationError{Resource: a, Messages: msgs}
-}
-
-// Collection stores a collection of apps.
-// Collection allows for efficiently looking up an app by its
-// short name (i.e. the name of the app without the registry).
-//
-// A zero value Collection is a valid collection ready for use.
-type Collection struct {
-	collection resource.Collection
-}
-
-// Get retrieves the app with the given name from the Collection.
-// name can either be the full name or the short name of the app.
-//
-// If no app is found, resource.ErrNotFound is returned. If name is a short name
-// and multiple apps are found, resource.ErrMultipleResources is returned.
-func (c *Collection) Get(name string) (App, error) {
-	r, err := c.collection.Get(name)
-	if err != nil {
-		return App{}, errors.Wrap(err, errors.Meta{Op: "app.Collection.Get"})
-	}
-	return r.(App), nil
-}
-
-// Set adds or replaces the app in the Collection.
-// a.FullName() must return a valid full name or an error will be returned.
-func (c *Collection) Set(a App) error {
-	if err := c.collection.Set(a); err != nil {
-		return errors.Wrap(err, errors.Meta{Op: "app.Collection.Set"})
-	}
-	return nil
-}
-
-// Names returns a list of the full names of all apps in the collection.
-func (c *Collection) Names() []string {
-	names := make([]string, 0, c.collection.Len())
-	for it := c.collection.Iter(); it.Next(); {
-		names = append(names, it.Value().FullName())
-	}
-	return names
 }

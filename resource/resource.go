@@ -103,17 +103,20 @@ func FullName(registryName, resourceName string) string {
 // short name (i.e. the name of the resource without the registry).
 //
 // A zero value Collection is a valid collection ready for use.
-type Collection struct {
+type Collection[R Resource] struct {
 	// resources stores the list of resources.
 	// resources are expected to all have the same type.
-	resources []Resource
+	resources []R
 	// nameMap is a map of short names to a list of indices
 	// for each matching resource in resources.
 	nameMap map[string][]int
 }
 
 // Len returns the number of resources stored in the Collection.
-func (c *Collection) Len() int {
+func (c *Collection[R]) Len() int {
+	if c == nil {
+		return 0
+	}
 	return len(c.resources)
 }
 
@@ -122,21 +125,28 @@ func (c *Collection) Len() int {
 //
 // If no resource is found, ErrNotFound is returned. If name is a short name
 // and multiple resources are found, ErrMultipleResources is returned.
-func (c *Collection) Get(name string) (Resource, error) {
+func (c *Collection[R]) Get(name string) (R, error) {
 	const op = errors.Op("resource.Collection.Get")
+	// Create zero value that we can return on error
+	var r R
 	registryName, resourceName, err := ParseName(name)
 	if err != nil {
-		return nil, errors.Wrap(err, errors.Meta{Op: op})
+		return r, errors.Wrap(err, errors.Meta{Op: op})
+	}
+
+	errMeta := errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op}
+	if c == nil {
+		return r, errors.Wrap(ErrNotFound, errMeta)
 	}
 	bucket, ok := c.nameMap[resourceName]
 	if !ok {
-		return nil, errors.Wrap(ErrNotFound, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
+		return r, errors.Wrap(ErrNotFound, errMeta)
 	}
 
 	// Handle short name
 	if registryName == "" {
 		if len(bucket) > 1 {
-			return nil, errors.Wrap(ErrMultipleResources, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
+			return r, errors.Wrap(ErrMultipleResources, errMeta)
 		}
 		return c.resources[bucket[0]], nil
 	}
@@ -146,12 +156,12 @@ func (c *Collection) Get(name string) (Resource, error) {
 			return r, nil
 		}
 	}
-	return nil, errors.Wrap(ErrNotFound, errors.Meta{Kind: errkind.Invalid, Reason: name, Op: op})
+	return r, errors.Wrap(ErrNotFound, errMeta)
 }
 
 // Set adds or replaces the resource in the Collection.
 // r.FullName() must return a valid full name or an error will be returned.
-func (c *Collection) Set(r Resource) error {
+func (c *Collection[R]) Set(r R) error {
 	const op = errors.Op("resource.Collection.Set")
 	registryName, resourceName, err := ParseName(r.FullName())
 	if err != nil {
@@ -201,16 +211,16 @@ func (c *Collection) Set(r Resource) error {
 //      r := it.Value()
 //      // Do something with r...
 //  }
-type Iterator struct {
-	c *Collection
+type Iterator[R Resource] struct {
+	c *Collection[R]
 	i int
 }
 
 // Iter creates a new Iterator that can be used to iterate over the resources in a Collection.
-func (c *Collection) Iter() *Iterator {
+func (c *Collection[R]) Iter() *Iterator[R] {
 	// Start at -1 since Next is required to be called before accessing the first element
 	// so when we increment we get to 0 the first element.
-	return &Iterator{c: c, i: -1}
+	return &Iterator[R]{c: c, i: -1}
 }
 
 // Next advances the iterator to the next element. Every call to Value, even the
@@ -218,19 +228,19 @@ func (c *Collection) Iter() *Iterator {
 //
 // Next returns a bool indicating whether or not a next element exists meaning
 // it is safe to call Value.
-func (it *Iterator) Next() bool {
+func (it *Iterator[R]) Next() bool {
 	it.i++
-	return it.i < len(it.c.resources)
+	return it.i < it.c.Len()
 }
 
 // Value returns the current element in the iterator.
 // Value will panic if iteration has finished.
-func (it *Iterator) Value() Resource {
+func (it *Iterator[R]) Value() R {
 	// Do an explicit length check so that we can panic with a custom message to make it clearer.
 	// We could just let accessing the underlying slice panic but the message would be confusing
 	// and would leak implementation details. Callers shouldn't know or care about the underlying
 	// resources slice.
-	if it.i >= len(it.c.resources) {
+	if it.i >= it.c.Len() {
 		panic("resource.Iterator: out of bounds access")
 	}
 	return it.c.resources[it.i]

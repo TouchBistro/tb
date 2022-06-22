@@ -10,6 +10,7 @@ import (
 	"github.com/TouchBistro/tb/integrations/git"
 	"github.com/TouchBistro/tb/integrations/simulator"
 	"github.com/TouchBistro/tb/integrations/storage"
+	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
@@ -19,10 +20,10 @@ import (
 type Engine struct {
 	workdir          string // Path to root dir where data is stored
 	experimentalMode bool
-	services         *service.Collection
+	services         *resource.Collection[service.Service]
 	playlists        *playlist.Collection
-	iosApps          *app.Collection
-	desktopApps      *app.Collection
+	iosApps          *resource.Collection[app.App]
+	desktopApps      *resource.Collection[app.App]
 	baseImages       []string
 	loginStrategies  []string
 	deviceList       simulator.DeviceList
@@ -43,16 +44,16 @@ type Options struct {
 	ExperimentalMode bool
 	// Services is the collection of services that the Engine can manage.
 	// If no value is provided, then there will be no services available to use.
-	Services *service.Collection
+	Services *resource.Collection[service.Service]
 	// Services is the collection of playlists that the Engine can manage.
 	// If no value is provided, then there will be no playlists available to use.
 	Playlists *playlist.Collection
 	// IOSApps is the collection of iOS applications that the Engine can manage.
 	// If no value is provided, then there will be no apps available to use.
-	IOSApps *app.Collection
+	IOSApps *resource.Collection[app.App]
 	// IOSApps is the collection of desktop applications that the Engine can manage.
 	// If no value is provided, then there will be no apps available to use.
-	DesktopApps *app.Collection
+	DesktopApps *resource.Collection[app.App]
 	// BaseImages is a list of docker base images that will be pulled before building images.
 	// If no value is provided, no base images will be pulled.
 	BaseImages []string
@@ -89,17 +90,8 @@ func New(opts Options) (*Engine, error) {
 		}
 		opts.Workdir = filepath.Join(homedir, ".tb")
 	}
-	if opts.Services == nil {
-		opts.Services = &service.Collection{}
-	}
 	if opts.Playlists == nil {
 		opts.Playlists = &playlist.Collection{}
-	}
-	if opts.IOSApps == nil {
-		opts.IOSApps = &app.Collection{}
-	}
-	if opts.DesktopApps == nil {
-		opts.DesktopApps = &app.Collection{}
 	}
 
 	// Initialize clients

@@ -8,6 +8,7 @@ import (
 
 	"github.com/TouchBistro/tb/engine"
 	"github.com/TouchBistro/tb/integrations/simulator"
+	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/app"
 	"github.com/matryer/is"
 )
@@ -88,9 +89,9 @@ func TestAppiOSListDevices(t *testing.T) {
 	}
 }
 
-func newAppCollection(t *testing.T, apps []app.App) *app.Collection {
+func newAppCollection(t *testing.T, apps []app.App) *resource.Collection[app.App] {
 	t.Helper()
-	var ac app.Collection
+	var ac resource.Collection[app.App]
 	for _, a := range apps {
 		if err := ac.Set(a); err != nil {
 			t.Fatalf("failed to add app %s to collection: %v", a.FullName(), err)

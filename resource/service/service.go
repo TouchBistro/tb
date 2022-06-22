@@ -175,64 +175,6 @@ func Override(s Service, o ServiceOverride) (Service, error) {
 	return s, nil
 }
 
-// Collection stores a collection of services.
-// Collection allows for efficiently looking up a service by its
-// short name (i.e. the name of the service without the registry).
-//
-// A zero value Collection is a valid collection ready for use.
-type Collection struct {
-	collection resource.Collection
-}
-
-// Len returns the number of services stored in the Collection.
-func (c *Collection) Len() int {
-	return c.collection.Len()
-}
-
-// Get retrieves the service with the given name from the Collection.
-// name can either be the full name or the short name of the service.
-//
-// If no service is found, resource.ErrNotFound is returned. If name is a short name
-// and multiple services are found, resource.ErrMultipleResources is returned.
-func (c *Collection) Get(name string) (Service, error) {
-	r, err := c.collection.Get(name)
-	if err != nil {
-		return Service{}, errors.Wrap(err, errors.Meta{Op: errors.Op("service.Collection.Get")})
-	}
-	return r.(Service), nil
-}
-
-// Set adds or replaces the service in the Collection.
-// s.FullName() must return a valid full name or an error will be returned.
-func (c *Collection) Set(s Service) error {
-	if err := c.collection.Set(s); err != nil {
-		return errors.Wrap(err, errors.Meta{Op: errors.Op("service.Collection.Set")})
-	}
-	return nil
-}
-
-// Iterator allows for iteration over the services in a Collection.
-// An iterator provides two methods that can be used for iteration, Next and Value.
-// Next advances the iterator to the next element and returns a bool indicating if
-// it was successful. Value returns the value at the current index.
-//
-// The iteration order over a Collection is not specified and is not guaranteed to be the same
-// from one iteration to the next.
-type Iterator struct {
-	*resource.Iterator
-}
-
-// Iter creates a new Iterator that can be used to iterate over the services in a Collection.
-func (c *Collection) Iter() *Iterator {
-	return &Iterator{c.collection.Iter()}
-}
-
-// Value returns the current element in the iterator.
-// Value will panic if iteration has finished.
-func (it *Iterator) Value() Service {
-	return it.Iterator.Value().(Service)
-}
-
 // DISCUSS(@cszatmary): Does this make sense here? I honestly struggled with where to put this the most.
 // I considerered the following:
 // config: Does not seem like config's business though as config deals with the higher level glue code.
@@ -241,7 +183,7 @@ func (it *Iterator) Value() Service {
 // other formats.
 
 // ComposeConfig maps the Collection to a docker compose config.
-func ComposeConfig(c *Collection) docker.ComposeConfig {
+func ComposeConfig(c *resource.Collection[Service]) docker.ComposeConfig {
 	composeConfig := docker.ComposeConfig{
 		Version:  "3.7",
 		Services: make(map[string]docker.ComposeServiceConfig),

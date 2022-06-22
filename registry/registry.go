@@ -77,16 +77,16 @@ type ReadAllOptions struct {
 type ReadAllResult struct {
 	// Services is a collection of all services read.
 	// If ReadAllOptions.ReadServices was false, it will be nil.
-	Services *service.Collection
+	Services *resource.Collection[service.Service]
 	// Playlists is a collection of all playlists read.
 	// If ReadAllOptions.ReadServices was false, it will be nil.
 	Playlists *playlist.Collection
 	// IOSApps is a collection of all iOS apps read.
 	// If ReadAllOptions.ReadApps was false, it will be nil.
-	IOSApps *app.Collection
+	IOSApps *resource.Collection[app.App]
 	// DesktopApps is a collection of all desktop apps read.
 	// If ReadAllOptions.ReadApps was false, it will be nil.
-	DesktopApps *app.Collection
+	DesktopApps *resource.Collection[app.App]
 	// BaseImages is a list of all base images read.
 	// If ReadAllOptions.ReadServices was false, it will be empty.
 	BaseImages []string
@@ -103,12 +103,12 @@ func ReadAll(registries []Registry, opts ReadAllOptions) (ReadAllResult, error) 
 	const op = errors.Op("registry.ReadAll")
 	var result ReadAllResult
 	if opts.ReadServices {
-		result.Services = &service.Collection{}
+		result.Services = &resource.Collection[service.Service]{}
 		result.Playlists = &playlist.Collection{}
 	}
 	if opts.ReadApps {
-		result.IOSApps = &app.Collection{}
-		result.DesktopApps = &app.Collection{}
+		result.IOSApps = &resource.Collection[app.App]{}
+		result.DesktopApps = &resource.Collection[app.App]{}
 	}
 	if opts.Logger == nil {
 		opts.Logger = progress.NoopTracker{}
@@ -244,8 +244,8 @@ func Validate(path string, opts ValidateOptions) ValidateResult {
 	// Validate apps.yml
 	opts.Logger.Debug("Validating apps")
 	err = readApps(op, r, readAppsOptions{
-		iosCollection:     &app.Collection{},
-		desktopCollection: &app.Collection{},
+		iosCollection:     &resource.Collection[app.App]{},
+		desktopCollection: &resource.Collection[app.App]{},
 	})
 	if err != nil {
 		result.AppsErr = err
@@ -258,7 +258,7 @@ func Validate(path string, opts ValidateOptions) ValidateResult {
 
 	// Validate services.yml
 	opts.Logger.Debug("Validating services")
-	var services service.Collection
+	var services resource.Collection[service.Service]
 	_, err = readServices(op, r, readServicesOptions{
 		collection: &services,
 		strict:     opts.Strict,
@@ -310,7 +310,7 @@ type registryServiceConfig struct {
 }
 
 type readServicesOptions struct {
-	collection *service.Collection
+	collection *resource.Collection[service.Service]
 	homeDir    string
 	rootPath   string
 	reposPath  string
@@ -510,8 +510,8 @@ type registryAppConfig struct {
 }
 
 type readAppsOptions struct {
-	iosCollection     *app.Collection
-	desktopCollection *app.Collection
+	iosCollection     *resource.Collection[app.App]
+	desktopCollection *resource.Collection[app.App]
 }
 
 // readPlaylists reads the app config from the registry r.

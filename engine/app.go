@@ -97,17 +97,10 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 	tracker.Debugf("☑ Found device UDID: %s", device.UDID)
 
 	// Download the app
-	var appPath string
-	err = progress.Run(ctx, progress.RunOptions{
+	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading iOS app %s", a.FullName()),
-	}, func(ctx context.Context) (err error) {
-		// NOTE(@cszatmary): This is not ideal because this runs in a separate goroutine
-		// and it is modifying shared state by assigning to appPath.
-		// However, progress.Run provides synchronization so we don't have to worry about
-		// a race condition. Once go 1.18 is out, progress.Run should be changed to a generic
-		// function so we could return appPath.
-		appPath, err = e.downloadApp(ctx, a, app.TypeiOS, op)
-		return err
+	}, func(ctx context.Context) (string, error) {
+		return e.downloadApp(ctx, a, app.TypeiOS, op)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
@@ -252,17 +245,10 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	}
 
 	// Download the app
-	var appPath string
-	err = progress.Run(ctx, progress.RunOptions{
+	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading iOS app %s", a.FullName()),
-	}, func(ctx context.Context) (err error) {
-		// NOTE(@cszatmary): This is not ideal because this runs in a separate goroutine
-		// and it is modifying shared state by assigning to appPath.
-		// However, progress.Run provides synchronization so we don't have to worry about
-		// a race condition. Once go 1.18 is out, progress.Run should be changed to a generic
-		// function so we could return appPath.
-		appPath, err = e.downloadApp(ctx, a, app.TypeDesktop, op)
-		return err
+	}, func(ctx context.Context) (string, error) {
+		return e.downloadApp(ctx, a, app.TypeDesktop, op)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
@@ -438,10 +424,16 @@ type AppListResult struct {
 func (e *Engine) AppList(opts AppListOptions) AppListResult {
 	var res AppListResult
 	if opts.ListiOSApps {
-		res.IOSApps = e.iosApps.Names()
+		res.IOSApps = make([]string, 0, e.iosApps.Len())
+		for it := e.iosApps.Iter(); it.Next(); {
+			res.IOSApps = append(res.IOSApps, it.Value().FullName())
+		}
 	}
 	if opts.ListDesktopApps {
-		res.DesktopApps = e.desktopApps.Names()
+		res.DesktopApps = make([]string, 0, e.desktopApps.Len())
+		for it := e.desktopApps.Iter(); it.Next(); {
+			res.DesktopApps = append(res.DesktopApps, it.Value().FullName())
+		}
 	}
 	return res
 }
