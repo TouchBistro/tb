@@ -10,18 +10,20 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 
 ### **Table of Contents**
 - [Requirements](#requirements)
-    + [Installed Software](#installed-software)
-    + [SSH Key](#ssh-key)
+  - [Installed Software](#installed-software)
+  - [SSH Key](#ssh-key)
 - [Installation](#installation)
-    + [Updating tb](#updating-tb)
+  - [Homebrew (Recommended)](#homebrew-recommended)
+  - [From source](#from-source)
+  - [Updating tb](#updating-tb)
 - [Quickstart](#quickstart)
 - [Basic Usage](#basic-usage)
 - [Running Apps](#running-apps)
 - [Commands](#commands)
 - [Configuration](#configuration)
-    + [Changing log level](#changing-log-level)
-    + [Adding custom playlists](#adding-custom-playlists)
-    + [Overriding service properties](#overriding-service-properties)
+  - [Toggling experimental mode](#toggling-experimental-mode)
+  - [Adding custom playlists](#adding-custom-playlists)
+  - [Overriding service properties](#overriding-service-properties)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -29,8 +31,9 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 
 ### Installed Software
 
-The main requirement for using `tb` is having `docker` and `docker-compose` installed.
+The main requirement for using `tb` is having `docker` and `docker compose v2` installed.
 See the [Docker installation instructions](https://docs.docker.com/get-docker/) and select your operating system for more details.
+See the [Compose installation instructions](https://docs.docker.com/compose/install/) to insure you have Compose v2 installed.
 
 If you are using macOS having the Xcode CLI tools is also required. These can be easily installed by running `xcode-select --install`.
 

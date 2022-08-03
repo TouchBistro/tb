@@ -10,12 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type execOptions struct {
-	skipGitPull bool
-}
-
 func newExecCommand(c *cli.Container) *cobra.Command {
-	var opts execOptions
 	execCmd := &cobra.Command{
 		Use: "exec <service> <command> [args...]",
 		Args: func(cmd *cobra.Command, args []string) error {
@@ -38,11 +33,10 @@ Start an interactive bash shell in the core-database container:
 	tb exec core-database bash`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			exitCode, err := c.Engine.Exec(c.Ctx, args[0], engine.ExecOptions{
-				SkipGitPull: opts.skipGitPull,
-				Cmd:         args[1:],
-				Stdin:       os.Stdin,
-				Stdout:      os.Stdout,
-				Stderr:      os.Stderr,
+				Cmd:    args[1:],
+				Stdin:  os.Stdin,
+				Stdout: os.Stdout,
+				Stderr: os.Stderr,
 			})
 			if err != nil {
 				return err
@@ -56,6 +50,12 @@ Start an interactive bash shell in the core-database container:
 	}
 
 	flags := execCmd.Flags()
-	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
+	flags.Bool("no-git-pull", false, "Don't update git repositories")
+	err := flags.MarkDeprecated("no-git-pull", "it is a no-op and will be removed")
+	if err != nil {
+		// MarkDeprecated only errors if the flag name is wrong or the message isn't set
+		// which is a programming error, so we wanna blow up
+		panic(err)
+	}
 	return execCmd
 }

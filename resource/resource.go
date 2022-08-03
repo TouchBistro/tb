@@ -93,11 +93,6 @@ func FullName(registryName, resourceName string) string {
 	return registryName + "/" + resourceName
 }
 
-// TODO(@cszatmary): Change Collection and Iterator to be generic once go 1.18 is released.
-// This is a perfect candidate for generics since we are dealing with general purpose
-// data structures that are used for each type of resource.
-// I already tried this out on a separate branch with the go 1.18 beta and it worked great.
-
 // Collection stores a collection of resources.
 // Collection allows for efficiently looking up a resource by its
 // short name (i.e. the name of the resource without the registry).
