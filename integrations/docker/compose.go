@@ -57,25 +57,28 @@ type ComposeLogsOptions struct {
 
 func (c *apiClient) ComposeBuild(ctx context.Context, project ComposeProject, services []string) error {
 	return c.execCompose(ctx, execComposeOptions{
-		project: project,
-		args:    append([]string{"build", "--parallel"}, services...),
+		project:        project,
+		useComposeFile: true,
+		args:           append([]string{"build", "--parallel"}, services...),
 	})
 }
 
 func (c *apiClient) ComposeUp(ctx context.Context, project ComposeProject, services []string) error {
 	return c.execCompose(ctx, execComposeOptions{
-		project: project,
-		args:    append([]string{"up", "-d"}, services...),
+		project:        project,
+		useComposeFile: true,
+		args:           append([]string{"up", "-d"}, services...),
 	})
 }
 
 func (c *apiClient) ComposeRun(ctx context.Context, project ComposeProject, opts ComposeRunOptions) error {
 	return c.execCompose(ctx, execComposeOptions{
-		project: project,
-		args:    append([]string{"run", "--rm", opts.Service}, opts.Cmd...),
-		stdin:   opts.Stdin,
-		stdout:  opts.Stdout,
-		stderr:  opts.Stderr,
+		project:        project,
+		useComposeFile: true,
+		args:           append([]string{"run", "--rm", opts.Service}, opts.Cmd...),
+		stdin:          opts.Stdin,
+		stdout:         opts.Stdout,
+		stderr:         opts.Stderr,
 	})
 }
 
@@ -116,19 +119,19 @@ func (c *apiClient) ComposeLogs(ctx context.Context, project ComposeProject, opt
 }
 
 type execComposeOptions struct {
-	project ComposeProject
-	args    []string
-	stdin   io.Reader
-	stdout  io.Writer
-	stderr  io.Writer
+	project        ComposeProject
+	useComposeFile bool
+	args           []string
+	stdin          io.Reader
+	stdout         io.Writer
+	stderr         io.Writer
 }
 
 func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) error {
-	const cmdName = "docker-compose"
 	var w io.Writer
 	if opts.stdout == nil || opts.stderr == nil {
 		tracker := progress.TrackerFromContext(ctx)
-		op := fmt.Sprintf("%s-%s", cmdName, opts.args[0])
+		op := fmt.Sprintf("docker-compose-%s", opts.args[0])
 		wc := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
 		defer wc.Close()
 		w = wc
@@ -140,8 +143,15 @@ func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) er
 		opts.stderr = w
 	}
 
-	fp := filepath.Join(opts.project.Workdir, ComposeFilename)
-	args := append([]string{cmdName, "--project-name", opts.project.Name, "--file", fp}, opts.args...)
+	// Use compose v2 which is part of the docker CLI.
+	args := []string{"docker", "compose", "--project-name", opts.project.Name}
+	// In compose v2 not all commands require the compose file, many can work off docker labels.
+	// Only provide the compose file if it is explicitly marked as required.
+	if opts.useComposeFile {
+		fp := filepath.Join(opts.project.Workdir, ComposeFilename)
+		args = append(args, "--file", fp)
+	}
+	args = append(args, opts.args...)
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	cmd.Stdin = opts.stdin
 	cmd.Stdout = opts.stdout

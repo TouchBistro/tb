@@ -8,12 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type logsOptions struct {
-	skipGitPull bool
-}
-
 func newLogsCommand(c *cli.Container) *cobra.Command {
-	var opts logsOptions
 	logsCmd := &cobra.Command{
 		Use:   "logs [services...]",
 		Args:  cobra.ArbitraryArgs,
@@ -35,14 +30,19 @@ Show logs only from the postgres and redis containers:
 				ServiceNames: args,
 				// TODO(@cszatmary): Make these configurable through flags.
 				// This would be a breaking change though.
-				Follow:      true,
-				Tail:        -1,
-				SkipGitPull: opts.skipGitPull,
+				Follow: true,
+				Tail:   -1,
 			})
 		},
 	}
 
 	flags := logsCmd.Flags()
-	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
+	flags.Bool("no-git-pull", false, "Don't update git repositories")
+	err := flags.MarkDeprecated("no-git-pull", "it is a no-op and will be removed")
+	if err != nil {
+		// MarkDeprecated only errors if the flag name is wrong or the message isn't set
+		// which is a programming error, so we wanna blow up
+		panic(err)
+	}
 	return logsCmd
 }

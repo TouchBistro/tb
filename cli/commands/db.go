@@ -103,11 +103,10 @@ func getDbConf(ctx context.Context, c *cli.Container, serviceName string) (dbCon
 
 	buf := &bytes.Buffer{}
 	exitCode, err := c.Engine.Exec(ctx, serviceName, engine.ExecOptions{
-		SkipGitPull: true,
-		Cmd:         args,
-		Stdin:       os.Stdin,
-		Stdout:      buf,
-		Stderr:      os.Stderr,
+		Cmd:    args,
+		Stdin:  os.Stdin,
+		Stdout: buf,
+		Stderr: os.Stderr,
 	})
 	if err != nil {
 		return dbConfig{}, errors.Wrap(err, errors.Meta{Reason: "failed execing command inside this service's container"})
