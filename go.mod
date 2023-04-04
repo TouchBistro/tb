@@ -12,7 +12,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/docker/cli v20.10.17+incompatible
 	github.com/docker/distribution v2.8.1+incompatible
-	github.com/docker/docker v20.10.17+incompatible
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/matryer/is v1.4.0
 	github.com/spf13/cobra v1.5.0
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035
