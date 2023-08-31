@@ -387,6 +387,9 @@ func readServices(op errors.Op, r Registry, opts readServicesOptions) (serviceGl
 		for i, volume := range s.Remote.Volumes {
 			s.Remote.Volumes[i].Value = ve.expand(volume.Value, "remote.volumes")
 		}
+		for i, value := range s.Entrypoint {
+			s.Entrypoint[i] = ve.expand(value, "entrypointValue")
+		}
 
 		// Report unknown vars as an error if in strict mode
 		if len(ve.errMsgs) > 0 && opts.strict {
