@@ -146,7 +146,7 @@ func TestReadRegistries(t *testing.T) {
 	}
 
 	is.Equal(ves, service.Service{
-		Entrypoint: []string{"bash", "entrypoints/docker.sh"},
+		Entrypoint: []string{"bash", "entrypoints/docker.sh", "/home/test/.tb"},
 		EnvFile:    "/home/test/.tb/repos/ExampleZone/venue-example-service/.env.compose",
 		EnvVars: map[string]string{
 			"HTTP_PORT":     "8000",
