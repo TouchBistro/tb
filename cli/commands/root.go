@@ -3,11 +3,14 @@ package commands
 import (
 	"context"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"os"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/goutils/spinner"
 	"github.com/TouchBistro/tb/cli"
@@ -65,14 +68,27 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			c.Verbose = opts.verbose || cfg.DebugEnabled()
 
 			// Initialize logging
-			c.Logger, err = cli.NewLogger(c.Verbose)
+			// Create a temp file to log to.
+			c.Logfile, err = os.CreateTemp("", "tb_log_*.txt")
 			if err != nil {
-				return err
+				return &fatal.Error{Msg: "Failed to create log file", Err: err}
 			}
-			c.Tracker = &spinner.Tracker{
-				OutputLogger:    c.Logger,
+			level := slog.LevelInfo
+			if c.Verbose {
+				level = slog.LevelDebug
+			}
+			c.Tracker = spinner.NewTracker(spinner.TrackerOptions{
 				PersistMessages: c.Verbose,
-			}
+				NewHandler: func(w io.Writer) slog.Handler {
+					return logutil.NewMultiHandler([]slog.Handler{
+						logutil.NewPrettyHandler(w, &logutil.PrettyHandlerOptions{
+							Level:       level,
+							ReplaceAttr: logutil.RemoveKeys(slog.TimeKey),
+						}),
+						slog.NewTextHandler(c.Logfile, &slog.HandlerOptions{Level: slog.LevelDebug}),
+					}, nil)
+				},
+			})
 
 			// Any special messages based on user config
 			if cfg.Debug != nil {
@@ -150,8 +166,7 @@ func checkVersion(ctx context.Context, version string, logger progress.Logger) {
 	githubClient := github.New(&http.Client{})
 	latestRelease, err := githubClient.LatestReleaseTag(ctx, "TouchBistro", "tb")
 	if err != nil {
-		logger.Debug("Failed to get latest version of tb from GitHub. Skipping.")
-		logger.Debug(err)
+		logger.WithAttrs("err", err).Debug("Failed to get latest version of tb from GitHub. Skipping.")
 		return
 	}
 	latestVersion, err := semver.Parse(latestRelease)

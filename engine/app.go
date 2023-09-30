@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/file"
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/simulator"
@@ -267,7 +269,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	tracker.UpdateMessage("Launching app")
 	// TODO(@cszatmary): probably want to figure out a better way to abstract opening an app cross platform
 	if util.IsMacOS {
-		w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+		w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 		defer w.Close()
 		args := []string{"open", appPath}
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...)

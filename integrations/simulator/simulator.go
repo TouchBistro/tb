@@ -7,11 +7,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
 )
@@ -55,7 +57,7 @@ func (sim *simulator) Boot(ctx context.Context) error {
 func (sim *simulator) Open(ctx context.Context) error {
 	const op = errors.Op("Simulator.Open")
 	tracker := progress.TrackerFromContext(ctx)
-	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 	defer w.Close()
 
 	args := []string{"open", "-a", "simulator"}
@@ -96,7 +98,7 @@ func (sim *simulator) Setenv(key, value string) error {
 
 func execSimctl(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
-	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 	defer w.Close()
 	if stdout == nil {
 		stdout = w

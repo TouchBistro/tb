@@ -202,10 +202,10 @@ func (c *Collection[R]) Set(r R) error {
 //
 // The API can easily be used with a while-style for loop:
 //
-//  for it := c.Iter(); it.Next(); {
-//      r := it.Value()
-//      // Do something with r...
-//  }
+//	for it := c.Iter(); it.Next(); {
+//	    r := it.Value()
+//	    // Do something with r...
+//	}
 type Iterator[R Resource] struct {
 	c *Collection[R]
 	i int

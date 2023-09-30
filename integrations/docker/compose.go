@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 )
 
@@ -132,7 +134,7 @@ func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) er
 	if opts.stdout == nil || opts.stderr == nil {
 		tracker := progress.TrackerFromContext(ctx)
 		op := fmt.Sprintf("docker-compose-%s", opts.args[0])
-		wc := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+		wc := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 		defer wc.Close()
 		w = wc
 	}
