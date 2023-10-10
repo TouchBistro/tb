@@ -2,8 +2,6 @@ module github.com/TouchBistro/tb
 
 go 1.21
 
-toolchain go1.21.0
-
 require (
 	github.com/AlecAivazis/survey/v2 v2.3.7
 	github.com/TouchBistro/goutils v0.5.0
