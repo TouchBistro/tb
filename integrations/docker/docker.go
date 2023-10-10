@@ -7,18 +7,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
+	"github.com/distribution/reference"
 	dockerconfig "github.com/docker/cli/cli/config"
 	configtypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
+	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/jsonmessage"
@@ -147,9 +150,10 @@ func (d *Docker) getDefaultRegistryAddress(ctx context.Context) string {
 	info, err := d.apiClient.Info(ctx)
 	if err != nil {
 		// If there is an error just fallback to the default, but log so users know.
-		tracker.WithFields(progress.Fields{
-			"error": err,
-		}).Warnf("Failed to get the default registry endpoint from the docker API. Using system default: %s", registry.IndexServer)
+		tracker.WithAttrs("error", err).Warnf(
+			"Failed to get the default registry endpoint from the docker API. Using system default: %s",
+			registry.IndexServer,
+		)
 		info.IndexServerAddress = registry.IndexServer
 	} else if info.IndexServerAddress == "" {
 		// Apparently older versions of docker can have this missing.
@@ -173,10 +177,10 @@ func (d *Docker) StopContainers(ctx context.Context, serviceNames ...string) err
 	}
 
 	tracker := progress.TrackerFromContext(ctx)
-	timeout := 5 * time.Second
+	timeoutSeconds := 5
 	for _, container := range containers {
 		tracker.Debugf("Stopping container %s", container.Names[0])
-		if err := d.apiClient.ContainerStop(ctx, container.ID, &timeout); err != nil {
+		if err := d.apiClient.ContainerStop(ctx, container.ID, containertypes.StopOptions{Timeout: &timeoutSeconds}); err != nil {
 			return errors.Wrap(err, errors.Meta{
 				Kind:   errkind.Docker,
 				Reason: fmt.Sprintf("failed to stop container %s, %s", container.Names[0], container.ID),
@@ -308,7 +312,7 @@ func (d *Docker) PullImage(ctx context.Context, imageName string) error {
 	// We can display this in debug mode to get information on the pull progress equivalent to if
 	// the user had run `docker pull`.
 	// Only do it for debug though because it is really noisy.
-	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 	defer w.Close()
 
 	// The docker SDK provides a handy way to write the output.
@@ -453,7 +457,9 @@ func (d *Docker) RemoveNetworks(ctx context.Context) error {
 // RemoveVolumes removes all volumes associated with the project.
 func (d *Docker) RemoveVolumes(ctx context.Context) error {
 	const op = errors.Op("docker.Docker.RemoveVolumes")
-	volumes, err := d.apiClient.VolumeList(ctx, filters.NewArgs(projectFilter(d.project.Name)))
+	volumes, err := d.apiClient.VolumeList(ctx, volumetypes.ListOptions{
+		Filters: filters.NewArgs(projectFilter(d.project.Name)),
+	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.Docker,

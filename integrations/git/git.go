@@ -6,11 +6,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/TouchBistro/goutils/errors"
+	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
 )
@@ -61,7 +63,7 @@ func (realGit) GetBranchHeadSha(ctx context.Context, repo, branch string) (strin
 
 func execGit(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
-	w := progress.LogWriter(tracker, tracker.WithFields(progress.Fields{"op": op}).Debug)
+	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 	defer w.Close()
 	if stdout == nil {
 		stdout = w

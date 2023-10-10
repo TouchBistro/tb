@@ -9,11 +9,11 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	"time"
 
+	"github.com/distribution/reference"
 	configtypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/distribution/reference"
 	"github.com/docker/docker/api/types"
+	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/registry"
@@ -65,7 +65,7 @@ type mockAPIClient struct {
 	containers map[string]types.Container
 	images     map[string]types.ImageSummary
 	networks   map[string]types.NetworkResource
-	volumes    map[string]types.Volume
+	volumes    map[string]volumetypes.Volume
 
 	// map of server address to registry
 	registries map[string]MockRegistry
@@ -90,7 +90,7 @@ type MockAPIClientOptions struct {
 	// Networks is the initial networks the mock client should have.
 	Networks []types.NetworkResource
 	// Volumes is the initial volumes the mock client should have.
-	Volumes []types.Volume
+	Volumes []volumetypes.Volume
 	// Registries is a list of mock registries to pull images from.
 	Registries []MockRegistry
 }
@@ -102,7 +102,7 @@ func NewMockAPIClient(opts MockAPIClientOptions) APIClient {
 		containers:         make(map[string]types.Container),
 		images:             make(map[string]types.ImageSummary),
 		networks:           make(map[string]types.NetworkResource),
-		volumes:            make(map[string]types.Volume),
+		volumes:            make(map[string]volumetypes.Volume),
 		registries:         make(map[string]MockRegistry),
 	}
 	for _, c := range opts.Containers {
@@ -190,7 +190,7 @@ func (m *mockAPIClient) ContainerRemove(ctx context.Context, container string, o
 	return nil
 }
 
-func (m *mockAPIClient) ContainerStop(ctx context.Context, container string, timeout *time.Duration) error {
+func (m *mockAPIClient) ContainerStop(ctx context.Context, container string, options containertypes.StopOptions) error {
 	if container == "" {
 		return fmt.Errorf("container cannot be empty")
 	}
@@ -407,11 +407,11 @@ func (m *mockAPIClient) NetworkRemove(ctx context.Context, network string) error
 	return nil
 }
 
-func (m *mockAPIClient) VolumeList(ctx context.Context, filter filters.Args) (volumetypes.VolumeListOKBody, error) {
+func (m *mockAPIClient) VolumeList(ctx context.Context, options volumetypes.ListOptions) (volumetypes.ListResponse, error) {
 	// Get all filters we will need to check
-	labelFilters := filter.Get("label")
+	labelFilters := options.Filters.Get("label")
 
-	var found []*types.Volume
+	var found []*volumetypes.Volume
 	for _, v := range m.volumes {
 		// Handle filters
 		if !checkLabelFilters(v.Labels, labelFilters) {
@@ -422,7 +422,7 @@ func (m *mockAPIClient) VolumeList(ctx context.Context, filter filters.Args) (vo
 		vv := v
 		found = append(found, &vv)
 	}
-	return volumetypes.VolumeListOKBody{Volumes: found}, nil
+	return volumetypes.ListResponse{Volumes: found}, nil
 }
 
 func (m *mockAPIClient) VolumeRemove(ctx context.Context, volumeID string, force bool) error {

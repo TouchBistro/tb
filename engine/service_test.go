@@ -12,7 +12,7 @@ import (
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
 	dockertypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/filters"
+	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/matryer/is"
 )
 
@@ -213,7 +213,7 @@ func TestNuke(t *testing.T) {
 		wantContainers    []dockertypes.Container
 		wantImages        []dockertypes.ImageSummary
 		wantNetworks      []dockertypes.NetworkResource
-		wantVolumes       []dockertypes.Volume
+		wantVolumes       []volumetypes.Volume
 	}{
 		{
 			name: "only remove tb resources",
@@ -304,7 +304,7 @@ func TestNuke(t *testing.T) {
 						Name: "my_network",
 					},
 				},
-				Volumes: []dockertypes.Volume{
+				Volumes: []volumetypes.Volume{
 					{
 						Name: "tb_postgres",
 						Labels: map[string]string{
@@ -341,7 +341,7 @@ func TestNuke(t *testing.T) {
 					Name: "my_network",
 				},
 			},
-			wantVolumes: []dockertypes.Volume{
+			wantVolumes: []volumetypes.Volume{
 				{
 					Name: "my_volume",
 				},
@@ -369,7 +369,7 @@ func TestNuke(t *testing.T) {
 						},
 					},
 				},
-				Volumes: []dockertypes.Volume{
+				Volumes: []volumetypes.Volume{
 					{
 						Name: "tb_postgres",
 						Labels: map[string]string{
@@ -415,10 +415,10 @@ func TestNuke(t *testing.T) {
 			is.NoErr(err)
 			is.Equal(remainingNetworks, tt.wantNetworks)
 
-			listVolumesResult, err := dockerAPIClient.VolumeList(ctx, filters.Args{})
+			listVolumesResult, err := dockerAPIClient.VolumeList(ctx, volumetypes.ListOptions{})
 			is.NoErr(err)
 
-			var remainingVolumes []dockertypes.Volume
+			var remainingVolumes []volumetypes.Volume
 			for _, v := range listVolumesResult.Volumes {
 				remainingVolumes = append(remainingVolumes, *v)
 			}

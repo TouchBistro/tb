@@ -56,14 +56,6 @@ If your SSH key uses a passphrase, you need to ensure that it's loaded into `ssh
 brew install touchbistro/tap/tb
 ```
 
-### From source
-
-Alternatively tb can be installed from source. This requires having go 1.17 or greater installed.
-
-```
-go install github.com/TouchBistro/tb@latest
-```
-
 ### Updating tb
 To update to the latest version of `tb` do the following:
 

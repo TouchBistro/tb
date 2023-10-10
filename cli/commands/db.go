@@ -67,7 +67,7 @@ func newDBCommand(c *cli.Container) *cobra.Command {
 			c.Tracker.Infof("starting %s...", cliName)
 
 			err = command.New(command.WithStdin(os.Stdin), command.WithStdout(os.Stdout), command.WithStderr(os.Stderr)).
-				Exec(cliName, strings.Fields(connArg)...)
+				Exec(cmd.Context(), cliName, strings.Fields(connArg)...)
 			if err != nil {
 				return &fatal.Error{
 					Msg: fmt.Sprintf("could not start database client %s", cliName),

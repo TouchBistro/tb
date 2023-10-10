@@ -37,7 +37,14 @@ func main() {
 	// Ignore the error since there is nothing we can do about it.
 	// Also, temp files are automatically cleaned up on reboots
 	// so it's not a big deal.
-	_ = c.Logger.Cleanup(removeLogfile)
+	var logfileName string
+	if c.Logfile != nil {
+		logfileName = c.Logfile.Name()
+		_ = c.Logfile.Close()
+		if removeLogfile {
+			_ = os.Remove(logfileName)
+		}
+	}
 	if err == nil {
 		return
 	}
@@ -48,8 +55,8 @@ func main() {
 			// Tell user where log file is for further troubleshooting.
 			// Skip if code is 130 since that means the user aborted the
 			// program with control-C.
-			if name := c.Logger.Filename(); name != "" && code != 130 {
-				fmt.Fprintf(os.Stderr, "\n👉 Logs are available at: %s 👈\n", name)
+			if logfileName != "" && code != 130 {
+				fmt.Fprintf(os.Stderr, "\n👉 Logs are available at: %s 👈\n", logfileName)
 			}
 			os.Exit(code)
 		},
