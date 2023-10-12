@@ -52,4 +52,10 @@ git tag -a "$NEW_GIT_TAG" -m "$NEW_GIT_TAG"
 git push origin "$NEW_GIT_TAG"
 echo "Successfully pushed tag: $NEW_GIT_TAG"
 
+echo "Printing Go Version:"
+go version
+
+echo "Printing Go Releaser version:"
+goreleaser --version
+
 goreleaser release --parallelism 2 || fail_notif
