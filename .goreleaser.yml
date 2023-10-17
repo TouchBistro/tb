@@ -45,7 +45,7 @@ changelog:
     - '^test:'
 
 brews:
-  - tap:
+  - repository:
       owner: TouchBistro
       name: homebrew-tap
     commit_author:
