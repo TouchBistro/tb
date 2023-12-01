@@ -104,7 +104,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			checkVersion(cmd.Context(), version, c.Tracker)
 
 			// Determine how to proceed based on the type of command
-			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull || !opts.offlineMode}
+			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull && !opts.offlineMode}
 			switch cmd.Parent().Name() {
 			case "registry":
 				// No further action required for registry commands
