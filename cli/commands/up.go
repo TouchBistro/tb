@@ -76,7 +76,7 @@ Run the postgres and localstack services directly:
 				SkipPreRun:     opts.skipServicePreRun,
 				SkipDockerPull: opts.skipDockerPull,
 				SkipGitPull:    opts.skipGitPull,
-				OfflineMode:    opts.offlineMode,
+				OfflineMode:    c.OfflineMode,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -113,7 +113,6 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
-	flags.BoolVar(&opts.offlineMode, "offline", false, "Skip login strategies and pulling remotes images")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
 	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")

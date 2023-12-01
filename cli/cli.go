@@ -33,6 +33,7 @@ type Container struct {
 	Engine  *engine.Engine
 	Tracker progress.Tracker
 	Verbose bool
+	OfflineMode bool
 	// Ctx is the context that should be used within a command to carry deadlines and cancellation signals.
 	Ctx context.Context
 	// Logfile is the log file used by the logger to record verbose logs in case of an error.

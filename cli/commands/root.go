@@ -28,6 +28,7 @@ import (
 type rootOptions struct {
 	noRegistryPull bool
 	verbose        bool
+	offlineMode    bool
 }
 
 func NewRootCommand(c *cli.Container, version string) *cobra.Command {
@@ -66,6 +67,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				}
 			}
 			c.Verbose = opts.verbose || cfg.DebugEnabled()
+			c.OfflineMode = opts.offlineMode
 
 			// Initialize logging
 			// Create a temp file to log to.
@@ -102,7 +104,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 			checkVersion(cmd.Context(), version, c.Tracker)
 
 			// Determine how to proceed based on the type of command
-			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull}
+			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull || !opts.offlineMode}
 			switch cmd.Parent().Name() {
 			case "registry":
 				// No further action required for registry commands
@@ -136,6 +138,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 
 	persistentFlags := rootCmd.PersistentFlags()
 	persistentFlags.BoolVar(&opts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
+	persistentFlags.BoolVar(&opts.offlineMode, "offline", false, "Skip operations requiring internet connectivity")
 	persistentFlags.BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.AddCommand(
 		appCommands.NewAppCommand(c),

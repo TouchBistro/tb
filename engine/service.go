@@ -69,7 +69,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if err != nil {
 		return err
 	}
-	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull); err != nil {
+	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull || opts.OfflineMode); err != nil {
 		return err
 	}
 	if err := e.writeComposeFile(ctx, op); err != nil {
