@@ -16,7 +16,6 @@ type upOptions struct {
 	skipGitPull       bool
 	skipDockerPull    bool
 	skipLazydocker    bool
-	offlineMode       bool
 	playlistName      string
 	serviceNames      []string
 }
