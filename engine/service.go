@@ -45,6 +45,8 @@ type UpOptions struct {
 	// SkipGitPull skips pulling existing git repos to update them.
 	// Missing repos will still be cloned however.
 	SkipGitPull bool
+	// OfflineMode skips login strategies and pulling remote images
+	OfflineMode bool
 }
 
 // Up performs all necessary actions to prepare services and then starts them.
@@ -75,7 +77,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	}
 
 	tracker := progress.TrackerFromContext(ctx)
-	if len(e.loginStrategies) > 0 {
+	if len(e.loginStrategies) > 0 && !opts.OfflineMode {
 		loginStrategies := make([]login.Strategy, len(e.loginStrategies))
 		for i, name := range e.loginStrategies {
 			s, err := login.ParseStrategy(name)
@@ -120,7 +122,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	tracker.Info("✔ Cleaned up previous docker state")
 
 	// Pull base images
-	if !opts.SkipDockerPull && len(e.baseImages) > 0 {
+	if !opts.SkipDockerPull && !opts.OfflineMode && len(e.baseImages) > 0 {
 		err := progress.RunParallel(ctx, progress.RunParallelOptions{
 			Message:     "Pulling docker base images",
 			Count:       len(e.baseImages),
@@ -140,7 +142,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	}
 
 	// Pull service images
-	if !opts.SkipDockerPull {
+	if !opts.SkipDockerPull && !opts.OfflineMode {
 		var images []string
 		for _, s := range services {
 			if s.Mode == service.ModeRemote {
