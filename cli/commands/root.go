@@ -138,7 +138,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 
 	persistentFlags := rootCmd.PersistentFlags()
 	persistentFlags.BoolVar(&opts.noRegistryPull, "no-registry-pull", false, "Don't pull latest version of registries when tb is run")
-	persistentFlags.BoolVar(&opts.offlineMode, "offline", false, "Skip operations requiring internet connectivity")
+	persistentFlags.BoolVarP(&opts.offlineMode, "offline", "o", false, "Skip operations requiring internet connectivity")
 	persistentFlags.BoolVarP(&opts.verbose, "verbose", "v", false, "Enable verbose logging")
 	rootCmd.AddCommand(
 		appCommands.NewAppCommand(c),
