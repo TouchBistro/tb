@@ -33,7 +33,7 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 
 The main requirement for using `tb` is having `docker` and `docker compose v2` installed.
 See the [Docker installation instructions](https://docs.docker.com/get-docker/) and select your operating system for more details.
-See the [Compose installation instructions](https://docs.docker.com/compose/install/) to insure you have Compose v2 installed.
+See the [Compose installation instructions](https://docs.docker.com/compose/install/) to ensure you have Compose v2 installed.
 
 If you are using macOS having the Xcode CLI tools is also required. These can be easily installed by running `xcode-select --install`.
 
@@ -84,7 +84,7 @@ tb up -p db
 
 ## Basic Usage
 
-By default `tb` contains no services on it's own. Run `tb list` to confirm this. This will also generate a default `~/.tbrc.yml` which will need to be edited.
+By default `tb` contains no services on its own. Run `tb list` to confirm this. This will also generate a default `~/.tbrc.yml` which will need to be edited.
 To add services to `tb` you will need to add a registry. A registry is a GitHub repo that contains a list of services, playlists, and apps `tb` can run. You can read the documentation on registries [here](docs/registries.md).
 
 Add a registry by editing `~/.tbrc.yml` and add a registry to the `registries:` section:
@@ -117,11 +117,11 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 `tb` can be configured through the `.tbrc.yml` file located in your home directory. `tb` will automatically create a basic `.tbrc.yml` for you if one doesn't exist.
 
 ### Toggling experimental mode
-To to enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
+To enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
 Please be aware that you may encounter bugs with these features as they have not yet been deemed ready for general use.
 Also, experimental mode is not covered by semver guarantees, so there could be breaking changes at any time.
 
-If you would like to help use test new features, we would appreciate it if you could enable experimental mode and report any issues you encounter.
+If you would like to help test new features, we would appreciate it if you could enable experimental mode and report any issues you encounter.
 
 ### Adding custom playlists
 You can create custom playlists by adding a new object to the `playlists` property.
