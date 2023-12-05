@@ -32,6 +32,7 @@ Run the build for a specific branch:
 			appName := args[0]
 			err := c.Engine.AppDesktopRun(c.Ctx, appName, engine.AppDesktopRunOptions{
 				Branch: opts.branch,
+				OfflineMode: c.OfflineMode,
 			})
 			if err != nil {
 				return &fatal.Error{

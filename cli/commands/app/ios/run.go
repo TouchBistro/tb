@@ -43,6 +43,7 @@ Run the build for specific branch in an iOS 12.3 iPad Air 2 simulator:
 				DeviceName: deviceName,
 				DataPath:   opts.dataPath,
 				Branch:     opts.branch,
+				OfflineMode: c.OfflineMode,
 			})
 			if err != nil {
 				return &fatal.Error{

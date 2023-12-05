@@ -70,6 +70,8 @@ type AppiOSRunOptions struct {
 	DataPath string
 	// Branch is the name of the Git branch associated to the build to run.
 	Branch string
+	// OfflineMode skips operations requiring internet connectivity
+	OfflineMode bool
 }
 
 func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOptions) error {
@@ -102,7 +104,7 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading iOS app %s", a.FullName()),
 	}, func(ctx context.Context) (string, error) {
-		return e.downloadApp(ctx, a, app.TypeiOS, op)
+		return e.downloadApp(ctx, opts.OfflineMode, a, app.TypeiOS, op)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
@@ -232,6 +234,8 @@ func (e *Engine) resolveDevice(ctx context.Context, iosVersion, deviceName strin
 type AppDesktopRunOptions struct {
 	// Branch is the name of the Git branch associated to the build to run.
 	Branch string
+	// OfflineMode skips operations requiring internet connectivity
+	OfflineMode bool
 }
 
 func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesktopRunOptions) error {
@@ -250,7 +254,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading Desktop app %s", a.FullName()),
 	}, func(ctx context.Context) (string, error) {
-		return e.downloadApp(ctx, a, app.TypeDesktop, op)
+		return e.downloadApp(ctx, opts.OfflineMode, a, app.TypeDesktop, op)
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
@@ -287,7 +291,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	return nil
 }
 
-func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, op errors.Op) (string, error) {
+func (e *Engine) downloadApp(ctx context.Context, offlineMode bool, a app.App, appType app.Type, op errors.Op) (string, error) {
 	tracker := progress.TrackerFromContext(ctx)
 	storageProvider, err := e.getStorageProvider(a.Storage.Provider)
 	if err != nil {
@@ -295,6 +299,37 @@ func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, o
 			Reason: fmt.Sprintf("failed to get storage provider %s", a.Storage.Provider),
 			Op:     op,
 		})
+	}
+
+
+	var localBranchDir string
+	if appType == app.TypeiOS {
+		localBranchDir = filepath.Join(e.workdir, iosDir, a.FullName(), a.Branch)
+	} else {
+		localBranchDir = filepath.Join(e.workdir, desktopDir, a.FullName(), a.Branch)
+	}
+
+	var localBuilds []string
+	if offlineMode {
+		tracker.Infof("Offline Mode: Defaulting to local app build")
+		globPattern := filepath.Join(localBranchDir, "*.app")
+		localBuilds, err := filepath.Glob(globPattern)
+		if err != nil {
+			return "", errors.Wrap(err, errors.Meta{
+				Kind:   errkind.Internal,
+				Reason: fmt.Sprintf("failed to glob for %s", globPattern),
+				Op:     op,
+			})
+		}
+
+		if len(localBuilds) == 1 {
+			tracker.Warn("Offline Mode: Local app build might not be up to date. Enabling online mode will pull the latest build")
+			return localBuilds[0], nil
+		}
+
+		tracker.Warn("Offline Mode: Multiple local app builds found")
+
+		return localBuilds[0], nil
 	}
 
 	// Look up the latest build sha for user-specified branch and app.
@@ -322,23 +357,7 @@ func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, o
 	remoteBuildFilename := path.Base(remoteTarballPath)
 
 	// Decide whether or not to pull down a new version.
-	var localBranchDir string
-	if appType == app.TypeiOS {
-		localBranchDir = filepath.Join(e.workdir, iosDir, a.FullName(), a.Branch)
-	} else {
-		localBranchDir = filepath.Join(e.workdir, desktopDir, a.FullName(), a.Branch)
-	}
 	tracker.Debugf("checking %s to see if we need to download a new version of the app", localBranchDir)
-	globPattern := filepath.Join(localBranchDir, "*.app")
-	localBuilds, err := filepath.Glob(globPattern)
-	if err != nil {
-		return "", errors.Wrap(err, errors.Meta{
-			Kind:   errkind.Internal,
-			Reason: fmt.Sprintf("failed to glob for %s", globPattern),
-			Op:     op,
-		})
-	}
-
 	if len(localBuilds) > 1 {
 		// If we have more than one local build we are somehow in a bad state. Recover gracefully.
 		tracker.Debugf("Got the following builds: %+v. Only expecting one build", localBuilds)
