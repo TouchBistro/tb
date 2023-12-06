@@ -1,6 +1,7 @@
 package desktop
 
 import (
+	"fmt"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
@@ -29,6 +30,10 @@ Run the build for a specific branch:
 
 	tb app desktop run TouchBistroServer --branch task/bug-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if c.OfflineMode {
+				return fmt.Errorf("Cannot run desktop app in offline mode")
+			}
+
 			appName := args[0]
 			err := c.Engine.AppDesktopRun(c.Ctx, appName, engine.AppDesktopRunOptions{
 				Branch: opts.branch,
