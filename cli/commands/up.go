@@ -75,6 +75,7 @@ Run the postgres and localstack services directly:
 				SkipPreRun:     opts.skipServicePreRun,
 				SkipDockerPull: opts.skipDockerPull,
 				SkipGitPull:    opts.skipGitPull,
+				OfflineMode:    c.OfflineMode,
 			})
 			if err != nil {
 				return &fatal.Error{
