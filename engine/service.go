@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/file"
@@ -127,6 +128,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 			Message:     "Pulling docker base images",
 			Count:       len(e.baseImages),
 			Concurrency: e.concurrency,
+			Timeout: time.Duration(e.timeoutSeconds) * time.Second,
 		}, func(ctx context.Context, i int) error {
 			img := e.baseImages[i]
 			if err := e.dockerClient.PullImage(ctx, img); err != nil {
@@ -154,6 +156,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 				Message:     "Pulling docker service images",
 				Count:       len(images),
 				Concurrency: e.concurrency,
+				Timeout: time.Duration(e.timeoutSeconds) * time.Second,
 			}, func(ctx context.Context, i int) error {
 				img := images[i]
 				if err := e.dockerClient.PullImage(ctx, img); err != nil {

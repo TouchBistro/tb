@@ -45,6 +45,7 @@ type Config struct {
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
+	TimeoutSeconds   *int                               `yaml:timeoutSeconds`
 }
 
 // NOTE: This is deprecated and is only here for backwards compatibility.
@@ -149,6 +150,11 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	// We need at least one registry otherwise tb is pretty useless so let the user know.
 	if len(config.Registries) == 0 {
 		return nil, errors.New(errkind.Invalid, "no registries defined", op)
+	}
+
+
+	if config.TimeoutSeconds != nil && *config.TimeoutSeconds < 5 || *config.TimeoutSeconds > 3600 {
+		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds field in .tbrc.yaml. Values must be between 5 and 3600 inclusive"), op)
 	}
 
 	// Validate and normalize all registries.
@@ -284,6 +290,11 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		}
 	}
 
+	timeoutSeconds := 3600
+	if config.TimeoutSeconds != nil {
+		timeoutSeconds = *config.TimeoutSeconds
+	}
+
 	e, err := engine.New(engine.Options{
 		Workdir:         tbRoot,
 		Services:        registryResult.Services,
@@ -293,6 +304,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		BaseImages:      registryResult.BaseImages,
 		LoginStrategies: registryResult.LoginStrategies,
 		DeviceList:      deviceList,
+		TimeoutSeconds:  timeoutSeconds,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Reason: "failed to initialize engine", Op: op})

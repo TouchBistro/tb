@@ -28,6 +28,7 @@ type Engine struct {
 	loginStrategies  []string
 	deviceList       simulator.DeviceList
 	concurrency      int
+	timeoutSeconds   int
 
 	gitClient        git.Git
 	dockerClient     *docker.Docker
@@ -71,6 +72,9 @@ type Options struct {
 	GitClient git.Git
 	// DockerOptions is used to customize docker operations.
 	DockerOptions docker.Options
+	// TimeoutSeconds is a limit to how long a docker image pull will last
+	// If no value is provided, it defaults to 3600
+	TimeoutSeconds int
 }
 
 // New creates a new Engine instance.
@@ -113,6 +117,7 @@ func New(opts Options) (*Engine, error) {
 		baseImages:       opts.BaseImages,
 		loginStrategies:  opts.LoginStrategies,
 		deviceList:       opts.DeviceList,
+		timeoutSeconds:   opts.TimeoutSeconds,
 		concurrency:      opts.Concurrency,
 		gitClient:        opts.GitClient,
 		dockerClient:     dockerClient,
