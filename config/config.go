@@ -45,7 +45,7 @@ type Config struct {
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
-	TimeoutSeconds   *int                               `yaml:timeoutSeconds`
+	TimeoutSeconds   *int                               `yaml:"timeoutSeconds"`
 }
 
 // NOTE: This is deprecated and is only here for backwards compatibility.
@@ -154,7 +154,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 
 
 	if config.TimeoutSeconds != nil && *config.TimeoutSeconds < 5 || *config.TimeoutSeconds > 3600 {
-		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds field in .tbrc.yaml. Values must be between 5 and 3600 inclusive"), op)
+		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", *config.TimeoutSeconds), op)
 	}
 
 	// Validate and normalize all registries.
