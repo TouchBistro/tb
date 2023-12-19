@@ -8,7 +8,6 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/goutils/file"
@@ -92,6 +91,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 			Message:     "Logging into services",
 			Count:       len(loginStrategies),
 			Concurrency: e.concurrency,
+			Timeout:     e.timeout,
 			// Bail if one fails since there's no point on waiting on the others
 			// since we can't proceed anyway.
 			CancelOnError: true,
@@ -114,6 +114,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	// Cleanup previous docker state
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Cleaning up previous docker state",
+		Timeout: e.timeout,
 	}, func(ctx context.Context) error {
 		return e.stopServices(ctx, op, services)
 	})
@@ -128,7 +129,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 			Message:     "Pulling docker base images",
 			Count:       len(e.baseImages),
 			Concurrency: e.concurrency,
-			Timeout: time.Duration(e.timeoutSeconds) * time.Second,
+			Timeout:     e.timeout,
 		}, func(ctx context.Context, i int) error {
 			img := e.baseImages[i]
 			if err := e.dockerClient.PullImage(ctx, img); err != nil {
@@ -156,7 +157,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 				Message:     "Pulling docker service images",
 				Count:       len(images),
 				Concurrency: e.concurrency,
-				Timeout: time.Duration(e.timeoutSeconds) * time.Second,
+				Timeout:     e.timeout,
 			}, func(ctx context.Context, i int) error {
 				img := images[i]
 				if err := e.dockerClient.PullImage(ctx, img); err != nil {
@@ -182,6 +183,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if len(buildServices) > 0 {
 		err := progress.Run(ctx, progress.RunOptions{
 			Message: "Building docker images for services",
+			Timeout: e.timeout,
 		}, func(ctx context.Context) error {
 			return e.dockerClient.BuildServices(ctx, buildServices)
 		})
@@ -199,6 +201,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 		err := progress.Run(ctx, progress.RunOptions{
 			Message: "Performing pre-run step for services (this may take a long time)",
 			Count:   len(services),
+			Timeout: e.timeout,
 		}, func(ctx context.Context) error {
 			for _, s := range services {
 				if s.PreRun == "" {
@@ -228,6 +231,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	// Start services
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Starting services in the background",
+		Timeout: e.timeout,
 	}, func(ctx context.Context) error {
 		return e.dockerClient.UpServices(ctx, getServiceNames(services))
 	})

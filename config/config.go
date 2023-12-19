@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/errors"
@@ -45,7 +46,7 @@ type Config struct {
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
-	TimeoutSeconds   *int                               `yaml:"timeoutSeconds"`
+	TimeoutSeconds   time.Duration                      `yaml:"timeoutSeconds"`
 }
 
 // NOTE: This is deprecated and is only here for backwards compatibility.
@@ -153,8 +154,8 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	}
 
 
-	if config.TimeoutSeconds != nil && *config.TimeoutSeconds < 5 || *config.TimeoutSeconds > 3600 {
-		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", *config.TimeoutSeconds), op)
+	if config.TimeoutSeconds != 0 && (config.TimeoutSeconds < 5 || config.TimeoutSeconds > 3600) {
+		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", config.TimeoutSeconds), op)
 	}
 
 	// Validate and normalize all registries.
@@ -290,9 +291,12 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		}
 	}
 
-	timeoutSeconds := 3600
-	if config.TimeoutSeconds != nil {
-		timeoutSeconds = *config.TimeoutSeconds
+	var timeoutSeconds time.Duration
+	if config.TimeoutSeconds != 0 {
+		timeoutSeconds = config.TimeoutSeconds
+	} else {
+		// default to 60 min timeout when not provided in .tbrc.yml
+		timeoutSeconds = 3600
 	}
 
 	e, err := engine.New(engine.Options{
