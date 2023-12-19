@@ -158,12 +158,10 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", config.TimeoutSeconds), op)
 	}
 
-	var timeout time.Duration
+    // default to 60 min timeout when not provided in .tbrc.yml
+	timeout := 3600 * time.Second
 	if config.TimeoutSeconds != 0 {
 		timeout = time.Duration(config.TimeoutSeconds) * time.Second
-	} else {
-		// default to 60 min timeout when not provided in .tbrc.yml
-		timeout = time.Duration(3600) * time.Second
 	}
 
 	// Validate and normalize all registries.
