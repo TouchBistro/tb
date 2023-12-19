@@ -250,6 +250,7 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	// Download the app
 	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading Desktop app %s", a.FullName()),
+		Timeout: e.timeout,
 	}, func(ctx context.Context) (string, error) {
 		return e.downloadApp(ctx, a, app.TypeDesktop, op)
 	})

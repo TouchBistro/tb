@@ -158,6 +158,14 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", config.TimeoutSeconds), op)
 	}
 
+	var timeout time.Duration
+	if config.TimeoutSeconds != 0 {
+		timeout = config.TimeoutSeconds
+	} else {
+		// default to 60 min timeout when not provided in .tbrc.yml
+		timeout = 3600
+	}
+
 	// Validate and normalize all registries.
 	tracker := progress.TrackerFromContext(ctx)
 	for i, r := range config.Registries {
@@ -191,6 +199,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	err = progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message: "Cloning/updating registries",
 		Count:   len(config.Registries),
+		Timeout: timeout,
 	}, func(ctx context.Context, i int) error {
 		r := config.Registries[i]
 		if r.LocalPath != "" {
@@ -289,14 +298,6 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		if err != nil {
 			return nil, errors.Wrap(err, errors.Meta{Reason: "failed to parse available simulators", Op: op})
 		}
-	}
-
-	var timeout time.Duration
-	if config.TimeoutSeconds != 0 {
-		timeout = config.TimeoutSeconds
-	} else {
-		// default to 60 min timeout when not provided in .tbrc.yml
-		timeout = 3600
 	}
 
 	e, err := engine.New(engine.Options{

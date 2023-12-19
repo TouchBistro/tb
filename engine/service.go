@@ -257,6 +257,7 @@ func (e *Engine) Down(ctx context.Context, opts DownOptions) error {
 	}
 	err = progress.Run(ctx, progress.RunOptions{
 		Message: "Stopping services",
+		Timeout: e.timeout,
 	}, func(ctx context.Context) error {
 		return e.stopServices(ctx, op, services)
 	})
@@ -418,6 +419,7 @@ func (e *Engine) Nuke(ctx context.Context, opts NukeOptions) error {
 	const op = errors.Op("engine.Engine.Nuke")
 	return progress.Run(ctx, progress.RunOptions{
 		Message: "Cleaning up tb data",
+		Timeout: e.timeout,
 	}, func(ctx context.Context) error {
 		return e.nuke(ctx, opts, op)
 	})
@@ -668,6 +670,7 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 		Message:     "Cloning/pulling service git repos",
 		Count:       len(actions),
 		Concurrency: e.concurrency,
+		Timeout:     e.timeout,
 	}, func(ctx context.Context, i int) error {
 		a := actions[i]
 		if a.clone {
