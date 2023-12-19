@@ -291,12 +291,12 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		}
 	}
 
-	var timeoutSeconds time.Duration
+	var timeout time.Duration
 	if config.TimeoutSeconds != 0 {
-		timeoutSeconds = config.TimeoutSeconds
+		timeout = config.TimeoutSeconds
 	} else {
 		// default to 60 min timeout when not provided in .tbrc.yml
-		timeoutSeconds = 3600
+		timeout = 3600
 	}
 
 	e, err := engine.New(engine.Options{
@@ -308,7 +308,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		BaseImages:      registryResult.BaseImages,
 		LoginStrategies: registryResult.LoginStrategies,
 		DeviceList:      deviceList,
-		TimeoutSeconds:  timeoutSeconds,
+		Timeout:         timeout,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Reason: "failed to initialize engine", Op: op})

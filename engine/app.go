@@ -101,6 +101,7 @@ func (e *Engine) AppiOSRun(ctx context.Context, appName string, opts AppiOSRunOp
 	// Download the app
 	appPath, err := progress.RunT(ctx, progress.RunOptions{
 		Message: fmt.Sprintf("Downloading iOS app %s", a.FullName()),
+		Timeout: e.timeout,
 	}, func(ctx context.Context) (string, error) {
 		return e.downloadApp(ctx, a, app.TypeiOS, op)
 	})
