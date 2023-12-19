@@ -46,7 +46,7 @@ type Config struct {
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
-	TimeoutSeconds   time.Duration                      `yaml:"timeoutSeconds"`
+	TimeoutSeconds   int                                `yaml:"timeoutSeconds"`
 }
 
 // NOTE: This is deprecated and is only here for backwards compatibility.
@@ -160,10 +160,10 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 
 	var timeout time.Duration
 	if config.TimeoutSeconds != 0 {
-		timeout = config.TimeoutSeconds
+		timeout = time.Duration(config.TimeoutSeconds) * time.Second
 	} else {
 		// default to 60 min timeout when not provided in .tbrc.yml
-		timeout = 3600
+		timeout = time.Duration(3600) * time.Second
 	}
 
 	// Validate and normalize all registries.

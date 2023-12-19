@@ -116,6 +116,10 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 
 `tb` can be configured through the `.tbrc.yml` file located in your home directory. `tb` will automatically create a basic `.tbrc.yml` for you if one doesn't exist.
 
+### Timeout
+
+You can specify a timeout value in `.tbrc.yml`. This value will be used to kill any operation that exceeds the given time. All you need to do is set `timeoutSeconds: 1000` in your `.tbrc.yml`. Allowed values are 5 to 3600 inclusive. If `timeoutSeconds` is not specified or set to 0, `tb` will default to 3600 seconds (i.e 60 minutes).
+
 ### Toggling experimental mode
 To enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
 Please be aware that you may encounter bugs with these features as they have not yet been deemed ready for general use.
