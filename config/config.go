@@ -159,7 +159,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	}
 
     // default to 60 min timeout when not provided in .tbrc.yml
-	timeout := 3600 * time.Second
+	timeout := 60 * time.Minute
 	if config.TimeoutSeconds != 0 {
 		timeout = time.Duration(config.TimeoutSeconds) * time.Second
 	}
