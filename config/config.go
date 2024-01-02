@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/errors"
@@ -45,6 +46,7 @@ type Config struct {
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
+	TimeoutSeconds   int                                `yaml:"timeoutSeconds"`
 }
 
 // NOTE: This is deprecated and is only here for backwards compatibility.
@@ -151,6 +153,17 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		return nil, errors.New(errkind.Invalid, "no registries defined", op)
 	}
 
+
+	if config.TimeoutSeconds != 0 && (config.TimeoutSeconds < 5 || config.TimeoutSeconds > 3600) {
+		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", config.TimeoutSeconds), op)
+	}
+
+    // default to 60 min timeout when not provided in .tbrc.yml
+	timeout := 60 * time.Minute
+	if config.TimeoutSeconds != 0 {
+		timeout = time.Duration(config.TimeoutSeconds) * time.Second
+	}
+
 	// Validate and normalize all registries.
 	tracker := progress.TrackerFromContext(ctx)
 	for i, r := range config.Registries {
@@ -184,6 +197,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 	err = progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message: "Cloning/updating registries",
 		Count:   len(config.Registries),
+		Timeout: timeout,
 	}, func(ctx context.Context, i int) error {
 		r := config.Registries[i]
 		if r.LocalPath != "" {
@@ -293,6 +307,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		BaseImages:      registryResult.BaseImages,
 		LoginStrategies: registryResult.LoginStrategies,
 		DeviceList:      deviceList,
+		Timeout:         timeout,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, errors.Meta{Reason: "failed to initialize engine", Op: op})

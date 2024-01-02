@@ -3,6 +3,7 @@ package engine
 import (
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/TouchBistro/goutils/errors"
 	"github.com/TouchBistro/tb/errkind"
@@ -28,6 +29,7 @@ type Engine struct {
 	loginStrategies  []string
 	deviceList       simulator.DeviceList
 	concurrency      int
+	timeout          time.Duration
 
 	gitClient        git.Git
 	dockerClient     *docker.Docker
@@ -71,6 +73,9 @@ type Options struct {
 	GitClient git.Git
 	// DockerOptions is used to customize docker operations.
 	DockerOptions docker.Options
+	// Timeout is a limit to how long an operation will last
+	// If no value is provided, it defaults to 3600
+	Timeout time.Duration
 }
 
 // New creates a new Engine instance.
@@ -113,6 +118,7 @@ func New(opts Options) (*Engine, error) {
 		baseImages:       opts.BaseImages,
 		loginStrategies:  opts.LoginStrategies,
 		deviceList:       opts.DeviceList,
+		timeout:          opts.Timeout,
 		concurrency:      opts.Concurrency,
 		gitClient:        opts.GitClient,
 		dockerClient:     dockerClient,
