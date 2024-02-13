@@ -35,6 +35,8 @@ func (e *Engine) ResolveService(serviceName string) (service.Service, error) {
 type UpOptions struct {
 	// ServiceNames is a list of services names to start.
 	ServiceNames []string
+	// ServiceBranchNames is a map of service:branch names to start.
+	ServiceBranchNames map[string]string
 	// PlaylistName is the name of a playlist to start.
 	PlaylistName string
 	// SkipPreRun skips running the pre-run step for services.
@@ -65,7 +67,7 @@ type UpOptions struct {
 // which services to start.
 func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	const op = errors.Op("engine.Engine.Up")
-	services, err := e.resolveServices(op, opts.ServiceNames, opts.PlaylistName, true)
+	services, err := e.resolveServices(op, opts.ServiceNames, opts.PlaylistName, opts.ServiceBranchNames, true)
 	if err != nil {
 		return err
 	}
@@ -251,7 +253,7 @@ type DownOptions struct {
 // Down stops services and removes the containers.
 func (e *Engine) Down(ctx context.Context, opts DownOptions) error {
 	const op = errors.Op("engine.Engine.Down")
-	services, err := e.resolveServices(op, opts.ServiceNames, "", false)
+	services, err := e.resolveServices(op, opts.ServiceNames, "", make(map[string]string), false)
 	if err != nil {
 		return err
 	}
@@ -282,7 +284,7 @@ type LogsOptions struct {
 // Logs retrieves the logs from one or more service containers and writes it to w.
 func (e *Engine) Logs(ctx context.Context, w io.Writer, opts LogsOptions) error {
 	const op = errors.Op("engine.Engine.Logs")
-	services, err := e.resolveServices(op, opts.ServiceNames, "", false)
+	services, err := e.resolveServices(op, opts.ServiceNames, "", make(map[string]string), false)
 	if err != nil {
 		return err
 	}
@@ -562,15 +564,15 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 
 // resolveServices resolves a list of services from either a list of service names or a playlist name.
 //
-// If both serivceNames and playlistName are provided, an error will be returned. Mixing service names
+// If both serviceNames and playlistName are provided, an error will be returned. Mixing service names
 // is not supported.
 //
 // If neither serviceNames nor playlistName are provided, then behaviour depends on the value of requireOne.
 // In this case, if requireOne is true, an error will be returned since at least one of serviceNames or playlistName
 // was required. Otherwise, both the returned slice and error will be nil, which can be treated as an empty slice
 // of services.
-func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, requireOne bool) ([]service.Service, error) {
-	if len(serviceNames) > 0 && playlistName != "" {
+func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, serviceBranchNames map[string]string, requireOne bool) ([]service.Service, error) {
+	if len(serviceNames) > 0 && playlistName != "" && len(serviceBranchNames) == 0 {
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
 	if len(serviceNames) > 0 {
@@ -590,7 +592,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 			return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve playlist", Op: op})
 		}
 		// Can just run resolveServices again with the service names to get the actual services.
-		return e.resolveServices(op, serviceNames, "", true)
+		return e.resolveServices(op, serviceNames, "", serviceBranchNames, true)
 	}
 	if requireOne {
 		return nil, errors.New(errkind.Invalid, "neither service names nor playlist name was provided", op)

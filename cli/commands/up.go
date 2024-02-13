@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
@@ -12,12 +13,13 @@ import (
 )
 
 type upOptions struct {
-	skipServicePreRun bool
-	skipGitPull       bool
-	skipDockerPull    bool
-	skipLazydocker    bool
-	playlistName      string
-	serviceNames      []string
+	skipServicePreRun  bool
+	skipGitPull        bool
+	skipDockerPull     bool
+	skipLazydocker     bool
+	playlistName       string
+	serviceNames       []string
+	serviceBranchNames []string
 }
 
 func newUpCommand(c *cli.Container) *cobra.Command {
@@ -28,7 +30,7 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			if len(args) == 0 && opts.playlistName == "" && len(opts.serviceNames) == 0 {
 				return fmt.Errorf("service names or playlist name is required")
 			}
-			if len(args) > 0 && opts.playlistName != "" {
+			if len(args) > 0 && opts.playlistName != "" && len(opts.serviceBranchNames) == 0 {
 				return fmt.Errorf("cannot specify service names as args when --playlist or -p is used")
 			}
 			// These are deprecated and will be removed but we need to check for it for now for backwards compatibility
@@ -69,6 +71,15 @@ Run the postgres and localstack services directly:
 			if len(serviceNames) == 0 {
 				serviceNames = opts.serviceNames
 			}
+
+			c.Tracker.Infof("Args are %s", serviceNames)
+
+			serviceBranchNames := make(map[string]string)
+			for _, serviceBranch := range opts.serviceBranchNames {
+				sb := strings.Split(serviceBranch, ":")
+				c.Tracker.Infof("Service is %s and branch is %s", sb[0], sb[1])
+				serviceBranchNames[sb[0]] = sb[1]
+			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,
 				PlaylistName:   opts.playlistName,
@@ -76,6 +87,7 @@ Run the postgres and localstack services directly:
 				SkipDockerPull: opts.skipDockerPull,
 				SkipGitPull:    opts.skipGitPull,
 				OfflineMode:    c.OfflineMode,
+				ServiceBranchNames: serviceBranchNames,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -113,6 +125,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
+	flags.StringSliceVarP(&opts.serviceBranchNames, "branch", "b", []string{}, "Space delimited list of service:branch to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
 	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")
 	if err != nil {
