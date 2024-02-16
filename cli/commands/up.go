@@ -72,13 +72,12 @@ Run the postgres and localstack services directly:
 				serviceNames = opts.serviceNames
 			}
 
-			c.Tracker.Infof("Args are %s", serviceNames)
-
 			serviceBranchNames := make(map[string]string)
 			for _, serviceBranch := range opts.serviceBranchNames {
 				sb := strings.Split(serviceBranch, ":")
-				c.Tracker.Infof("Service is %s and branch is %s", sb[0], sb[1])
-				serviceBranchNames[sb[0]] = sb[1]
+				// replacing forward slashes with dashes (because that's how ECR images are tagged)
+				trimmedBranch := strings.ReplaceAll(sb[1], "/", "-")
+				serviceBranchNames[sb[0]] = trimmedBranch
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,
@@ -125,7 +124,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
-	flags.StringSliceVarP(&opts.serviceBranchNames, "branch", "b", []string{}, "Space delimited list of service:branch to run")
+	flags.StringSliceVarP(&opts.serviceBranchNames, "branch", "b", []string{}, "Comma separated list of service:branch to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
 	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")
 	if err != nil {

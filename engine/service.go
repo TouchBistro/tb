@@ -576,6 +576,13 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
 	if len(serviceNames) > 0 {
+		for service := range serviceBranchNames {
+			_, err := e.services.Get(service)
+			if err != nil {
+				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
+			}
+		}
+
 		services := make([]service.Service, len(serviceNames))
 		for i, name := range serviceNames {
 			s, err := e.services.Get(name)
@@ -583,6 +590,11 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
 			}
 			services[i] = s
+
+			branch := serviceBranchNames[s.Name]
+			if len(branch) > 0 {
+				services[i].Remote.Tag = branch
+			}
 		}
 		return services, nil
 	}
