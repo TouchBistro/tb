@@ -594,6 +594,8 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 			branch := serviceBranchNames[s.Name]
 			if len(branch) > 0 {
 				services[i].Remote.Tag = branch
+				// re-set global engine.services because it's used to generate the docker-compose config using img branch/tag
+				e.services.Set(services[i])
 			}
 		}
 		return services, nil
