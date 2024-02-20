@@ -80,12 +80,12 @@ Run the postgres and localstack services directly:
 				serviceBranchNames[sb[0]] = trimmedBranch
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
-				ServiceNames:   serviceNames,
-				PlaylistName:   opts.playlistName,
-				SkipPreRun:     opts.skipServicePreRun,
-				SkipDockerPull: opts.skipDockerPull,
-				SkipGitPull:    opts.skipGitPull,
-				OfflineMode:    c.OfflineMode,
+				ServiceNames:       serviceNames,
+				PlaylistName:       opts.playlistName,
+				SkipPreRun:         opts.skipServicePreRun,
+				SkipDockerPull:     opts.skipDockerPull,
+				SkipGitPull:        opts.skipGitPull,
+				OfflineMode:        c.OfflineMode,
 				ServiceBranchNames: serviceBranchNames,
 			})
 			if err != nil {
