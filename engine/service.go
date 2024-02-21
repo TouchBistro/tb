@@ -15,7 +15,6 @@ import (
 	"github.com/TouchBistro/tb/errkind"
 	"github.com/TouchBistro/tb/integrations/docker"
 	"github.com/TouchBistro/tb/integrations/login"
-	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/service"
 	"gopkg.in/yaml.v3"
 )
@@ -75,7 +74,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull || opts.OfflineMode); err != nil {
 		return err
 	}
-	if err := e.writeComposeFile(ctx, services, op); err != nil {
+	if err := e.writeComposeFile(ctx, op); err != nil {
 		return err
 	}
 
@@ -595,6 +594,11 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 			branch := serviceBranchNames[s.Name]
 			if len(branch) > 0 {
 				services[i].Remote.Tag = branch
+				// re-set global engine.services because it's used to generate the docker-compose config using img branch/tag
+				err := e.services.Set(services[i])
+				if err != nil {
+					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
+				}
 			}
 		}
 		return services, nil
@@ -718,7 +722,7 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 	return nil
 }
 
-func (e *Engine) writeComposeFile(ctx context.Context, services []service.Service, op errors.Op) error {
+func (e *Engine) writeComposeFile(ctx context.Context, op errors.Op) error {
 	tracker := progress.TrackerFromContext(ctx)
 	tracker.Debug("Generating docker-compose.yml file")
 	composePath := filepath.Join(e.workdir, docker.ComposeFilename)
@@ -741,21 +745,7 @@ func (e *Engine) writeComposeFile(ctx context.Context, services []service.Servic
 		})
 	}
 
-	servs := &resource.Collection[service.Service]{}
-	for it := e.services.Iter(); it.Next(); {
-		s := it.Value()
-		if err := servs.Set(s); err != nil {
-			return errors.Wrap(err, errors.Meta{Kind: errkind.Unspecified, Reason: "failed to build service resource collection", Op: op})
-		}
-	}
-
-	for _, s := range services {
-		if err := servs.Set(s); err != nil {
-			return errors.Wrap(err, errors.Meta{Kind: errkind.Unspecified, Reason: "failed to build service resource collection", Op: op})
-		}
-	}
-
-	composeConfig := service.ComposeConfig(servs)
+	composeConfig := service.ComposeConfig(e.services)
 	if err := yaml.NewEncoder(f).Encode(composeConfig); err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.IO,
