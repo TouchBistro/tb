@@ -35,8 +35,8 @@ func (e *Engine) ResolveService(serviceName string) (service.Service, error) {
 type UpOptions struct {
 	// ServiceNames is a list of services names to start.
 	ServiceNames []string
-	// ServiceBranchNames is a map of service:branch names to start.
-	ServiceBranchNames map[string]string
+	// ServiceTags is a map of service:image-tag to start.
+	ServiceTags map[string]string
 	// PlaylistName is the name of a playlist to start.
 	PlaylistName string
 	// SkipPreRun skips running the pre-run step for services.
@@ -67,7 +67,7 @@ type UpOptions struct {
 // which services to start.
 func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	const op = errors.Op("engine.Engine.Up")
-	services, err := e.resolveServices(op, opts.ServiceNames, opts.PlaylistName, opts.ServiceBranchNames, true)
+	services, err := e.resolveServices(op, opts.ServiceNames, opts.PlaylistName, opts.ServiceTags, true)
 	if err != nil {
 		return err
 	}
@@ -571,12 +571,12 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 // In this case, if requireOne is true, an error will be returned since at least one of serviceNames or playlistName
 // was required. Otherwise, both the returned slice and error will be nil, which can be treated as an empty slice
 // of services.
-func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, serviceBranchNames map[string]string, requireOne bool) ([]service.Service, error) {
-	if len(serviceNames) > 0 && playlistName != "" && len(serviceBranchNames) == 0 {
+func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, serviceTags map[string]string, requireOne bool) ([]service.Service, error) {
+	if len(serviceNames) > 0 && playlistName != "" && len(serviceTags) == 0 {
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
 	if len(serviceNames) > 0 {
-		for service := range serviceBranchNames {
+		for service := range serviceTags {
 			_, err := e.services.Get(service)
 			if err != nil {
 				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
@@ -589,16 +589,31 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 			if err != nil {
 				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
 			}
-			services[i] = s
 
-			branch := serviceBranchNames[s.Name]
-			if len(branch) > 0 {
-				services[i].Remote.Tag = branch
-				// re-set global engine.services because it's used to generate the docker-compose config using img branch/tag
-				err := e.services.Set(services[i])
+			services[i] = s
+			tag := serviceTags[s.Name]
+			if len(tag) > 0 {
+				override := service.ServiceOverride{
+					Mode: "remote",
+					Remote: service.RemoteOverride{
+						Tag: tag,
+					},
+				}
+				override.Remote.Tag = tag
+				overridenService, err := service.Override(s, override)
 				if err != nil {
 					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
 				}
+
+				/* e.services is the global list of services parsed from the registry
+				 * we need to update its state with the given remote tag
+				 * since it's used downstream to generate the docker-compose config to tag the service
+				 */
+				if err := e.services.Set(overridenService); err != nil {
+					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
+				}
+
+				services[i] = overridenService
 			}
 		}
 		return services, nil
@@ -609,7 +624,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 			return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve playlist", Op: op})
 		}
 		// Can just run resolveServices again with the service names to get the actual services.
-		return e.resolveServices(op, serviceNames, "", serviceBranchNames, true)
+		return e.resolveServices(op, serviceNames, "", serviceTags, true)
 	}
 	if requireOne {
 		return nil, errors.New(errkind.Invalid, "neither service names nor playlist name was provided", op)

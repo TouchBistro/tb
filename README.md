@@ -24,6 +24,7 @@ If you want to know more about why we built `tb`, check out our [blog post](http
   - [Toggling experimental mode](#toggling-experimental-mode)
   - [Adding custom playlists](#adding-custom-playlists)
   - [Overriding service properties](#overriding-service-properties)
+    - [Overriding Remote Tag using CLI](#overriding-remote-tag-using-cli)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -179,6 +180,22 @@ Override schema:
     command: string  # Command to run when the container starts
     tag: string      # The image tag to use
 ```
+
+#### Overriding Remote Tag using CLI
+
+Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so looks like this:
+
+```
+sso tb up venue-config-service -t venue-config-service:my_branch
+```
+
+You can also override a remote tag when running a playlist. To override multiple remote tags for multiple services, you will need to provide a comma-separated list of service:tag arguments.
+
+```
+sso tb up -p vcs-deps -t postgres:my_branch1,redis:my_branch2
+```
+
+NOTE: ECR does not support forward slashes (/) in an image tag, so task/ACC-1234/chore will be normalized to task-ACC-1234-chore when the image is pushed to ECR.
 
 ## Contributing
 

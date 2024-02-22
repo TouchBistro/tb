@@ -13,13 +13,13 @@ import (
 )
 
 type upOptions struct {
-	skipServicePreRun  bool
-	skipGitPull        bool
-	skipDockerPull     bool
-	skipLazydocker     bool
-	playlistName       string
-	serviceNames       []string
-	serviceBranchNames []string
+	skipServicePreRun bool
+	skipGitPull       bool
+	skipDockerPull    bool
+	skipLazydocker    bool
+	playlistName      string
+	serviceNames      []string
+	serviceTags       []string
 }
 
 func newUpCommand(c *cli.Container) *cobra.Command {
@@ -30,7 +30,7 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			if len(args) == 0 && opts.playlistName == "" && len(opts.serviceNames) == 0 {
 				return fmt.Errorf("service names or playlist name is required")
 			}
-			if len(args) > 0 && opts.playlistName != "" && len(opts.serviceBranchNames) == 0 {
+			if len(args) > 0 && opts.playlistName != "" && len(opts.serviceTags) == 0 {
 				return fmt.Errorf("cannot specify service names as args when --playlist or -p is used")
 			}
 			// These are deprecated and will be removed but we need to check for it for now for backwards compatibility
@@ -72,21 +72,21 @@ Run the postgres and localstack services directly:
 				serviceNames = opts.serviceNames
 			}
 
-			serviceBranchNames := make(map[string]string)
-			for _, serviceBranch := range opts.serviceBranchNames {
-				sb := strings.Split(serviceBranch, ":")
+			serviceTags := make(map[string]string)
+			for _, serviceTag := range opts.serviceTags {
+				sb := strings.Split(serviceTag, ":")
 				// replacing forward slashes with dashes (because that's how ECR images are tagged)
 				trimmedBranch := strings.ReplaceAll(sb[1], "/", "-")
-				serviceBranchNames[sb[0]] = trimmedBranch
+				serviceTags[sb[0]] = trimmedBranch
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
-				ServiceNames:       serviceNames,
-				PlaylistName:       opts.playlistName,
-				SkipPreRun:         opts.skipServicePreRun,
-				SkipDockerPull:     opts.skipDockerPull,
-				SkipGitPull:        opts.skipGitPull,
-				OfflineMode:        c.OfflineMode,
-				ServiceBranchNames: serviceBranchNames,
+				ServiceNames:   serviceNames,
+				PlaylistName:   opts.playlistName,
+				SkipPreRun:     opts.skipServicePreRun,
+				SkipDockerPull: opts.skipDockerPull,
+				SkipGitPull:    opts.skipGitPull,
+				OfflineMode:    c.OfflineMode,
+				ServiceTags:    serviceTags,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -124,7 +124,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
-	flags.StringSliceVarP(&opts.serviceBranchNames, "branch", "b", []string{}, "Comma separated list of service:branch to run")
+	flags.StringSliceVarP(&opts.serviceTags, "image-tag", "t", []string{}, "Comma separated list of service:image-tag to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
 	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")
 	if err != nil {
