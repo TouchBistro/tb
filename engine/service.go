@@ -579,7 +579,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 		for service := range serviceTags {
 			_, err := e.services.Get(service)
 			if err != nil {
-				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service", Op: op})
+				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service with tag", Op: op})
 			}
 		}
 
@@ -601,7 +601,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 				}
 				overridenService, err := service.Override(s, override)
 				if err != nil {
-					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
+					return nil, errors.Wrap(err, errors.Meta{Reason: fmt.Sprintf("failed to override service %s with tag %s", s.Name, tag), Op: op})
 				}
 
 				/* e.services is the global list of services parsed from the registry
@@ -609,7 +609,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 				 * since it's used downstream to generate the docker-compose config to tag the service
 				 */
 				if err := e.services.Set(overridenService); err != nil {
-					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
+					return nil, errors.Wrap(err, errors.Meta{Reason: fmt.Sprintf("failed to override service %s with tag %s", s.Name, tag), Op: op})
 				}
 
 				services[i] = overridenService
