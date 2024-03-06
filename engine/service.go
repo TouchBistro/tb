@@ -572,7 +572,7 @@ func (e *Engine) nuke(ctx context.Context, opts NukeOptions, op errors.Op) error
 // was required. Otherwise, both the returned slice and error will be nil, which can be treated as an empty slice
 // of services.
 func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistName string, serviceTags map[string]string, requireOne bool) ([]service.Service, error) {
-	if len(serviceNames) > 0 && playlistName != "" && len(serviceTags) == 0 {
+	if len(serviceNames) > 0 && playlistName != "" {
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
 	if len(serviceNames) > 0 {
