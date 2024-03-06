@@ -186,13 +186,25 @@ Override schema:
 Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so for a single service looks like this:
 
 ```
-sso tb up venue-config-service -t my_tag
+sso tb up my-service -t my_tag
+```
+
+Alternatively, you could also use the following syntax when running a single service:
+
+```
+sso tb up my-service -t my-service:my_tag
 ```
 
 You can also override a remote tag when running a playlist. To override multiple remote tags for multiple services, you will need to provide a comma-separated list of service:tag arguments.
 
 ```
-sso tb up -p vcs-deps -t postgres:my_tag1,redis:my_tag2
+sso tb up -p my-playlist -t postgres:my_tag1,redis:my_tag2
+```
+
+Additionally, you can override multiple services' tags when a list of services:
+
+```
+sso tb up my-service my-service1 -t my-service:my_tag1,my-service:my_tag2
 ```
 
 ## Contributing
