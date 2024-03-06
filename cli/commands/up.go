@@ -75,9 +75,7 @@ Run the postgres and localstack services directly:
 			serviceTags := make(map[string]string)
 			for _, serviceTag := range opts.serviceTags {
 				sb := strings.Split(serviceTag, ":")
-				// replacing forward slashes with dashes (because that's how ECR images are tagged)
-				trimmedBranch := strings.ReplaceAll(sb[1], "/", "-")
-				serviceTags[sb[0]] = trimmedBranch
+				serviceTags[sb[0]] = sb[1]
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,

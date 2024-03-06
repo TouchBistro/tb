@@ -186,16 +186,14 @@ Override schema:
 Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so looks like this:
 
 ```
-sso tb up venue-config-service -t venue-config-service:my_branch
+sso tb up venue-config-service -t venue-config-service:my_tag
 ```
 
 You can also override a remote tag when running a playlist. To override multiple remote tags for multiple services, you will need to provide a comma-separated list of service:tag arguments.
 
 ```
-sso tb up -p vcs-deps -t postgres:my_branch1,redis:my_branch2
+sso tb up -p vcs-deps -t postgres:my_tag1,redis:my_tag2
 ```
-
-NOTE: ECR does not support forward slashes (/) in an image tag, so task/ACC-1234/chore will be normalized to task-ACC-1234-chore when the image is pushed to ECR.
 
 ## Contributing
 

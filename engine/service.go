@@ -599,7 +599,6 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 						Tag: tag,
 					},
 				}
-				override.Remote.Tag = tag
 				overridenService, err := service.Override(s, override)
 				if err != nil {
 					return nil, errors.Wrap(err, errors.Meta{Reason: "unable to use service branch name", Op: op})
