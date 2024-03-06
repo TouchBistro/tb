@@ -74,8 +74,14 @@ Run the postgres and localstack services directly:
 
 			serviceTags := make(map[string]string)
 			for _, serviceTag := range opts.serviceTags {
-				sb := strings.Split(serviceTag, ":")
-				serviceTags[sb[0]] = sb[1]
+				var st []string
+				// when running 1 service only, -t my_tag is expected instead of -t service:my_tag
+				if len(serviceNames) == 1 {
+					st = []string{serviceNames[0], serviceTag}
+				} else {
+					st = strings.Split(serviceTag, ":")
+				}
+				serviceTags[st[0]] = st[1]
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,

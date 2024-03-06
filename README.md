@@ -183,10 +183,10 @@ Override schema:
 
 #### Overriding Remote Tag using CLI
 
-Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so looks like this:
+Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so for a single service looks like this:
 
 ```
-sso tb up venue-config-service -t venue-config-service:my_tag
+sso tb up venue-config-service -t my_tag
 ```
 
 You can also override a remote tag when running a playlist. To override multiple remote tags for multiple services, you will need to provide a comma-separated list of service:tag arguments.
