@@ -576,10 +576,10 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 		return nil, errors.New(errkind.Invalid, "both service names and playlist name provided", op)
 	}
 	if len(serviceNames) > 0 {
-		for service := range serviceTags {
+		for service, tag := range serviceTags {
 			_, err := e.services.Get(service)
 			if err != nil {
-				return nil, errors.Wrap(err, errors.Meta{Reason: "unable to resolve service with tag", Op: op})
+				return nil, errors.Wrap(err, errors.Meta{Reason: fmt.Sprintf("unable to resolve service %s with tag %s", service, tag), Op: op})
 			}
 		}
 

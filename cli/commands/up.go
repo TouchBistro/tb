@@ -22,6 +22,25 @@ type upOptions struct {
 	serviceTags       []string
 }
 
+func parseTag(tag string, serviceNames []string) ([]string, error) {
+	parts := strings.Split(tag, ":")
+	if len(serviceNames) == 1 && len(parts) == 1 {
+		return []string{serviceNames[0], parts[0]}, nil
+
+	}
+
+	// split the service tag into service name and tag, ensuring exactly two string values
+	if len(parts) != 2 {
+		return []string{}, fmt.Errorf("invalid service tag format '%s'; expected format 'service:tag'", tag)
+	}
+
+	if parts[0] == "" || parts[1] == "" {
+		return []string{}, fmt.Errorf("invalid service tag '%s'; service name and tag must not be empty", tag)
+	}
+
+	return parts, nil
+}
+
 func newUpCommand(c *cli.Container) *cobra.Command {
 	var opts upOptions
 	upCmd := &cobra.Command{
@@ -30,7 +49,7 @@ func newUpCommand(c *cli.Container) *cobra.Command {
 			if len(args) == 0 && opts.playlistName == "" && len(opts.serviceNames) == 0 {
 				return fmt.Errorf("service names or playlist name is required")
 			}
-			if len(args) > 0 && opts.playlistName != "" && len(opts.serviceTags) == 0 {
+			if len(args) > 0 && opts.playlistName != "" {
 				return fmt.Errorf("cannot specify service names as args when --playlist or -p is used")
 			}
 			// These are deprecated and will be removed but we need to check for it for now for backwards compatibility
@@ -74,14 +93,14 @@ Run the postgres and localstack services directly:
 
 			serviceTags := make(map[string]string)
 			for _, serviceTag := range opts.serviceTags {
-				var st []string
-				// when running 1 service only, -t my_tag is expected instead of -t service:my_tag
-				if len(serviceNames) == 1 {
-					st = []string{serviceNames[0], serviceTag}
-				} else {
-					st = strings.Split(serviceTag, ":")
+				parts, err := parseTag(serviceTag, serviceNames)
+				if err != nil {
+					return &fatal.Error{
+						Msg: fmt.Sprintf("Failed to parse service tag %s", serviceTag),
+						Err: err,
+					}
 				}
-				serviceTags[st[0]] = st[1]
+				serviceTags[parts[0]] = parts[1]
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,
