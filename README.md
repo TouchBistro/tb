@@ -207,7 +207,7 @@ Additionally, you can override multiple services' tags when a list of services:
 sso tb up my-service my-service1 -t my-service:my_tag1,my-service:my_tag2
 ```
 
-NOTE: If you specify a remote tag in your `.tbrc.yml` and supply a tag using the CLI, the CLI tag always takes precedence over the `.tbrc.yml` override.
+NOTE: If you specify a remote tag in your `.tbrc.yml` and supply a tag using the CLI, the CLI tag will always takes precedence over the `.tbrc.yml` override.
 
 ## Contributing
 
