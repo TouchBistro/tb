@@ -24,12 +24,14 @@ type upOptions struct {
 
 func parseTag(tag string, serviceNames []string) ([]string, error) {
 	parts := strings.Split(tag, ":")
+	// when running one service with one part ex: tb up some-service -t some-tag
 	if len(serviceNames) == 1 && len(parts) == 1 {
 		return []string{serviceNames[0], parts[0]}, nil
 
 	}
 
 	// split the service tag into service name and tag, ensuring exactly two string values
+	// ex: tb up some-service -t some-service:some-tag
 	if len(parts) != 2 {
 		return []string{}, fmt.Errorf("invalid service tag format '%s'; expected format 'service:tag'", tag)
 	}
