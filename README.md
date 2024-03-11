@@ -24,6 +24,7 @@ If you want to know more about why we built `tb`, check out our [blog post](http
   - [Toggling experimental mode](#toggling-experimental-mode)
   - [Adding custom playlists](#adding-custom-playlists)
   - [Overriding service properties](#overriding-service-properties)
+    - [Overriding Remote Tag using CLI](#overriding-remote-tag-using-cli)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -179,6 +180,34 @@ Override schema:
     command: string  # Command to run when the container starts
     tag: string      # The image tag to use
 ```
+
+#### Overriding Remote Tag using CLI
+
+Additionally, you can run a docker image with a specific remote tag using the CLI. An example of doing so for a single service looks like this:
+
+```
+sso tb up my-service -t my_tag
+```
+
+Alternatively, you could also use the following syntax when running a single service:
+
+```
+sso tb up my-service -t my-service:my_tag
+```
+
+You can also override a remote tag when running a playlist. To override multiple remote tags for multiple services, you will need to provide a comma-separated list of service:tag arguments.
+
+```
+sso tb up -p my-playlist -t postgres:my_tag1,redis:my_tag2
+```
+
+Additionally, you can override multiple services' tags when a list of services:
+
+```
+sso tb up my-service my-service1 -t my-service:my_tag1,my-service:my_tag2
+```
+
+NOTE: If you specify a remote tag in your `.tbrc.yml` and supply a tag using the CLI, the CLI tag will always takes precedence over the `.tbrc.yml` override.
 
 ## Contributing
 

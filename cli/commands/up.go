@@ -3,6 +3,7 @@ package commands
 import (
 	"fmt"
 	"os/exec"
+	"strings"
 
 	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
@@ -18,6 +19,28 @@ type upOptions struct {
 	skipLazydocker    bool
 	playlistName      string
 	serviceNames      []string
+	serviceTags       []string
+}
+
+func parseTag(tag string, serviceNames []string) ([]string, error) {
+	parts := strings.Split(tag, ":")
+	// when running one service with one part ex: tb up some-service -t some-tag
+	if len(serviceNames) == 1 && len(parts) == 1 {
+		return []string{serviceNames[0], parts[0]}, nil
+
+	}
+
+	// split the service tag into service name and tag, ensuring exactly two string values
+	// ex: tb up some-service -t some-service:some-tag
+	if len(parts) != 2 {
+		return []string{}, fmt.Errorf("invalid service tag format '%s'; expected format 'service:tag'", tag)
+	}
+
+	if parts[0] == "" || parts[1] == "" {
+		return []string{}, fmt.Errorf("invalid service tag '%s'; service name and tag must not be empty", tag)
+	}
+
+	return parts, nil
 }
 
 func newUpCommand(c *cli.Container) *cobra.Command {
@@ -69,6 +92,18 @@ Run the postgres and localstack services directly:
 			if len(serviceNames) == 0 {
 				serviceNames = opts.serviceNames
 			}
+
+			serviceTags := make(map[string]string)
+			for _, serviceTag := range opts.serviceTags {
+				parts, err := parseTag(serviceTag, serviceNames)
+				if err != nil {
+					return &fatal.Error{
+						Msg: fmt.Sprintf("Failed to parse service tag %s", serviceTag),
+						Err: err,
+					}
+				}
+				serviceTags[parts[0]] = parts[1]
+			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
 				ServiceNames:   serviceNames,
 				PlaylistName:   opts.playlistName,
@@ -76,6 +111,7 @@ Run the postgres and localstack services directly:
 				SkipDockerPull: opts.skipDockerPull,
 				SkipGitPull:    opts.skipGitPull,
 				OfflineMode:    c.OfflineMode,
+				ServiceTags:    serviceTags,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -113,6 +149,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
+	flags.StringSliceVarP(&opts.serviceTags, "image-tag", "t", []string{}, "Comma separated list of service:image-tag to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
 	err := flags.MarkDeprecated("services", "and will be removed, pass service names as arguments instead")
 	if err != nil {
