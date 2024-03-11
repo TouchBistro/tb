@@ -182,9 +182,9 @@ func checkVersion(ctx context.Context, version string, logger progress.Logger) {
 	}
 
 	logger.Info(color.Yellow("🚨🚨🚨 Your version of tb is out of date 🚨🚨🚨"))
-	logger.Infof("%s %s", color.Yellow("Current version:"), color.Cyan(version))
-	logger.Infof("%s %s", color.Yellow("Latest version: "), color.Cyan(latestRelease))
-	logger.Infof("%s %s", color.Yellow("Please consider upgrading by running: "), color.Cyan("brew update && brew upgrade tb"))
+	logger.Infof("%s: %s", color.Yellow("Current version"), color.Cyan(version))
+	logger.Infof("%s: %s", color.Yellow("Latest version"), color.Cyan(latestRelease))
+	logger.Infof("%s: %s", color.Yellow("Please consider upgrading by running"), color.Cyan("brew update && brew upgrade tb"))
 
 	// Tell people to stay safe if major version
 	if latestVersion.Major > currentVersion.Major {
