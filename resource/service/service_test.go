@@ -328,8 +328,8 @@ func TestComposeConfig(t *testing.T) {
 			},
 			Build: service.Build{
 				Args: map[string]string{
-					"NODE_ENV":  "development",
-					"NPM_TOKEN": "$NPM_TOKEN",
+					"NODE_ENV":       "development",
+					"NPM_READ_TOKEN": "$NPM_READ_TOKEN",
 				},
 				Command:        "yarn start",
 				DockerfilePath: ".tb/repos/TouchBistro/venue-core-service",
@@ -377,8 +377,8 @@ func TestComposeConfig(t *testing.T) {
 			"touchbistro-tb-registry-venue-core-service": {
 				Build: docker.ComposeBuildConfig{
 					Args: map[string]string{
-						"NODE_ENV":  "development",
-						"NPM_TOKEN": "$NPM_TOKEN",
+						"NODE_ENV":       "development",
+						"NPM_READ_TOKEN": "$NPM_READ_TOKEN",
 					},
 					Context: ".tb/repos/TouchBistro/venue-core-service",
 					Target:  "dev",

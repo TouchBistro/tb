@@ -5,7 +5,7 @@ services:
       POSTGRES_PASSWORD: localdev
     mode: build
     ports:
-      - '5432:5432'
+      - "5432:5432"
   venue-core-service:
     dependencies:
       - ${@postgres}
@@ -15,14 +15,14 @@ services:
       DB_HOST: ${@postgres}
     mode: local
     ports:
-      - '9000:8080'
+      - "9000:8080"
     preRun: yarn db:prepare
     repo:
       name: TouchBistro/venue-core-service
     build:
       args:
         NODE_ENV: development
-        NPM_TOKEN: $NPM_TOKEN
+        NPM_READ_TOKEN: $NPM_READ_TOKEN
       command: yarn start
       dockerfilePath: ${@REPOPATH}
       target: dev
@@ -42,7 +42,7 @@ services:
       POSTGRES_HOST: ${@postgres}
     mode: local
     ports:
-      - '9000:8000'
+      - "9000:8000"
     preRun: yarn db:prepare:dev
     repo:
       name: ExampleZone/venue-example-service
