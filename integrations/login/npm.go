@@ -21,7 +21,7 @@ func (npmStrategy) Name() string {
 
 func (npmStrategy) Login(ctx context.Context) error {
 	const op = errors.Op("login.npmStrategy.Login")
-	const npmToken = "NPM_TOKEN"
+	const npmToken = "NPM_READ_TOKEN"
 	tracker := progress.TrackerFromContext(ctx)
 	tracker.Debugf("Checking if env var %s is set...", npmToken)
 	if os.Getenv(npmToken) != "" {
@@ -63,7 +63,7 @@ func (npmStrategy) Login(ctx context.Context) error {
 	}
 
 	tracker.Debugf("Found authToken. Setting env var %s...", npmToken)
-	// Set the NPM_TOKEN as an env var. This way any child processes run will inherit this env var
+	// Set the NPM_READ_TOKEN as an env var. This way any child processes run will inherit this env var
 	// meaning when we run docker build it should have access to it
 	// matches[0] is the full match
 	os.Setenv(npmToken, string(matches[1]))
