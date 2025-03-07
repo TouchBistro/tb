@@ -2,10 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
-	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
@@ -124,10 +125,10 @@ Run the postgres and localstack services directly:
 			if !opts.skipLazydocker {
 				// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
 				const lazydocker = "lazydocker"
-				if command.Exists(lazydocker) {
+				if path, err := exec.LookPath(lazydocker); err == nil {
 					c.Tracker.Debug("Running lazydocker")
 					// Lazydocker doesn't write to stdout or stderr since everything is displaed in the terminal GUI
-					if err := exec.Command(lazydocker).Run(); err != nil {
+					if err := syscall.Exec(path, []string{path}, os.Environ()); err != nil {
 						return &fatal.Error{
 							Msg: "Failed running lazydocker",
 							Err: err,
