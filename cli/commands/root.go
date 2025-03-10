@@ -7,6 +7,9 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"os/exec"
+	"regexp"
+	"strings"
 
 	"github.com/TouchBistro/goutils/color"
 	"github.com/TouchBistro/goutils/fatal"
@@ -102,6 +105,7 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				c.Tracker.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
 			}
 			checkVersion(cmd.Context(), version, c.Tracker)
+			checkDepVersion(cmd.Context(), c.Tracker)
 
 			// Determine how to proceed based on the type of command
 			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull && !opts.offlineMode}
@@ -190,5 +194,55 @@ func checkVersion(ctx context.Context, version string, logger progress.Logger) {
 	if latestVersion.Major > currentVersion.Major {
 		logger.Info(color.Red("🚨🚨🚨 WARNING: This is a major version upgrade 🚨🚨🚨"))
 		logger.Info(color.Red("Please upgrade with caution."))
+	}
+}
+
+func checkDepVersion(ctx context.Context, logger progress.Logger) {
+	dependencies := map[string]struct {
+		Command []string
+		Repo    string
+	}{
+		"docker-engine":  {Command: []string{"docker", "version", "--format", "{{.Client.Version}}"}, Repo: "moby/moby"},
+		"docker-compose": {Command: []string{"docker-compose", "version", "--short"}, Repo: "docker/compose"},
+		"lazydocker":     {Command: []string{"lazydocker", "--version"}, Repo: "jesseduffield/lazydocker"},
+	}
+	re := regexp.MustCompile(`\d+\.\d+\.\d+`)
+
+	for name, dep := range dependencies {
+		cmd := exec.Command(dep.Command[0], dep.Command[1:]...)
+		output, err := cmd.Output()
+		if err != nil {
+			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to check current version of %s: ", name))
+			continue
+		}
+
+		version := re.FindString(string(output))
+		currentVersion, err := semver.Parse(version)
+		if err != nil {
+			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to parse current version of %s", name))
+			continue
+		}
+
+		// Check if there is a newer version available and let the user know
+		// If it fails just ignore and continue normal operation
+		// Log to debug for troubleshooting
+		githubClient := github.New(&http.Client{})
+		paths := strings.Split(dep.Repo, "/")
+		latestRelease, err := githubClient.LatestReleaseTag(ctx, paths[0], paths[1])
+		if err != nil {
+			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Failed to get latest version of %s from GitHub. Skipping.", name))
+			continue
+		}
+		latestVersion, err := semver.ParseTolerant(latestRelease)
+		if err != nil {
+			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to parse latest version of %s", name))
+			continue
+		}
+		if !currentVersion.LT(latestVersion) {
+			continue
+		}
+
+		logger.Infof(color.Yellow(fmt.Sprintf("🚨 Your version of %s is out of date 🚨", name)))
+		logger.Infof("%s: %s. %s: %s", color.Yellow("Current"), color.Cyan(version), color.Yellow("Latest"), color.Cyan(latestRelease))
 	}
 }
