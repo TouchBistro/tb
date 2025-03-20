@@ -14,13 +14,14 @@ import (
 )
 
 type upOptions struct {
-	skipServicePreRun bool
-	skipGitPull       bool
-	skipDockerPull    bool
-	skipLazydocker    bool
-	playlistName      string
-	serviceNames      []string
-	serviceTags       []string
+	skipServicePreRun   bool
+	skipGitPull         bool
+	skipDockerPull      bool
+	skipLazydocker      bool
+	allowGitConcurrency bool
+	playlistName        string
+	serviceNames        []string
+	serviceTags         []string
 }
 
 func parseTag(tag string, serviceNames []string) ([]string, error) {
@@ -106,13 +107,14 @@ Run the postgres and localstack services directly:
 				serviceTags[parts[0]] = parts[1]
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
-				ServiceNames:   serviceNames,
-				PlaylistName:   opts.playlistName,
-				SkipPreRun:     opts.skipServicePreRun,
-				SkipDockerPull: opts.skipDockerPull,
-				SkipGitPull:    opts.skipGitPull,
-				OfflineMode:    c.OfflineMode,
-				ServiceTags:    serviceTags,
+				ServiceNames:        serviceNames,
+				PlaylistName:        opts.playlistName,
+				SkipPreRun:          opts.skipServicePreRun,
+				SkipDockerPull:      opts.skipDockerPull,
+				SkipGitPull:         opts.skipGitPull,
+				AllowGitConcurrency: opts.allowGitConcurrency,
+				OfflineMode:         c.OfflineMode,
+				ServiceTags:         serviceTags,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -149,6 +151,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
+	flags.BoolVar(&opts.allowGitConcurrency, "allow-git-concurrency", false, "Allow git operations to run in parallel. Speed up the process but may cause instability")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
 	flags.StringSliceVarP(&opts.serviceTags, "image-tag", "t", []string{}, "Comma separated list of service:image-tag to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")

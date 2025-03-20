@@ -47,6 +47,9 @@ type UpOptions struct {
 	// SkipGitPull skips pulling existing git repos to update them.
 	// Missing repos will still be cloned however.
 	SkipGitPull bool
+	// AllowGitConcurrency allows git operations to run in parallel.
+	// Improve git speed but may not work for some networks.
+	AllowGitConcurrency bool
 	// OfflineMode skips login strategies and pulling remote images
 	OfflineMode bool
 }
@@ -71,7 +74,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 	if err != nil {
 		return err
 	}
-	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull || opts.OfflineMode); err != nil {
+	if err := e.prepareGitRepos(ctx, op, opts.SkipGitPull || opts.OfflineMode, opts.AllowGitConcurrency); err != nil {
 		return err
 	}
 	if err := e.writeComposeFile(ctx, op); err != nil {
@@ -635,7 +638,7 @@ func (e *Engine) resolveServices(op errors.Op, serviceNames []string, playlistNa
 // prepareGitRepos prepares the git repos for all services. Missing repos will always be cloned
 // to ensure that any files referenced in the docker-compose.yml file exist.
 // Repos will be pulled if skipPull is false.
-func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull bool) error {
+func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull bool, allowConcurrency bool) error {
 	tracker := progress.TrackerFromContext(ctx)
 	tracker.Debug("Preparing Git repos for services")
 
@@ -699,10 +702,15 @@ func (e *Engine) prepareGitRepos(ctx context.Context, op errors.Op, skipPull boo
 		return nil
 	}
 
+	concurrency := 1
+	if allowConcurrency {
+		concurrency = e.concurrency
+	}
+
 	err := progress.RunParallel(ctx, progress.RunParallelOptions{
 		Message:     "Cloning/pulling service git repos",
 		Count:       len(actions),
-		Concurrency: e.concurrency,
+		Concurrency: concurrency,
 		Timeout:     e.timeout,
 	}, func(ctx context.Context, i int) error {
 		a := actions[i]
