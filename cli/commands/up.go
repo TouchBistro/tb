@@ -2,10 +2,11 @@ package commands
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 
-	"github.com/TouchBistro/goutils/command"
 	"github.com/TouchBistro/goutils/fatal"
 	"github.com/TouchBistro/tb/cli"
 	"github.com/TouchBistro/tb/engine"
@@ -13,14 +14,14 @@ import (
 )
 
 type upOptions struct {
-	skipServicePreRun bool
-	skipGitPull       bool
-	skipDockerPull    bool
-	skipLazydocker    bool
-	gitBatchSize      int
-	playlistName      string
-	serviceNames      []string
-	serviceTags       []string
+	skipServicePreRun   bool
+	skipGitPull         bool
+	skipDockerPull      bool
+	skipLazydocker      bool
+	allowGitConcurrency bool
+	playlistName        string
+	serviceNames        []string
+	serviceTags         []string
 }
 
 func parseTag(tag string, serviceNames []string) ([]string, error) {
@@ -106,14 +107,14 @@ Run the postgres and localstack services directly:
 				serviceTags[parts[0]] = parts[1]
 			}
 			err := c.Engine.Up(c.Ctx, engine.UpOptions{
-				ServiceNames:   serviceNames,
-				PlaylistName:   opts.playlistName,
-				SkipPreRun:     opts.skipServicePreRun,
-				SkipDockerPull: opts.skipDockerPull,
-				SkipGitPull:    opts.skipGitPull,
-				GitBatchSize:   opts.gitBatchSize,
-				OfflineMode:    c.OfflineMode,
-				ServiceTags:    serviceTags,
+				ServiceNames:        serviceNames,
+				PlaylistName:        opts.playlistName,
+				SkipPreRun:          opts.skipServicePreRun,
+				SkipDockerPull:      opts.skipDockerPull,
+				SkipGitPull:         opts.skipGitPull,
+				AllowGitConcurrency: opts.allowGitConcurrency,
+				OfflineMode:         c.OfflineMode,
+				ServiceTags:         serviceTags,
 			})
 			if err != nil {
 				return &fatal.Error{
@@ -126,10 +127,10 @@ Run the postgres and localstack services directly:
 			if !opts.skipLazydocker {
 				// lazydocker opt in, if it exists it will be launched, otherwise this step will be skipped
 				const lazydocker = "lazydocker"
-				if command.Exists(lazydocker) {
+				if path, err := exec.LookPath(lazydocker); err == nil {
 					c.Tracker.Debug("Running lazydocker")
 					// Lazydocker doesn't write to stdout or stderr since everything is displaed in the terminal GUI
-					if err := exec.Command(lazydocker).Run(); err != nil {
+					if err := syscall.Exec(path, []string{path}, os.Environ()); err != nil {
 						return &fatal.Error{
 							Msg: "Failed running lazydocker",
 							Err: err,
@@ -150,7 +151,7 @@ Run the postgres and localstack services directly:
 	flags.BoolVar(&opts.skipGitPull, "no-git-pull", false, "Don't update git repositories")
 	flags.BoolVar(&opts.skipDockerPull, "no-remote-pull", false, "Don't get new remote images")
 	flags.BoolVar(&opts.skipLazydocker, "no-lazydocker", false, "Don't start lazydocker")
-	flags.IntVar(&opts.gitBatchSize, "git-batch-size", 10, "Set batch size for git operations")
+	flags.BoolVar(&opts.allowGitConcurrency, "allow-git-concurrency", false, "Allow git operations to run in parallel. Speed up the process but may cause instability")
 	flags.StringVarP(&opts.playlistName, "playlist", "p", "", "The name of a playlist")
 	flags.StringSliceVarP(&opts.serviceTags, "image-tag", "t", []string{}, "Comma separated list of service:image-tag to run")
 	flags.StringSliceVarP(&opts.serviceNames, "services", "s", []string{}, "Comma separated list of services to start. eg --services postgres,localstack.")
