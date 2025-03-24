@@ -121,6 +121,9 @@ Run `tb --help` to see the commands available. Run `tb <cmd> --help` to get help
 
 You can specify a timeout value in `.tbrc.yml`. This value will be used to kill any operation that exceeds the given time. All you need to do is set `timeoutSeconds: 1000` in your `.tbrc.yml`. Allowed values are 5 to 3600 inclusive. If `timeoutSeconds` is not specified or set to 0, `tb` will default to 3600 seconds (i.e 60 minutes).
 
+### Set git concurrency
+Set the max number of git operations, like cloning repos, that can be performed concurrently. Setting concurrency to a low value, or even 1, may help users who have network issues. Defaults to runtime.NumCPU if omitted.
+
 ### Toggling experimental mode
 To enable experimental mode set the `experimental` field to `true`. Experimental mode will give you access to any new features that are still in the process of being tested.
 Please be aware that you may encounter bugs with these features as they have not yet been deemed ready for general use.

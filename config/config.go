@@ -43,6 +43,7 @@ type Config struct {
 	// TODO(@cszatmary): Remove this when we do a breaking change.
 	Debug            *bool                              `yaml:"debug"`
 	ExperimentalMode bool                               `yaml:"experimental"`
+	GitConcurrency   int                                `yaml:"gitConcurrency"`
 	Playlists        map[string]playlist.Playlist       `yaml:"playlists"`
 	Overrides        map[string]service.ServiceOverride `yaml:"overrides"`
 	Registries       []registry.Registry                `yaml:"registries"`
@@ -153,12 +154,11 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		return nil, errors.New(errkind.Invalid, "no registries defined", op)
 	}
 
-
 	if config.TimeoutSeconds != 0 && (config.TimeoutSeconds < 5 || config.TimeoutSeconds > 3600) {
 		return nil, errors.New(errkind.Invalid, fmt.Sprintf("Invalid timeoutSeconds value '%d' in .tbrc.yaml. Values must be between 5 and 3600 inclusive", config.TimeoutSeconds), op)
 	}
 
-    // default to 60 min timeout when not provided in .tbrc.yml
+	// default to 60 min timeout when not provided in .tbrc.yml
 	timeout := 60 * time.Minute
 	if config.TimeoutSeconds != 0 {
 		timeout = time.Duration(config.TimeoutSeconds) * time.Second
@@ -307,6 +307,7 @@ func Init(ctx context.Context, config Config, opts InitOptions) (*engine.Engine,
 		BaseImages:      registryResult.BaseImages,
 		LoginStrategies: registryResult.LoginStrategies,
 		DeviceList:      deviceList,
+		GitConcurrency:  config.GitConcurrency,
 		Timeout:         timeout,
 	})
 	if err != nil {
