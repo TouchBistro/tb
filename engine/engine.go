@@ -29,6 +29,7 @@ type Engine struct {
 	loginStrategies  []string
 	deviceList       simulator.DeviceList
 	concurrency      int
+	gitConcurrency   int
 	timeout          time.Duration
 
 	gitClient        git.Git
@@ -68,6 +69,9 @@ type Options struct {
 	// Concurrency controls how many goroutines can run concurrently.
 	// Defaults to runtime.NumCPU if omitted.
 	Concurrency int
+	// GitConcurrency controls how many goroutines can run concurrently for git operations.
+	// Defaults to runtime.NumCPU if omitted.
+	GitConcurrency int
 	// GitClient is the client to use for git operations.
 	// This allows for overriding the default git client if provided.
 	GitClient git.Git
@@ -120,6 +124,7 @@ func New(opts Options) (*Engine, error) {
 		deviceList:       opts.DeviceList,
 		timeout:          opts.Timeout,
 		concurrency:      opts.Concurrency,
+		gitConcurrency:   opts.GitConcurrency,
 		gitClient:        opts.GitClient,
 		dockerClient:     dockerClient,
 		storageProviders: make(map[string]storage.Provider),

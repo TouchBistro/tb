@@ -19,6 +19,7 @@ func TestLoad(t *testing.T) {
 		{
 			name: "basic tbrc",
 			data: `experimental: true
+gitConcurrency: 1
 registries:
   - name: TouchBistro/tb-registry
   - name: ExampleZone/tb-registry
@@ -26,6 +27,7 @@ registries:
 			want: func(homedir string) config.Config {
 				return config.Config{
 					ExperimentalMode: true,
+					GitConcurrency:   1,
 					Registries: []registry.Registry{
 						{
 							Name:      "TouchBistro/tb-registry",
