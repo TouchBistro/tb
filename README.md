@@ -32,9 +32,8 @@ If you want to know more about why we built `tb`, check out our [blog post](http
 
 ### Installed Software
 
-The main requirement for using `tb` is having `docker` and `docker compose v2` installed.
+The main requirement for using `tb` is having `docker` with the integrated `docker compose` functionality.
 See the [Docker installation instructions](https://docs.docker.com/get-docker/) and select your operating system for more details.
-See the [Compose installation instructions](https://docs.docker.com/compose/install/) to ensure you have Compose v2 installed.
 
 If you are using macOS having the Xcode CLI tools is also required. These can be easily installed by running `xcode-select --install`.
 
