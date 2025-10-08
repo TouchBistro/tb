@@ -104,8 +104,14 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 				c.Tracker.Info(color.Yellow("🚧 Experimental mode enabled 🚧"))
 				c.Tracker.Info(color.Yellow("If you find any bugs please report them in an issue: https://github.com/TouchBistro/tb/issues"))
 			}
-			checkVersion(cmd.Context(), version, c.Tracker)
-			checkDepVersion(cmd.Context(), c.Tracker)
+
+			if err := checkVersion(cmd.Context(), version, c.Tracker); err != nil {
+				c.Tracker.Debug(fmt.Sprintf("Ignoring error encountered while checking version of tb: %v", err))
+			}
+
+			if err := checkDepVersion(cmd.Context(), c.Tracker); err != nil {
+				c.Tracker.Debug(fmt.Sprintf("Ignoring error encountered while checking dependency versions: %v", err))
+			}
 
 			// Determine how to proceed based on the type of command
 			initOpts := config.InitOptions{UpdateRegistries: !opts.noRegistryPull && !opts.offlineMode}
@@ -160,11 +166,10 @@ func NewRootCommand(c *cli.Container, version string) *cobra.Command {
 	return rootCmd
 }
 
-func checkVersion(ctx context.Context, version string, logger progress.Logger) {
+func checkVersion(ctx context.Context, version string, logger progress.Logger) error {
 	currentVersion, err := semver.Parse(version)
 	if err != nil {
-		logger.Debug("Unable to check current version of tb")
-		return
+		return fmt.Errorf("unable to parse current tb version: %w", err)
 	}
 
 	// Check if there is a newer version available and let the user know
@@ -173,16 +178,14 @@ func checkVersion(ctx context.Context, version string, logger progress.Logger) {
 	githubClient := github.New(&http.Client{})
 	latestRelease, err := githubClient.LatestReleaseTag(ctx, "TouchBistro", "tb")
 	if err != nil {
-		logger.WithAttrs("err", err).Debug("Failed to get latest version of tb from GitHub. Skipping.")
-		return
+		return fmt.Errorf("failed to get latest version of tb from GitHub: %w", err)
 	}
 	latestVersion, err := semver.Parse(latestRelease)
 	if err != nil {
-		logger.Debug("Unable to check latest version of tb")
-		return
+		return fmt.Errorf("unable to parse latest tb version: %w", err)
 	}
 	if !currentVersion.LT(latestVersion) {
-		return
+		return nil
 	}
 
 	logger.Info(color.Yellow("🚨🚨🚨 Your version of tb is out of date 🚨🚨🚨"))
@@ -195,16 +198,18 @@ func checkVersion(ctx context.Context, version string, logger progress.Logger) {
 		logger.Info(color.Red("🚨🚨🚨 WARNING: This is a major version upgrade 🚨🚨🚨"))
 		logger.Info(color.Red("Please upgrade with caution."))
 	}
+
+	return nil
 }
 
-func checkDepVersion(ctx context.Context, logger progress.Logger) {
+func checkDepVersion(ctx context.Context, logger progress.Logger) error {
 	dependencies := map[string]struct {
 		Command []string
 		Repo    string
 	}{
-		"docker-engine":  {Command: []string{"docker", "version", "--format", "{{.Client.Version}}"}, Repo: "moby/moby"},
-		"docker-compose": {Command: []string{"docker-compose", "version", "--short"}, Repo: "docker/compose"},
-		"lazydocker":     {Command: []string{"lazydocker", "--version"}, Repo: "jesseduffield/lazydocker"},
+		"docker-engine": {Command: []string{"docker", "version", "--format", "{{.Client.Version}}"}, Repo: "moby/moby"},
+		// docker-compose is now integrated into the docker CLI as 'docker compose'
+		"lazydocker": {Command: []string{"lazydocker", "--version"}, Repo: "jesseduffield/lazydocker"},
 	}
 	re := regexp.MustCompile(`\d+\.\d+\.\d+`)
 
@@ -212,15 +217,13 @@ func checkDepVersion(ctx context.Context, logger progress.Logger) {
 		cmd := exec.Command(dep.Command[0], dep.Command[1:]...)
 		output, err := cmd.Output()
 		if err != nil {
-			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to check current version of %s: ", name))
-			continue
+			return fmt.Errorf("failed to check %s version: %v", name, err)
 		}
 
 		version := re.FindString(string(output))
 		currentVersion, err := semver.Parse(version)
 		if err != nil {
-			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to parse current version of %s", name))
-			continue
+			return fmt.Errorf("unable to parse %s version: %v", name, err)
 		}
 
 		// Check if there is a newer version available and let the user know
@@ -230,13 +233,11 @@ func checkDepVersion(ctx context.Context, logger progress.Logger) {
 		paths := strings.Split(dep.Repo, "/")
 		latestRelease, err := githubClient.LatestReleaseTag(ctx, paths[0], paths[1])
 		if err != nil {
-			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Failed to get latest version of %s from GitHub. Skipping.", name))
-			continue
+			return fmt.Errorf("failed to get latest %s version from GitHub: %v", name, err)
 		}
 		latestVersion, err := semver.ParseTolerant(latestRelease)
 		if err != nil {
-			logger.WithAttrs("err", err).Debug(fmt.Sprintf("Unable to parse latest version of %s", name))
-			continue
+			return fmt.Errorf("unable to parse latest %s version: %v", name, err)
 		}
 		if !currentVersion.LT(latestVersion) {
 			continue
@@ -245,4 +246,6 @@ func checkDepVersion(ctx context.Context, logger progress.Logger) {
 		logger.Infof(color.Yellow(fmt.Sprintf("🚨 Your version of %s is out of date 🚨", name)))
 		logger.Infof("%s: %s. %s: %s", color.Yellow("Current"), color.Cyan(version), color.Yellow("Latest"), color.Cyan(latestRelease))
 	}
+
+	return nil
 }
