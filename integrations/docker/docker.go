@@ -18,9 +18,10 @@ import (
 	"github.com/distribution/reference"
 	dockerconfig "github.com/docker/cli/cli/config"
 	configtypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	imagetypes "github.com/docker/docker/api/types/image"
+	networktypes "github.com/docker/docker/api/types/network"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/errdefs"
@@ -106,7 +107,7 @@ func New(projectName, workdir string, opts Options) (*Docker, error) {
 	const op = errors.Op("docker.New")
 	if opts.APIClient == nil {
 		// Use the actual docker SDK client for making real requests.
-		dockerAPIClient, err := client.NewClientWithOpts(client.FromEnv)
+		dockerAPIClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 		if err != nil {
 			return nil, errors.Wrap(err, errors.Meta{
 				Kind:   errkind.Docker,
@@ -203,7 +204,7 @@ func (d *Docker) RemoveContainers(ctx context.Context, serviceNames ...string) e
 	tracker := progress.TrackerFromContext(ctx)
 	for _, container := range containers {
 		tracker.Debugf("Removing container %s", container.Names[0])
-		if err := d.apiClient.ContainerRemove(ctx, container.ID, types.ContainerRemoveOptions{}); err != nil {
+		if err := d.apiClient.ContainerRemove(ctx, container.ID, containertypes.RemoveOptions{}); err != nil {
 			return errors.Wrap(err, errors.Meta{
 				Kind:   errkind.Docker,
 				Reason: fmt.Sprintf("failed to remove container %s, %s", container.Names[0], container.ID),
@@ -216,14 +217,14 @@ func (d *Docker) RemoveContainers(ctx context.Context, serviceNames ...string) e
 
 // listContainers lists containers belonging to the project. If names is provided it will be used to filter
 // the returned containers to only those matching the names.
-func (d *Docker) listContainers(ctx context.Context, serviceNames []string, stopped bool, op errors.Op) ([]types.Container, error) {
+func (d *Docker) listContainers(ctx context.Context, serviceNames []string, stopped bool, op errors.Op) ([]containertypes.Summary, error) {
 	f := filters.NewArgs(projectFilter(d.project.Name))
 	if len(serviceNames) > 0 {
 		for _, n := range serviceNames {
 			f.Add("name", NormalizeName(n))
 		}
 	}
-	containers, err := d.apiClient.ContainerList(ctx, types.ContainerListOptions{
+	containers, err := d.apiClient.ContainerList(ctx, containertypes.ListOptions{
 		All:     stopped,
 		Filters: f,
 	})
@@ -296,7 +297,7 @@ func (d *Docker) PullImage(ctx context.Context, imageName string) error {
 	// Finally we can pull the image!
 	tracker := progress.TrackerFromContext(ctx)
 	tracker.Debugf("Pulling image: %s", ref)
-	r, err := d.apiClient.ImagePull(ctx, imageName, types.ImagePullOptions{
+	r, err := d.apiClient.ImagePull(ctx, imageName, imagetypes.PullOptions{
 		RegistryAuth: base64.URLEncoding.EncodeToString(b),
 	})
 	if err != nil {
@@ -381,7 +382,7 @@ func (d *Docker) RemoveImages(ctx context.Context, imageSearches []ImageSearch) 
 		})
 	}
 
-	images, err := d.apiClient.ImageList(ctx, types.ImageListOptions{Filters: f})
+	images, err := d.apiClient.ImageList(ctx, imagetypes.ListOptions{Filters: f})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.Docker,
@@ -395,7 +396,7 @@ func (d *Docker) RemoveImages(ctx context.Context, imageSearches []ImageSearch) 
 		// Each image can have multiple tags associated with it
 		imageNames := strings.Join(image.RepoTags, ", ")
 		tracker.Debugf("Removing images: %s", imageNames)
-		_, err := d.apiClient.ImageRemove(ctx, image.ID, types.ImageRemoveOptions{
+		_, err := d.apiClient.ImageRemove(ctx, image.ID, imagetypes.RemoveOptions{
 			Force:         true,
 			PruneChildren: true,
 		})
@@ -429,7 +430,7 @@ func (d *Docker) PruneImages(ctx context.Context) error {
 // RemoveNetworks removes all networks associated with the project.
 func (d *Docker) RemoveNetworks(ctx context.Context) error {
 	const op = errors.Op("docker.Docker.RemoveNetworks")
-	networks, err := d.apiClient.NetworkList(ctx, types.NetworkListOptions{
+	networks, err := d.apiClient.NetworkList(ctx, networktypes.ListOptions{
 		Filters: filters.NewArgs(projectFilter(d.project.Name)),
 	})
 	if err != nil {

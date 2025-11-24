@@ -11,7 +11,9 @@ import (
 	"github.com/TouchBistro/tb/resource"
 	"github.com/TouchBistro/tb/resource/playlist"
 	"github.com/TouchBistro/tb/resource/service"
-	dockertypes "github.com/docker/docker/api/types"
+	containertypes "github.com/docker/docker/api/types/container"
+	imagetypes "github.com/docker/docker/api/types/image"
+	networktypes "github.com/docker/docker/api/types/network"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/matryer/is"
 )
@@ -19,13 +21,13 @@ import (
 func TestDown(t *testing.T) {
 	tests := []struct {
 		name                string
-		existingContainers  []dockertypes.Container
+		existingContainers  []containertypes.Summary
 		serviceNames        []string
-		remainingContainers []dockertypes.Container
+		remainingContainers []containertypes.Summary
 	}{
 		{
 			name: "remove all containers since none specified",
-			existingContainers: []dockertypes.Container{
+			existingContainers: []containertypes.Summary{
 				{
 					ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
 					Names: []string{"touchbistro-tb-registry-postgres"},
@@ -49,7 +51,7 @@ func TestDown(t *testing.T) {
 					State: docker.ContainerStateRunning,
 				},
 			},
-			remainingContainers: []dockertypes.Container{
+			remainingContainers: []containertypes.Summary{
 				{
 					ID:    "e8dc7c16f7dd4be23b96951a34b7ecc69cd727ed13a626a309a96b472646c5e9",
 					Names: []string{"test-ubuntu"},
@@ -59,7 +61,7 @@ func TestDown(t *testing.T) {
 		},
 		{
 			name: "remove only specified containers",
-			existingContainers: []dockertypes.Container{
+			existingContainers: []containertypes.Summary{
 				{
 					ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
 					Names: []string{"touchbistro-tb-registry-postgres"},
@@ -84,7 +86,7 @@ func TestDown(t *testing.T) {
 				},
 			},
 			serviceNames: []string{"TouchBistro/tb-registry/touchbistro-node-boilerplate"},
-			remainingContainers: []dockertypes.Container{
+			remainingContainers: []containertypes.Summary{
 				{
 					ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
 					Names: []string{"touchbistro-tb-registry-postgres"},
@@ -122,7 +124,7 @@ func TestDown(t *testing.T) {
 			is.NoErr(err)
 
 			// Check to make sure those containers were removed
-			remaining, err := dockerAPIClient.ContainerList(ctx, dockertypes.ContainerListOptions{All: true})
+			remaining, err := dockerAPIClient.ContainerList(ctx, containertypes.ListOptions{All: true})
 			is.NoErr(err)
 			sort.Slice(remaining, func(i, j int) bool {
 				return remaining[i].ID < remaining[j].ID
@@ -210,9 +212,9 @@ func TestNuke(t *testing.T) {
 		services          []service.Service
 		mockAPIClientOpts docker.MockAPIClientOptions
 		nukeOpts          engine.NukeOptions
-		wantContainers    []dockertypes.Container
-		wantImages        []dockertypes.ImageSummary
-		wantNetworks      []dockertypes.NetworkResource
+		wantContainers    []containertypes.Summary
+		wantImages        []imagetypes.Summary
+		wantNetworks      []networktypes.Inspect
 		wantVolumes       []volumetypes.Volume
 	}{
 		{
@@ -243,7 +245,7 @@ func TestNuke(t *testing.T) {
 				},
 			},
 			mockAPIClientOpts: docker.MockAPIClientOptions{
-				Containers: []dockertypes.Container{
+				Containers: []containertypes.Summary{
 					{
 						ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
 						Names: []string{"touchbistro-tb-registry-postgres"},
@@ -267,7 +269,7 @@ func TestNuke(t *testing.T) {
 						State: docker.ContainerStateRunning,
 					},
 				},
-				Images: []dockertypes.ImageSummary{
+				Images: []imagetypes.Summary{
 					{
 						ID: "sha256:807372352591d91230c1e7a7f4dbaf17a7edaa8283be598e0af73ccbb138c1ac",
 						RepoTags: []string{
@@ -291,7 +293,7 @@ func TestNuke(t *testing.T) {
 						RepoTags: []string{"my_image:latest"},
 					},
 				},
-				Networks: []dockertypes.NetworkResource{
+				Networks: []networktypes.Inspect{
 					{
 						ID:   "872eead77c73055de86c8ca6a17d509937c8e8c747b00a40a8374cec721b70e4",
 						Name: "tb_default",
@@ -322,20 +324,20 @@ func TestNuke(t *testing.T) {
 				RemoveNetworks:   true,
 				RemoveVolumes:    true,
 			},
-			wantContainers: []dockertypes.Container{
+			wantContainers: []containertypes.Summary{
 				{
 					ID:    "e8dc7c16f7dd4be23b96951a34b7ecc69cd727ed13a626a309a96b472646c5e9",
 					Names: []string{"test-ubuntu"},
 					State: docker.ContainerStateRunning,
 				},
 			},
-			wantImages: []dockertypes.ImageSummary{
+			wantImages: []imagetypes.Summary{
 				{
 					ID:       "sha256:f44e5c030356bacda2112f21066ed11d62364e5900f199d5fd217504f594e0ce",
 					RepoTags: []string{"my_image:latest"},
 				},
 			},
-			wantNetworks: []dockertypes.NetworkResource{
+			wantNetworks: []networktypes.Inspect{
 				{
 					ID:   "c3b047926ba1ecbf32ba32c16bdb6886e10d10f7c7a3511481f79b648274616a",
 					Name: "my_network",
@@ -350,7 +352,7 @@ func TestNuke(t *testing.T) {
 		{
 			name: "remove containers if removing other docker resources",
 			mockAPIClientOpts: docker.MockAPIClientOptions{
-				Containers: []dockertypes.Container{
+				Containers: []containertypes.Summary{
 					{
 						ID:    "32ce4d8d9c648dd5fce39cf48319da8d55b195513b6fe0cef4a425de9380590c",
 						Names: []string{"touchbistro-tb-registry-postgres"},
@@ -360,7 +362,7 @@ func TestNuke(t *testing.T) {
 						State: docker.ContainerStateRunning,
 					},
 				},
-				Networks: []dockertypes.NetworkResource{
+				Networks: []networktypes.Inspect{
 					{
 						ID:   "872eead77c73055de86c8ca6a17d509937c8e8c747b00a40a8374cec721b70e4",
 						Name: "tb_default",
@@ -403,15 +405,15 @@ func TestNuke(t *testing.T) {
 			is := is.New(t)
 			is.NoErr(err)
 
-			remainingContainers, err := dockerAPIClient.ContainerList(ctx, dockertypes.ContainerListOptions{All: true})
+			remainingContainers, err := dockerAPIClient.ContainerList(ctx, containertypes.ListOptions{All: true})
 			is.NoErr(err)
 			is.Equal(remainingContainers, tt.wantContainers)
 
-			remainingImages, err := dockerAPIClient.ImageList(ctx, dockertypes.ImageListOptions{All: true})
+			remainingImages, err := dockerAPIClient.ImageList(ctx, imagetypes.ListOptions{All: true})
 			is.NoErr(err)
 			is.Equal(remainingImages, tt.wantImages)
 
-			remainingNetworks, err := dockerAPIClient.NetworkList(ctx, dockertypes.NetworkListOptions{})
+			remainingNetworks, err := dockerAPIClient.NetworkList(ctx, networktypes.ListOptions{})
 			is.NoErr(err)
 			is.Equal(remainingNetworks, tt.wantNetworks)
 
