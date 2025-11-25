@@ -31,7 +31,7 @@ Run the build for a specific branch:
 	tb app desktop run TouchBistroServer --branch task/bug-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if c.OfflineMode {
-				return fmt.Errorf("Cannot run desktop app in offline mode")
+				return fmt.Errorf("cannot run desktop app in offline mode")
 			}
 
 			appName := args[0]

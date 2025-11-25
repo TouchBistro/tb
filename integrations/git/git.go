@@ -64,7 +64,7 @@ func (realGit) GetBranchHeadSha(ctx context.Context, repo, branch string) (strin
 func execGit(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
 	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 	if stdout == nil {
 		stdout = w
 	}

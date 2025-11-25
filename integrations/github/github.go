@@ -44,7 +44,7 @@ func (c *Client) LatestReleaseTag(ctx context.Context, org, repo string) (string
 			Op:     op,
 		})
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != 200 {
 		return "", errors.New(errkind.GitHub, fmt.Sprintf("got %d status from the GitHub API", resp.StatusCode), op)
 	}

@@ -266,13 +266,13 @@ func (e *Engine) AppDesktopRun(ctx context.Context, appName string, opts AppDesk
 	// Set env vars so they are available in the app process
 	for k, v := range a.EnvVars {
 		tracker.Debugf("Setting %s to %s", k, v)
-		os.Setenv(k, v)
+		_ = os.Setenv(k, v)
 	}
 	tracker.UpdateMessage("Launching app")
 	// TODO(@cszatmary): probably want to figure out a better way to abstract opening an app cross platform
 	if util.IsMacOS {
 		w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-		defer w.Close()
+		defer func() { _ = w.Close() }()
 		args := []string{"open", appPath}
 		cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 		cmd.Stdout = w
@@ -388,7 +388,7 @@ func (e *Engine) downloadApp(ctx context.Context, a app.App, appType app.Type, o
 	if err != nil {
 		return "", errors.Wrap(err, errors.Meta{Op: op})
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 	if err := file.Untar(localBranchDir, r); err != nil {
 		return "", errors.Wrap(err, errors.Meta{
 			Kind:   errkind.IO,

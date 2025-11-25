@@ -568,7 +568,7 @@ func readRegistryFile(op errors.Op, filename string, r Registry, v interface{}) 
 			Op:     op,
 		})
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	if err := yaml.NewDecoder(f).Decode(v); err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.IO,

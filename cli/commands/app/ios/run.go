@@ -34,7 +34,7 @@ Run the build for specific branch in an iOS 12.3 iPad Air 2 simulator:
 	tb app ios run TouchBistro --ios-version 12.3 --device "iPad Air 2" --branch task/pay-631/fix-thing`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if c.OfflineMode {
-				return fmt.Errorf("Cannot run iOS app in offline mode")
+				return fmt.Errorf("cannot run iOS app in offline mode")
 			}
 			
 			appName := args[0]

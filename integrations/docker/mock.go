@@ -12,9 +12,11 @@ import (
 
 	"github.com/distribution/reference"
 	configtypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
+	imagetypes "github.com/docker/docker/api/types/image"
+	networktypes "github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/system"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/registry"
 )
@@ -62,9 +64,9 @@ type mockAPIClient struct {
 	// State for mock functionality
 	// Each map's keys are the IDs of the given resource for easy lookup.
 
-	containers map[string]types.Container
-	images     map[string]types.ImageSummary
-	networks   map[string]types.NetworkResource
+	containers map[string]containertypes.Summary
+	images     map[string]imagetypes.Summary
+	networks   map[string]networktypes.Inspect
 	volumes    map[string]volumetypes.Volume
 
 	// map of server address to registry
@@ -78,17 +80,17 @@ type MockRegistry struct {
 }
 
 type MockRegistryRepository struct {
-	Images []types.ImageSummary
+	Images []imagetypes.Summary
 	Public bool
 }
 
 type MockAPIClientOptions struct {
 	// Containers is the initial containers the mock client should have.
-	Containers []types.Container
+	Containers []containertypes.Summary
 	// Images is the initial images the mock client should have.
-	Images []types.ImageSummary
+	Images []imagetypes.Summary
 	// Networks is the initial networks the mock client should have.
-	Networks []types.NetworkResource
+	Networks []networktypes.Inspect
 	// Volumes is the initial volumes the mock client should have.
 	Volumes []volumetypes.Volume
 	// Registries is a list of mock registries to pull images from.
@@ -99,9 +101,9 @@ type MockAPIClientOptions struct {
 func NewMockAPIClient(opts MockAPIClientOptions) APIClient {
 	m := &mockAPIClient{
 		indexServerAddress: registry.IndexServer,
-		containers:         make(map[string]types.Container),
-		images:             make(map[string]types.ImageSummary),
-		networks:           make(map[string]types.NetworkResource),
+		containers:         make(map[string]containertypes.Summary),
+		images:             make(map[string]imagetypes.Summary),
+		networks:           make(map[string]networktypes.Inspect),
 		volumes:            make(map[string]volumetypes.Volume),
 		registries:         make(map[string]MockRegistry),
 	}
@@ -138,11 +140,11 @@ func NewMockAPIClient(opts MockAPIClientOptions) APIClient {
 	return m
 }
 
-func (m *mockAPIClient) Info(ctx context.Context) (types.Info, error) {
-	return types.Info{IndexServerAddress: m.indexServerAddress}, nil
+func (m *mockAPIClient) Info(ctx context.Context) (system.Info, error) {
+	return system.Info{IndexServerAddress: m.indexServerAddress}, nil
 }
 
-func (m *mockAPIClient) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+func (m *mockAPIClient) ContainerList(ctx context.Context, options containertypes.ListOptions) ([]containertypes.Summary, error) {
 	// Get all filters we will need to check
 	labelFilters := options.Filters.Get("label")
 	// Turn string slice into a map for easy lookup
@@ -151,7 +153,7 @@ func (m *mockAPIClient) ContainerList(ctx context.Context, options types.Contain
 		nameFilters[n] = true
 	}
 
-	var found []types.Container
+	var found []containertypes.Summary
 	for _, c := range m.containers {
 		if !options.All && c.State != ContainerStateRunning {
 			continue
@@ -177,7 +179,7 @@ func (m *mockAPIClient) ContainerList(ctx context.Context, options types.Contain
 	return found, nil
 }
 
-func (m *mockAPIClient) ContainerRemove(ctx context.Context, container string, options types.ContainerRemoveOptions) error {
+func (m *mockAPIClient) ContainerRemove(ctx context.Context, container string, options containertypes.RemoveOptions) error {
 	found, err := m.findContainerByID(container)
 	if err != nil {
 		return err
@@ -208,18 +210,18 @@ func (m *mockAPIClient) ContainerStop(ctx context.Context, container string, opt
 	return nil
 }
 
-func (m *mockAPIClient) findContainerByID(id string) (types.Container, error) {
+func (m *mockAPIClient) findContainerByID(id string) (containertypes.Summary, error) {
 	if id == "" {
-		return types.Container{}, fmt.Errorf("container cannot be empty")
+		return containertypes.Summary{}, fmt.Errorf("container cannot be empty")
 	}
 	c, ok := m.containers[id]
 	if !ok {
-		return types.Container{}, notFoundError(fmt.Sprintf("no such container: %s", id))
+		return containertypes.Summary{}, notFoundError(fmt.Sprintf("no such container: %s", id))
 	}
 	return c, nil
 }
 
-func (m *mockAPIClient) ImagePull(ctx context.Context, ref string, options types.ImagePullOptions) (io.ReadCloser, error) {
+func (m *mockAPIClient) ImagePull(ctx context.Context, ref string, options imagetypes.PullOptions) (io.ReadCloser, error) {
 	// Resolve registry from image name
 	parsedRef, err := reference.ParseNormalizedNamed(ref)
 	if err != nil {
@@ -268,7 +270,7 @@ func (m *mockAPIClient) ImagePull(ctx context.Context, ref string, options types
 	// Add latest tag if no tag
 	imageName = reference.TagNameOnly(parsedRef).String()
 
-	var image types.ImageSummary
+	var image imagetypes.Summary
 	found := false
 Loop:
 	for _, im := range repo.Images {
@@ -291,10 +293,10 @@ Loop:
 	return io.NopCloser(&bytes.Reader{}), nil
 }
 
-func (m *mockAPIClient) ImageList(ctx context.Context, options types.ImageListOptions) ([]types.ImageSummary, error) {
+func (m *mockAPIClient) ImageList(ctx context.Context, options imagetypes.ListOptions) ([]imagetypes.Summary, error) {
 	// All only applies if no filters are provided
 	if options.All && options.Filters.Len() == 0 {
-		var images []types.ImageSummary
+		var images []imagetypes.Summary
 		for _, im := range m.images {
 			images = append(images, im)
 		}
@@ -307,7 +309,7 @@ func (m *mockAPIClient) ImageList(ctx context.Context, options types.ImageListOp
 		referenceFilters[n] = true
 	}
 
-	var found []types.ImageSummary
+	var found []imagetypes.Summary
 	for _, im := range m.images {
 		// Handle filters
 		if len(referenceFilters) > 0 {
@@ -339,7 +341,7 @@ func (m *mockAPIClient) ImageList(ctx context.Context, options types.ImageListOp
 	return found, nil
 }
 
-func (m *mockAPIClient) ImageRemove(ctx context.Context, image string, options types.ImageRemoveOptions) ([]types.ImageDeleteResponseItem, error) {
+func (m *mockAPIClient) ImageRemove(ctx context.Context, image string, options imagetypes.RemoveOptions) ([]imagetypes.DeleteResponse, error) {
 	if image == "" {
 		return nil, fmt.Errorf("image cannot be empty")
 	}
@@ -348,14 +350,14 @@ func (m *mockAPIClient) ImageRemove(ctx context.Context, image string, options t
 		return nil, notFoundError(fmt.Sprintf("no such image: %s", image))
 	}
 	delete(m.images, image)
-	resp := []types.ImageDeleteResponseItem{{Deleted: im.ID}}
+	resp := []imagetypes.DeleteResponse{{Deleted: im.ID}}
 	for _, rt := range im.RepoTags {
-		resp = append(resp, types.ImageDeleteResponseItem{Untagged: rt})
+		resp = append(resp, imagetypes.DeleteResponse{Untagged: rt})
 	}
 	return resp, nil
 }
 
-func (m *mockAPIClient) ImagesPrune(ctx context.Context, pruneFilter filters.Args) (types.ImagesPruneReport, error) {
+func (m *mockAPIClient) ImagesPrune(ctx context.Context, pruneFilter filters.Args) (imagetypes.PruneReport, error) {
 	danglingFilters := pruneFilter.Get("dangling")
 	removeDangling := false
 	for _, df := range danglingFilters {
@@ -364,7 +366,7 @@ func (m *mockAPIClient) ImagesPrune(ctx context.Context, pruneFilter filters.Arg
 		}
 	}
 
-	var report types.ImagesPruneReport
+	var report imagetypes.PruneReport
 	for id, im := range m.images {
 		if im.Containers > 0 {
 			// Image is used, skip
@@ -374,17 +376,17 @@ func (m *mockAPIClient) ImagesPrune(ctx context.Context, pruneFilter filters.Arg
 			continue
 		}
 		delete(m.images, id)
-		report.ImagesDeleted = append(report.ImagesDeleted, types.ImageDeleteResponseItem{Deleted: im.ID})
+		report.ImagesDeleted = append(report.ImagesDeleted, imagetypes.DeleteResponse{Deleted: im.ID})
 		report.SpaceReclaimed += uint64(im.Size)
 	}
 	return report, nil
 }
 
-func (m *mockAPIClient) NetworkList(ctx context.Context, options types.NetworkListOptions) ([]types.NetworkResource, error) {
+func (m *mockAPIClient) NetworkList(ctx context.Context, options networktypes.ListOptions) ([]networktypes.Inspect, error) {
 	// Get all filters we will need to check
 	labelFilters := options.Filters.Get("label")
 
-	var found []types.NetworkResource
+	var found []networktypes.Inspect
 	for _, n := range m.networks {
 		// Handle filters
 		if !checkLabelFilters(n.Labels, labelFilters) {

@@ -226,6 +226,18 @@ func checkDepVersion(ctx context.Context, logger progress.Logger) error {
 			return fmt.Errorf("unable to parse %s version: %v", name, err)
 		}
 
+		// Special check for lazydocker - Docker SDK had breaking changes in November 2025
+		if name == "lazydocker" {
+			minRequiredVersion := semver.MustParse("0.24.2")
+			if currentVersion.LT(minRequiredVersion) {
+				logger.Info("")
+				logger.Info(color.Red("🚨 Your lazydocker version (%s) is too old for the Docker SDK changes in November 2025."), version)
+				logger.Info(color.Red("   lazydocker v0.24.2 or newer is required."))
+				logger.Info(color.Yellow("   Please upgrade: brew upgrade lazydocker"))
+				logger.Info("")
+			}
+		}
+
 		// Check if there is a newer version available and let the user know
 		// If it fails just ignore and continue normal operation
 		// Log to debug for troubleshooting

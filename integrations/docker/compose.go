@@ -135,7 +135,7 @@ func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) er
 		tracker := progress.TrackerFromContext(ctx)
 		op := fmt.Sprintf("docker-compose-%s", opts.args[0])
 		wc := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-		defer wc.Close()
+		defer func() { _ = wc.Close() }()
 		w = wc
 	}
 	if opts.stdout == nil {

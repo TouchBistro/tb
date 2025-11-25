@@ -58,7 +58,7 @@ func (sim *simulator) Open(ctx context.Context) error {
 	const op = errors.Op("Simulator.Open")
 	tracker := progress.TrackerFromContext(ctx)
 	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	args := []string{"open", "-a", "simulator"}
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
@@ -99,7 +99,7 @@ func (sim *simulator) Setenv(key, value string) error {
 func execSimctl(ctx context.Context, op errors.Op, stdout io.Writer, args ...string) error {
 	tracker := progress.TrackerFromContext(ctx)
 	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 	if stdout == nil {
 		stdout = w
 	}
