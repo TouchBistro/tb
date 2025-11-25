@@ -1,11 +1,11 @@
 version: 2.1
 
-cache_key: &cache_key tb-deps-20200924-{{ checksum "go.sum" }}
+cache_key: &cache_key tb-deps-20251125-{{ checksum "go.sum" }}
 
 jobs:
   lint-build-test:
     docker:
-      - image: cimg/go:1.21
+      - image: cimg/go:1.24
     steps:
       - checkout
       - restore_cache:

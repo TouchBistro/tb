@@ -12,7 +12,6 @@ import (
 
 	"github.com/distribution/reference"
 	configtypes "github.com/docker/cli/cli/config/types"
-	"github.com/docker/docker/api/types"
 	containertypes "github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	imagetypes "github.com/docker/docker/api/types/image"
@@ -154,7 +153,7 @@ func (m *mockAPIClient) ContainerList(ctx context.Context, options containertype
 		nameFilters[n] = true
 	}
 
-	var found []types.Container
+	var found []containertypes.Summary
 	for _, c := range m.containers {
 		if !options.All && c.State != ContainerStateRunning {
 			continue
@@ -211,13 +210,13 @@ func (m *mockAPIClient) ContainerStop(ctx context.Context, container string, opt
 	return nil
 }
 
-func (m *mockAPIClient) findContainerByID(id string) (types.Container, error) {
+func (m *mockAPIClient) findContainerByID(id string) (containertypes.Summary, error) {
 	if id == "" {
-		return types.Container{}, fmt.Errorf("container cannot be empty")
+		return containertypes.Summary{}, fmt.Errorf("container cannot be empty")
 	}
 	c, ok := m.containers[id]
 	if !ok {
-		return types.Container{}, notFoundError(fmt.Sprintf("no such container: %s", id))
+		return containertypes.Summary{}, notFoundError(fmt.Sprintf("no such container: %s", id))
 	}
 	return c, nil
 }

@@ -95,7 +95,7 @@ func Read(homedir string) (Config, error) {
 			Op:     op,
 		})
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var config Config
 	if err := yaml.NewDecoder(f).Decode(&config); err != nil {
@@ -364,7 +364,7 @@ func AddRegistry(registryName, homedir string) error {
 			Op:     op,
 		})
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Decode into a Node so we can manipulate the contents while
 	// preserving comments and ordering

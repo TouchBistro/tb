@@ -9,7 +9,7 @@ help:
 setup: ## Get all dependencies
 # Only install if missing
 ifeq (,$(wildcard bin/golangci-lint))
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.54.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.64.8
 endif
 
 	go mod tidy

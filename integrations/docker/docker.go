@@ -15,6 +15,7 @@ import (
 	"github.com/TouchBistro/goutils/logutil"
 	"github.com/TouchBistro/goutils/progress"
 	"github.com/TouchBistro/tb/errkind"
+	cerrdefs "github.com/containerd/errdefs"
 	"github.com/distribution/reference"
 	dockerconfig "github.com/docker/cli/cli/config"
 	configtypes "github.com/docker/cli/cli/config/types"
@@ -24,7 +25,6 @@ import (
 	networktypes "github.com/docker/docker/api/types/network"
 	volumetypes "github.com/docker/docker/api/types/volume"
 	"github.com/docker/docker/client"
-	"github.com/docker/docker/errdefs"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/docker/registry"
 )
@@ -307,14 +307,14 @@ func (d *Docker) PullImage(ctx context.Context, imageName string) error {
 			Op:     op,
 		})
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	// ImagePull returns an io.Reader which will contain details on the progress of pulling images.
 	// We can display this in debug mode to get information on the pull progress equivalent to if
 	// the user had run `docker pull`.
 	// Only do it for debug though because it is really noisy.
 	w := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
-	defer w.Close()
+	defer func() { _ = w.Close() }()
 
 	// The docker SDK provides a handy way to write the output.
 	// The magic values suck, but basically we are telling it that w is not a tty.
@@ -400,7 +400,7 @@ func (d *Docker) RemoveImages(ctx context.Context, imageSearches []ImageSearch) 
 			Force:         true,
 			PruneChildren: true,
 		})
-		if errdefs.IsNotFound(err) {
+		if cerrdefs.IsNotFound(err) {
 			tracker.Warnf("No images found to remove: %s", imageNames)
 		}
 		if err != nil {
@@ -473,7 +473,7 @@ func (d *Docker) RemoveVolumes(ctx context.Context) error {
 	for _, volume := range volumes.Volumes {
 		tracker.Debugf("Removing volume %s", volume.Name)
 		err := d.apiClient.VolumeRemove(ctx, volume.Name, true)
-		if errdefs.IsNotFound(err) {
+		if cerrdefs.IsNotFound(err) {
 			tracker.Warnf("No volume found to remove: %s", volume.Name)
 		}
 		if err != nil {

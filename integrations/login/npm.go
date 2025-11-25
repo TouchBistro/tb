@@ -66,6 +66,6 @@ func (npmStrategy) Login(ctx context.Context) error {
 	// Set the NPM_READ_TOKEN as an env var. This way any child processes run will inherit this env var
 	// meaning when we run docker build it should have access to it
 	// matches[0] is the full match
-	os.Setenv(npmToken, string(matches[1]))
+	_ = os.Setenv(npmToken, string(matches[1]))
 	return nil
 }

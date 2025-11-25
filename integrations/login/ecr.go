@@ -61,7 +61,7 @@ func (ecrStrategy) Login(ctx context.Context) error {
 		})
 	}
 	// Make sure we close even if we return with an error
-	defer stdin.Close()
+	defer func() { _ = stdin.Close() }()
 	if err := cmd.Start(); err != nil {
 		return errors.Wrap(err, errors.Meta{
 			Kind:   errkind.Docker,
