@@ -74,6 +74,9 @@ func (c *apiClient) ComposeUp(ctx context.Context, project ComposeProject, servi
 }
 
 func (c *apiClient) ComposeRun(ctx context.Context, project ComposeProject, opts ComposeRunOptions) error {
+	tracker := progress.TrackerFromContext(ctx)
+	tracker.Debugf("Compose run requested for service %s with %d args: %q", opts.Service, len(opts.Cmd), opts.Cmd)
+
 	return c.execCompose(ctx, execComposeOptions{
 		project:        project,
 		useComposeFile: true,
@@ -130,9 +133,10 @@ type execComposeOptions struct {
 }
 
 func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) error {
+	tracker := progress.TrackerFromContext(ctx)
+
 	var w io.Writer
 	if opts.stdout == nil || opts.stderr == nil {
-		tracker := progress.TrackerFromContext(ctx)
 		op := fmt.Sprintf("docker-compose-%s", opts.args[0])
 		wc := logutil.LogWriter(tracker.WithAttrs("op", op), slog.LevelDebug)
 		defer func() { _ = wc.Close() }()
@@ -154,6 +158,8 @@ func (c *apiClient) execCompose(ctx context.Context, opts execComposeOptions) er
 		args = append(args, "--file", fp)
 	}
 	args = append(args, opts.args...)
+	tracker.Debugf("Executing docker compose command with %d args: %q", len(args), args)
+
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 	cmd.Stdin = opts.stdin
 	cmd.Stdout = opts.stdout
