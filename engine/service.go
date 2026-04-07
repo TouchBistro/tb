@@ -213,6 +213,7 @@ func (e *Engine) Up(ctx context.Context, opts UpOptions) error {
 				}
 
 				tracker.Debugf("Running pre-run for %s", s.FullName())
+				tracker.Debugf("Pre-run command for %s (raw): %q", s.FullName(), s.PreRun)
 				if err := e.dockerClient.RunService(ctx, s.FullName(), s.PreRun); err != nil {
 					return errors.Wrap(err, errors.Meta{
 						Reason: fmt.Sprintf("failed to run pre-run command for %s", s.FullName()),

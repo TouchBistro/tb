@@ -513,9 +513,18 @@ func (d *Docker) UpServices(ctx context.Context, serviceNames []string) error {
 
 // RunServices creates a one-off service container and executes a command in it.
 func (d *Docker) RunService(ctx context.Context, serviceName, cmd string) error {
+	tracker := progress.TrackerFromContext(ctx)
+	script := strings.TrimSpace(cmd)
+	shellCmd := []string{"bash", "-c", "set -euo pipefail\n" + script}
+	normalizedServiceName := NormalizeName(serviceName)
+
+	tracker.Debugf("Preparing pre-run compose run for service %s (normalized: %s)", serviceName, normalizedServiceName)
+	tracker.Debugf("Pre-run command for %s (raw): %q", serviceName, cmd)
+	tracker.Debugf("Pre-run command for %s will run via shell with %d args: %q", serviceName, len(shellCmd), shellCmd)
+
 	err := d.apiClient.ComposeRun(ctx, d.project, ComposeRunOptions{
-		Service: NormalizeName(serviceName),
-		Cmd:     strings.Fields(cmd),
+		Service: normalizedServiceName,
+		Cmd:     shellCmd,
 	})
 	if err != nil {
 		return errors.Wrap(err, errors.Meta{
